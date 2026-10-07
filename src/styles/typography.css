@@ -36,6 +36,12 @@
   color: var(--accent, var(--color-terracotta));
 }
 
+/* Masque de ligne (SplitText) : la marge basse laisse respirer les jambages (g, p, q, j). */
+.split-line-mask {
+  padding-bottom: 0.2em;
+  margin-bottom: -0.2em;
+}
+
 /* Une ligne par élément, pour les titres composés ligne à ligne. */
 .display-line {
   display: block;
@@ -67,13 +73,6 @@
   color: var(--fg-muted);
   max-width: 62ch;
   text-wrap: pretty;
-}
-
-.numeral {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-variant-numeric: lining-nums tabular-nums;
-  line-height: 0.8;
 }
 
 .prose {
@@ -115,18 +114,8 @@
 }
 
 .prose li {
-  position: relative;
-  padding-left: 1.5em;
-}
-
-.prose li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0.85em;
-  width: 0.75em;
-  height: 1px;
-  background: var(--accent);
+  padding-left: var(--space-sm);
+  border-left: 1px solid var(--line-strong);
 }
 
 .prose a {

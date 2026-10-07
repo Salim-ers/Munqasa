@@ -2,7 +2,8 @@
  * Plugin Vite — SEO statique.
  *
  * - injecte dans index.html les balises de la page d'accueil (title, meta,
- *   canonical, Open Graph, JSON-LD, preload du hero) ;
+ *   canonical, Open Graph, JSON-LD) — le préchargement du hero dépend de la
+ *   lumière choisie et est ajouté par public/theme-init.js ;
  * - au build, écrit un HTML par route (dist/services.html…) avec ses propres
  *   balises : les robots et les aperçus de liens lisent le bon contenu sans
  *   exécuter le JavaScript ;
@@ -100,14 +101,11 @@ function renderHead(site: string, page: HeadInput): string {
     `<meta property="og:image" content="${site}/og-image.jpg" />`,
     `<meta property="og:image:width" content="1200" />`,
     `<meta property="og:image:height" content="630" />`,
-    `<meta property="og:image:alt" content="MUNAQASA — Appels d'offres · Maroc" />`,
+    `<meta property="og:image:alt" content="MUNAQASA, appels d’offres au Maroc" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:title" content="${esc(page.title)}" />`,
     `<meta name="twitter:description" content="${esc(page.description)}" />`,
     `<meta name="twitter:image" content="${site}/og-image.jpg" />`,
-    page.path === "/"
-      ? `<link rel="preload" as="image" type="image/webp" href="/images/hero-day-1920.webp" imagesrcset="/images/hero-day-1280.webp 1280w, /images/hero-day-1920.webp 1920w, /images/hero-day.webp 2560w" imagesizes="100vw" fetchpriority="high" />`
-      : "",
     `<script type="application/ld+json">${jsonLd(site, page)}</script>`,
   ].filter(Boolean);
   return `${START}\n    ${tags.join("\n    ")}\n    ${END}`;

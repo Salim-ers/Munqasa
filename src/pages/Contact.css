@@ -34,9 +34,9 @@
   display: grid;
   gap: var(--space-xl);
   padding: clamp(1.5rem, 3.4vw, 3.5rem);
-  background: var(--color-warm-white);
+  background: var(--bg-1);
   border: 1px solid var(--line);
-  box-shadow: 0 40px 80px -60px rgb(23 23 23 / 0.45);
+  box-shadow: 0 40px 80px -60px var(--shadow);
 }
 
 .contact__form-head {
@@ -46,17 +46,13 @@
   border-bottom: 1px solid var(--fg);
 }
 
-.contact__rev {
-  color: var(--fg-muted);
-}
-
 .contact__formula {
   display: flex;
   align-items: baseline;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   border-left: 3px solid var(--accent);
-  background: var(--color-ivory);
+  background: var(--bg-2);
   font-family: var(--font-display);
   font-size: var(--text-lg);
 }
@@ -93,9 +89,6 @@ fieldset.field {
   color: var(--fg);
 }
 
-.field__num {
-  color: var(--accent);
-}
 
 .field__req {
   color: var(--accent);
@@ -157,7 +150,7 @@ fieldset.field {
 }
 
 .field__error {
-  color: var(--color-terracotta-deep);
+  color: var(--error);
   font-size: var(--text-xs);
   font-weight: 600;
 }
@@ -214,9 +207,9 @@ fieldset.field {
 }
 
 .chip input:checked + span {
-  color: var(--color-ivory);
-  background: var(--color-ink);
-  border-color: var(--color-ink);
+  color: var(--bg-1);
+  background: var(--fg);
+  border-color: var(--fg);
 }
 
 .chip--check input:checked + span::before {
@@ -311,7 +304,7 @@ fieldset.field {
 
 .contact__alert {
   padding: 0.9rem 1.1rem;
-  color: var(--color-terracotta-deep);
+  color: var(--error);
   background: rgb(160 65 30 / 0.08);
   border-left: 3px solid var(--color-terracotta);
   font-size: var(--text-sm);
@@ -338,7 +331,7 @@ fieldset.field {
   justify-items: start;
   gap: var(--space-lg);
   padding: clamp(1.5rem, 3.4vw, 3.5rem);
-  background: var(--color-warm-white);
+  background: var(--bg-1);
   border: 1px solid var(--line);
   border-top: 3px solid var(--color-terracotta);
 }
@@ -371,15 +364,10 @@ fieldset.field {
 }
 
 .contact__steps li {
-  display: grid;
-  grid-template-columns: 2.25rem 1fr;
-  gap: 0.5rem;
+  padding-left: var(--space-sm);
+  border-left: 1px solid var(--accent);
 }
 
-.contact__step-num {
-  color: var(--accent);
-  padding-top: 0.3rem;
-}
 
 .contact__step-title {
   font-family: var(--font-display);

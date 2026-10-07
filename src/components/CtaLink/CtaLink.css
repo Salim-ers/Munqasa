@@ -52,7 +52,11 @@
 }
 
 .cta--solid::before {
-  background: var(--color-ink);
+  background: var(--fg);
+}
+
+.cta--solid:hover {
+  color: var(--bg-1);
 }
 
 .cta--solid:hover::before,
@@ -70,7 +74,7 @@
 }
 
 .cta--outline:hover {
-  color: var(--bg);
+  color: var(--bg-1);
   border-color: var(--fg);
 }
 
@@ -86,14 +90,6 @@
 .cta--text:hover {
   background-size: 0% 1px;
   background-position: 100% calc(50% + 1em);
-}
-
-:is(.surface-dusk, .surface-night, .surface-ink) .cta--solid::before {
-  background: var(--color-ivory);
-}
-
-:is(.surface-dusk, .surface-night, .surface-ink) .cta--solid:hover {
-  color: var(--color-ink);
 }
 
 @media (max-width: 479px) {

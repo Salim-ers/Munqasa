@@ -3,26 +3,6 @@
   margin-inline: auto;
 }
 
-.container--narrow {
-  width: var(--container-narrow);
-  margin-inline: auto;
-}
-
-.grid-12 {
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  column-gap: var(--grid-gap);
-}
-
-.section {
-  position: relative;
-  padding-block: var(--space-2xl);
-}
-
-.section--tall {
-  padding-block: var(--space-3xl);
-}
-
 /* Lignes de construction : colonnes très discrètes, comme un calque. */
 .blueprint-grid {
   position: absolute;
@@ -48,35 +28,6 @@
   .blueprint-grid > span:nth-child(n + 5) {
     display: none;
   }
-}
-
-/* Repères d'impression aux angles d'un cadre. */
-.crop-marks {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.crop-marks::before,
-.crop-marks::after {
-  content: "";
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  border-color: var(--line-strong);
-  border-style: solid;
-}
-
-.crop-marks::before {
-  top: -7px;
-  left: -7px;
-  border-width: 1px 0 0 1px;
-}
-
-.crop-marks::after {
-  bottom: -7px;
-  right: -7px;
-  border-width: 0 1px 1px 0;
 }
 
 .visually-hidden {

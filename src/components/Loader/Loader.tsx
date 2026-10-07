@@ -70,7 +70,7 @@ export function Loader() {
         </svg>
         <img className="loader__symbol" src="/logos/munaqasa-symbol-reversed-sm.webp" width={639} height={682} alt="" />
         <img className="loader__wordmark" src="/logos/munaqasa-wordmark-reversed-sm.webp" width={1189} height={179} alt="" />
-        <p className="loader__label label">Appels d’offres · Maroc</p>
+        <p className="loader__label label">Appels d’offres au Maroc</p>
       </div>
     </div>
   );

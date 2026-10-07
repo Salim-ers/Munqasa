@@ -32,7 +32,6 @@ html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
-  color-scheme: light;
 }
 
 body {
@@ -42,8 +41,8 @@ body {
   font-size: var(--text-base);
   font-weight: 400;
   line-height: 1.65;
-  color: var(--color-ink);
-  background-color: var(--color-ivory);
+  color: var(--fg);
+  background-color: var(--bg-1);
   overflow-x: clip;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -109,7 +108,7 @@ button {
 }
 
 :focus-visible {
-  outline: 2px solid var(--focus, var(--color-terracotta));
+  outline: 2px solid var(--focus);
   outline-offset: 4px;
 }
 
@@ -147,5 +146,25 @@ html.lenis body {
     animation-duration: 1ms;
     animation-iteration-count: 1;
     transition-duration: 180ms;
+  }
+}
+
+/* Changement de lumière : la nouvelle lumière balaie toute la page, de gauche à droite. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-new(root) {
+  animation: light-sweep 1.15s var(--ease-architect) both;
+}
+
+@keyframes light-sweep {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
   }
 }

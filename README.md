@@ -1,8 +1,8 @@
-# MUNAQASA — site vitrine
+# MUNAQASA, site vitrine
 
 Gestion et accompagnement des appels d'offres au Maroc. *De l'avis à la soumission.*
 
-React 19 · TypeScript · Vite 8 · React Router 8 · GSAP (ScrollTrigger, SplitText) · Lenis · Lucide.
+React 19, TypeScript, Vite 8, React Router 8, GSAP (ScrollTrigger, SplitText), Lenis, Lucide.
 
 ```bash
 npm install
@@ -16,7 +16,7 @@ npm run preview    # sert dist/ en local
 ```
 src/
   animations/   GSAP centralisé (plugins, courbes) et révélations déclaratives (data-reveal)
-  components/   en-tête, menu mobile, footer, loader, transition de page, curseur, logo, DocSheet, DocStage…
+  components/   en-tête, menu mobile, footer, loader, transition de page, curseur, logo, sélecteur jour / nuit, photo
   sections/     sections de l'accueil (home/) et blocs partagés (shared/)
   pages/        une page par route
   hooks/        useGsap, useSmoothScroll (Lenis), useHeaderState, useRouteSeo…
@@ -29,7 +29,25 @@ scripts/        outils de production : logo, photos, génération d'images (Open
 public/         images optimisées, logos détourés, polices auto-hébergées, favicons
 ```
 
-Routes : `/`, `/services`, `/methode`, `/expertise`, `/contact`, `/mentions-legales`, `/politique-confidentialite`, et une page 404.
+Routes : `/`, `/services`, `/methode`, `/expertise`, `/contact` (« Confier un dossier » : contact et demande ne font
+qu’un), `/mentions-legales`, `/politique-confidentialite`, et une page 404.
+
+## Jour / nuit
+
+Tout le site est soit en jour, soit en nuit : couleurs (`html[data-theme]`, tokens dans `src/styles/tokens.css`) **et**
+photographies. Chaque photo du site existe en deux versions : la nuit n’est pas un voile sombre, c’est une vraie
+photographie de nuit, éditée à partir de la photo de jour (même cadrage), avec un éclairage chaud et oriental.
+
+- Le choix est mémorisé (`localStorage`) et appliqué avant le premier rendu par `public/theme-init.js` : aucun flash.
+- Au changement, la nouvelle lumière balaie la page de gauche à droite (View Transitions) ; les photos visibles sont
+  chargées avant le balayage. Mouvement réduit : bascule instantanée.
+- Seule la version de la lumière active est téléchargée.
+
+## Accueil
+
+Une idée par section, aucune redite : hero (promesse), séquence « Le dossier » (une consultation devient un dossier
+déposé à temps, animée au défilement), index des services (photo au survol), grande photographie, formules. L’appel
+final vit dans le pied de page, commun à toutes les pages.
 
 ## Variables d'environnement
 
@@ -67,7 +85,7 @@ npm run hero            # jour → nuit (éditée à partir du jour) → recadra
 
 - Modèles : `gpt-image-2` (2560×1440 natif) puis repli automatique sur `gpt-image-1` (1536×1024) si le compte n'y a pas
   accès. Chaque repli est affiché dans le terminal.
-- La nuit n'est **jamais** générée seule : c'est une édition de l'image jour (haute fidélité), qui ne change que la lumière.
+- La nuit n'est **jamais** générée seule : c'est une édition de l'image jour, qui ne change que la lumière.
 - Sorties : `hero-day.webp`, `hero-day-1920.webp`, `hero-day-1280.webp` et leurs équivalents `hero-night-*`.
 - Sources et prompts : `assets-src/generated/hero/` (`manifest.json`, planche de contrôle `hero-compare.webp`).
 
@@ -80,8 +98,20 @@ npm run hero:finalize -- --crop-y 0.6               # décale le recadrage 16:9 
 ```
 
 Contrôle « même bâtiment » : la finalisation compare les contours jour et nuit (exposition neutralisée).
-≥ 0,70 identique · 0,50–0,70 à vérifier · < 0,50 différent, relancer la nuit. La décision finale se prend à l'œil sur
+Au-dessus de 0,70 : identique ; entre 0,50 et 0,70 : à vérifier ; en dessous : différent, relancer la nuit. La décision finale se prend à l'œil sur
 `hero-compare.webp`.
+
+### Photographies de nuit (OpenAI)
+
+```bash
+npm run images:night                      # version nuit de chaque photo qui n’en a pas encore
+npm run images:night -- rampart --force   # régénère une photo précise
+npm run images:optimize                   # décline jour et nuit en AVIF / WebP
+```
+
+Prompts : `scripts/prompts/night.ts` (extérieurs : arches allumées, lumière dorée, motifs de moucharabieh ; intérieurs :
+lumière de lanterne). Sources : `assets-src/generated/night/<nom>.webp`, avec un score de géométrie par photo dans
+`manifest.json`. Contrôle visuel obligatoire avant publication.
 
 ### Visuels éditoriaux générés (facultatifs)
 
@@ -100,7 +130,7 @@ favicons et image Open Graph.
 
 ## Formulaire de contact
 
-`POST /api/contact` — validation serveur (schéma partagé `src/lib/contact.ts`), nettoyage des entrées, champ piège,
+`POST /api/contact` : validation serveur (schéma partagé `src/lib/contact.ts`), nettoyage des entrées, champ piège,
 délai minimal de saisie, contrôle d'origine, limitation de débit (5 envois / 10 min / IP, en mémoire par instance),
 e-mail en texte brut via Resend. Aucun envoi de fichier : les dossiers d'appel d'offres peuvent contenir des
 informations sensibles. Sans configuration Resend, l'API répond 503 en production.

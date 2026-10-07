@@ -1,0 +1,42 @@
+.theme-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.theme-toggle__btn {
+  min-width: 3.75rem;
+  min-height: 44px;
+  text-align: center;
+  color: var(--fg-faint);
+  transition: color var(--dur-base) var(--ease-premium);
+}
+
+.theme-toggle__btn:hover,
+.theme-toggle__btn[aria-pressed="true"] {
+  color: var(--fg);
+}
+
+/* Le trait souligne la lumière active et glisse de l'une à l'autre. */
+.theme-toggle__rule {
+  position: absolute;
+  left: 0;
+  bottom: 0.6rem;
+  width: 3.75rem;
+  height: 1px;
+  background: linear-gradient(var(--accent), var(--accent)) center / 56% 1px no-repeat;
+  transition: transform 0.7s var(--ease-architect);
+  pointer-events: none;
+}
+
+.theme-toggle--night .theme-toggle__rule {
+  transform: translateX(100%);
+}
+
+.theme-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: var(--fg);
+}

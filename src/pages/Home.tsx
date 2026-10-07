@@ -1,31 +1,24 @@
 import { usePageReveals } from "../hooks/usePageReveals";
-import { Checklist } from "../sections/home/Checklist";
+import { DossierSequence } from "../sections/home/DossierSequence";
 import { Formulas } from "../sections/home/Formulas";
 import { Hero } from "../sections/home/Hero";
 import { Immersive } from "../sections/home/Immersive";
-import { Manifesto } from "../sections/home/Manifesto";
-import { MethodSticky } from "../sections/home/MethodSticky";
-import { Problem } from "../sections/home/Problem";
-import { ServicesMosaic } from "../sections/home/ServicesMosaic";
-import { FinalCta } from "../sections/shared/FinalCta";
+import { ServicesIndex } from "../sections/home/ServicesIndex";
 
 /**
- * Accueil — la journée avance avec le défilement :
- * jour (hero) → ivoire → pierre → crépuscule → nuit → encre.
+ * Accueil : une idée par section, aucune redite.
+ * Le hero pose la promesse, la séquence la démontre, l'index montre l'étendue,
+ * la photographie donne l'ambiance, les formules ouvrent la discussion.
  */
 export default function Home() {
   const ref = usePageReveals();
   return (
     <div ref={ref}>
       <Hero />
-      <Manifesto />
-      <Problem />
-      <ServicesMosaic />
-      <MethodSticky />
-      <Checklist />
+      <DossierSequence />
+      <ServicesIndex />
       <Immersive />
       <Formulas />
-      <FinalCta />
     </div>
   );
 }

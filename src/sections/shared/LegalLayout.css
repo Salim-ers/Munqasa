@@ -43,7 +43,7 @@
 
 .to-complete {
   padding: 0.05rem 0.4rem;
-  color: var(--color-terracotta-deep);
+  color: var(--error);
   background: rgb(160 65 30 / 0.08);
   font-style: italic;
 }

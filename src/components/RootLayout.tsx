@@ -3,6 +3,7 @@ import { Outlet, ScrollRestoration, useLocation } from "react-router";
 import { refreshScroll } from "../animations/reveal";
 import { useRouteSeo } from "../hooks/useRouteSeo";
 import { useSmoothScroll } from "../hooks/useSmoothScroll";
+import { SCROLL_POSITIONS_KEY } from "../lib/scroll";
 import { Cursor } from "./Cursor/Cursor";
 import { Footer } from "./Footer/Footer";
 import { Header } from "./Header/Header";
@@ -51,7 +52,7 @@ export function RootLayout() {
       <Footer />
       <Loader />
       <Cursor />
-      <ScrollRestoration />
+      <ScrollRestoration storageKey={SCROLL_POSITIONS_KEY} />
     </PageTransitionProvider>
   );
 }

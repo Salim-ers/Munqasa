@@ -14,10 +14,10 @@ export function LegalLayout({ tag, title, children }: LegalLayoutProps) {
   const ref = usePageReveals();
   return (
     <div ref={ref}>
-      <section className="legal surface-ivory has-grain" data-surface="light" aria-labelledby="page-title">
+      <section className="legal tone-1 has-grain" aria-labelledby="page-title">
         <div className="legal__inner container">
           <header className="legal__head">
-            <Tag dot>{tag}</Tag>
+            <Tag>{tag}</Tag>
             <h1 id="page-title" className="display-lg" data-reveal="lines">
               {title}
             </h1>
@@ -29,7 +29,7 @@ export function LegalLayout({ tag, title, children }: LegalLayoutProps) {
   );
 }
 
-/** Information à fournir par MUNAQASA avant la mise en ligne — jamais inventée. */
+/** Information à fournir par MUNAQASA avant la mise en ligne, jamais inventée. */
 export function ToComplete({ children }: { children: ReactNode }) {
-  return <span className="to-complete">{children} — à compléter</span>;
+  return <span className="to-complete">{children} (à compléter)</span>;
 }

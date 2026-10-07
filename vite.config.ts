@@ -21,6 +21,18 @@ export default defineConfig(({ mode }) => {
       target: "es2022",
       cssMinify: true,
       assetsInlineLimit: 2048,
+      rolldownOptions: {
+        output: {
+          // Bibliothèques séparées du code du site : mises en cache indépendamment.
+          codeSplitting: {
+            groups: [
+              { name: "react", test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/ },
+              { name: "router", test: /node_modules[\\/]react-router[\\/]/ },
+              { name: "motion", test: /node_modules[\\/](gsap|lenis)[\\/]/ },
+            ],
+          },
+        },
+      },
     },
   };
 });

@@ -15,7 +15,8 @@
     "images:generate": "tsx scripts/generate-images.ts",
     "images:fetch": "tsx scripts/fetch-photos.ts",
     "images:optimize": "tsx scripts/optimize-images.ts",
-    "logo": "tsx scripts/process-logo.ts"
+    "logo": "tsx scripts/process-logo.ts",
+    "images:night": "tsx scripts/generate-night-photos.ts"
   },
   "dependencies": {
     "gsap": "^3.15.0",

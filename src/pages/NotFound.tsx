@@ -7,10 +7,10 @@ export default function NotFound() {
   const ref = usePageReveals();
   return (
     <div ref={ref}>
-      <section className="not-found surface-night has-grain" data-surface="dark" aria-labelledby="page-title">
+      <section className="not-found tone-1 has-grain" aria-labelledby="page-title">
         <img className="not-found__arch" src="/logos/munaqasa-symbol-reversed.webp" width={639} height={682} alt="" />
         <div className="not-found__inner container">
-          <Tag dot>Erreur 404</Tag>
+          <Tag>Erreur 404</Tag>
           <h1 id="page-title" className="display-xl" data-reveal="lines">
             Pièce <em>introuvable.</em>
           </h1>

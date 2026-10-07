@@ -53,8 +53,8 @@ export default function MentionsLegales() {
           <li key={s.originalUrl}>
             <a href={s.originalUrl} rel="noopener noreferrer" target="_blank">
               {s.photographer}
-            </a>{" "}
-            — Unsplash
+            </a>
+            , Unsplash
           </li>
         ))}
       </ul>
@@ -62,9 +62,7 @@ export default function MentionsLegales() {
       <h2>Responsabilité</h2>
       <p>
         Les informations publiées sur ce site sont fournies à titre indicatif. Elles décrivent la nature de
-        l’accompagnement proposé et ne constituent ni un engagement de résultat, ni un conseil juridique. MUNAQASA ne réalise
-        ni métré, ni chiffrage, ni estimation du coût des travaux : les données financières d’une offre sont préparées et
-        validées par l’entreprise candidate.
+        l’accompagnement proposé et ne constituent ni un engagement de résultat, ni un conseil juridique.
       </p>
 
       <h2>Droit applicable</h2>

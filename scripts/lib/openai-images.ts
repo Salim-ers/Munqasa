@@ -24,7 +24,7 @@ export interface ModelProfile {
 }
 
 export const PROFILES: Record<string, ModelProfile> = {
-  "gpt-image-2": { model: "gpt-image-2", sizes: ["2560x1440", "1536x1024"], quality: "high", inputFidelity: true },
+  "gpt-image-2": { model: "gpt-image-2", sizes: ["2560x1440", "1536x1024"], quality: "high", inputFidelity: false },
   "gpt-image-1": { model: "gpt-image-1", sizes: ["1536x1024"], quality: "high", inputFidelity: true },
 };
 
@@ -54,12 +54,24 @@ interface ImagesResponse {
   error?: { message?: string };
 }
 
+const MAX_ATTEMPTS = 5;
+
 async function call(endpoint: string, init: RequestInit): Promise<Buffer[]> {
-  const res = await fetch(`${API}/${endpoint}`, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) });
-  const json = (await res.json().catch(() => ({}))) as ImagesResponse;
-  if (!res.ok) {
+  let res: Response | undefined;
+  let json: ImagesResponse = {};
+  // Limite de débit (429) ou incident serveur (5xx) : nouvel essai avec attente croissante.
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    res = await fetch(`${API}/${endpoint}`, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) });
+    json = (await res.json().catch(() => ({}))) as ImagesResponse;
+    const retryable = res.status === 429 || res.status >= 500;
+    if (res.ok || !retryable || attempt === MAX_ATTEMPTS) break;
+    const wait = Number(res.headers.get("retry-after")) * 1000 || 8000 * 2 ** (attempt - 1);
+    console.warn(`  ↻ HTTP ${res.status} — nouvel essai dans ${Math.round(wait / 1000)} s`);
+    await new Promise((r) => setTimeout(r, wait));
+  }
+  if (!res?.ok) {
     // Ne jamais réafficher les en-têtes : ils contiennent la clé.
-    throw new OpenAIImageError(`OpenAI ${endpoint} — HTTP ${res.status} : ${json.error?.message ?? "réponse illisible"}`, res.status);
+    throw new OpenAIImageError(`OpenAI ${endpoint} — HTTP ${res?.status} : ${json.error?.message ?? "réponse illisible"}`, res?.status ?? 0);
   }
   const images = (json.data ?? []).map((d) => d.b64_json).filter(Boolean) as string[];
   if (!images.length) throw new OpenAIImageError(`OpenAI ${endpoint} : aucune image renvoyée.`, 500);

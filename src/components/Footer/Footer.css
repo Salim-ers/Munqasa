@@ -1,79 +1,99 @@
 .footer {
   position: relative;
   overflow: hidden;
-  padding-top: var(--space-2xl);
+  padding-top: var(--space-3xl);
+  border-top: 1px solid var(--line);
 }
 
-.footer__top {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-lg);
-  padding-bottom: var(--space-xl);
-  border-bottom: 1px solid var(--line);
+/* Arche du logo en filigrane. */
+.footer__arch {
+  position: absolute;
+  right: -8%;
+  top: 4%;
+  width: min(62vw, 820px);
+  height: auto;
+  opacity: 0.05;
+  pointer-events: none;
+  user-select: none;
 }
 
-.footer__intro {
+[data-theme="day"] .footer__arch {
+  filter: brightness(0.2);
+  opacity: 0.06;
+}
+
+.footer__cta {
+  position: relative;
   display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: var(--grid-gap);
+  row-gap: var(--space-lg);
+  align-items: end;
+  padding-bottom: var(--space-2xl);
+}
+
+.footer__question {
+  grid-column: 1 / span 7;
+  max-width: 11ch;
+}
+
+.footer__cta-side {
+  grid-column: 9 / span 4;
+  display: grid;
+  justify-items: start;
   gap: var(--space-md);
 }
 
-.footer__statement {
-  max-width: 14ch;
+.footer__nav {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-md) var(--space-xl);
+  padding-block: var(--space-lg);
+  border-top: 1px solid var(--line);
 }
 
-.footer__cols {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-lg) var(--grid-gap);
-  padding-block: var(--space-xl);
+.footer__nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem clamp(1.25rem, 2.5vw, 2.5rem);
 }
 
-.footer__title {
-  margin-bottom: var(--space-md);
-  color: var(--color-sand);
-}
-
-.footer__col ul {
-  display: grid;
-  gap: 0.6rem;
-}
-
-.footer__col a {
+.footer__nav a {
   display: inline-block;
-  padding-block: 0.15rem;
-  color: var(--fg-muted);
+  padding-block: 0.4rem;
   font-size: var(--text-sm);
+  color: var(--fg-muted);
   transition: color var(--dur-fast) var(--ease-out);
 }
 
-.footer__col a:hover,
-.footer__col a:focus-visible {
+.footer__nav a:hover,
+.footer__nav a:focus-visible {
   color: var(--fg);
 }
 
-/* Nom de marque monumental, légèrement coupé par le bas. */
+/* Nom de marque monumental. */
 .footer__giant {
   position: relative;
-  margin-top: var(--space-lg);
+  margin-top: var(--space-md);
   font-family: var(--font-display);
   font-size: clamp(5rem, 21.5vw, 26rem);
   line-height: 1;
   letter-spacing: -0.01em;
   text-align: center;
   white-space: nowrap;
-  color: var(--color-ivory);
   user-select: none;
 }
 
 .footer__giant span {
   display: block;
   padding-bottom: 0.12em;
-  background: linear-gradient(180deg, rgb(245 241 233 / 0.92) 25%, rgb(245 241 233 / 0.1) 92%);
+  background: linear-gradient(180deg, var(--fg) 25%, transparent 96%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  opacity: 0.9;
 }
 
 .footer__bar {
@@ -85,6 +105,7 @@
   gap: var(--space-sm) var(--space-lg);
   padding-block: var(--space-md) max(var(--space-md), env(safe-area-inset-bottom));
   border-top: 1px solid var(--line);
+  color: var(--fg-muted);
 }
 
 .footer__top-btn {
@@ -95,19 +116,15 @@
   color: var(--fg);
 }
 
-@media (max-width: 899px) {
-  .footer__cols {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+@media (max-width: 1023px) {
+  .footer__question,
+  .footer__cta-side {
+    grid-column: 1 / -1;
   }
 }
 
 @media (max-width: 479px) {
-  .footer__cols {
-    grid-template-columns: 1fr 1fr;
-    column-gap: var(--space-md);
-  }
-
-  .footer__top .cta {
+  .footer__cta-side .cta {
     width: 100%;
   }
 }

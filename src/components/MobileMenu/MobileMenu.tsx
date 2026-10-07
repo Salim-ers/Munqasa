@@ -1,11 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import { EASE, gsap } from "../../animations/gsap";
-import { NAV } from "../../data/navigation";
-import { site } from "../../data/site";
+import { CTA, NAV } from "../../data/navigation";
 import { useReducedMotion } from "../../hooks/useMediaQuery";
 import { lockScroll, unlockScroll } from "../../lib/scroll";
 import { CtaLink } from "../CtaLink/CtaLink";
+import { ThemeToggle } from "../ThemeToggle/ThemeToggle";
 import { TransitionLink } from "../TransitionLink/TransitionLink";
 import "./MobileMenu.css";
 
@@ -90,17 +90,16 @@ export function MobileMenu({ open, onClose }: MobileMenuProps) {
     <div
       ref={root}
       id="menu-mobile"
-      className="menu surface-night"
+      className="menu tone-1"
       role="dialog"
       aria-modal="true"
       aria-label="Menu"
-      data-surface="dark"
       data-lenis-prevent
     >
       <img className="menu__arch" src="/logos/munaqasa-symbol-reversed.webp" width={639} height={682} alt="" />
       <nav className="menu__nav" aria-label="Navigation mobile">
         <ol>
-          {NAV.map((item, i) => (
+          {NAV.map((item) => (
             <li key={item.to} className="menu__item">
               <span className="menu__item-inner">
                 <TransitionLink
@@ -109,7 +108,6 @@ export function MobileMenu({ open, onClose }: MobileMenuProps) {
                   aria-current={pathname === item.to ? "page" : undefined}
                   onClick={onClose}
                 >
-                  <span className="menu__num label">{String(i + 1).padStart(2, "0")}</span>
                   <span className="menu__label">{item.label}</span>
                 </TransitionLink>
               </span>
@@ -119,8 +117,8 @@ export function MobileMenu({ open, onClose }: MobileMenuProps) {
       </nav>
       <div className="menu__foot-wrap">
         <div className="menu__foot">
-          <CtaLink to="/contact">Confier un dossier</CtaLink>
-          <p className="label label--muted">{site.signature}</p>
+          <CtaLink to={CTA.to}>{CTA.label}</CtaLink>
+          <ThemeToggle />
         </div>
       </div>
       <button type="button" className="skip-link" onClick={onClose}>

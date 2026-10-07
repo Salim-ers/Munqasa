@@ -1,77 +1,65 @@
-export interface MethodStep {
-  number: string;
-  title: string;
-  text: string;
-  deliverable: string;
-}
+/**
+ * Accueil : la séquence « Le dossier » — une consultation devient un dossier
+ * structuré, sous les yeux du visiteur.
+ */
+export const SEQUENCE_PHASES: readonly { title: string; text: string }[] = [
+  { title: "Un avis est publié.", text: "L’échéance est fixée. Tout commence ici." },
+  { title: "Chaque exigence est relevée.", text: "Le règlement et le cahier des prescriptions sont lus ligne à ligne." },
+  { title: "Les pièces affluent.", text: "Attestations, références, notes, plannings : elles arrivent de partout." },
+  { title: "Chaque pièce trouve sa place.", text: "Trois dossiers, un ordre précis, rien qui dépasse." },
+  { title: "Vérifié, prêt, déposé à temps.", text: "La revue se fait avant l’échéance, jamais après." },
+];
 
-/** Les sept étapes — chacune correspond à un état du « plateau documentaire ». */
-export const METHOD_STEPS: readonly MethodStep[] = [
+/** Pièces d'une réponse type à un appel d'offres au Maroc, rangées par dossier. */
+export const SEQUENCE_FOLDERS: readonly { title: string; short: string; pieces: readonly string[] }[] = [
+  { title: "Dossier administratif", short: "Administratif", pieces: ["Déclaration sur l’honneur", "Attestation fiscale", "Attestation CNSS", "Registre de commerce"] },
+  { title: "Dossier technique", short: "Technique", pieces: ["Moyens humains", "Moyens matériels", "Attestations de références"] },
+  { title: "Offre technique", short: "Offre", pieces: ["Note méthodologique", "Planning", "Organisation"] },
+];
+
+/**
+ * Page Méthode : le calendrier réel d'une consultation, et ce que nous faisons
+ * à chaque moment.
+ */
+export const TIMELINE: readonly { moment: string; action: string; deliverable: string }[] = [
   {
-    number: "01",
-    title: "Cadrage",
-    text: "Comprendre votre activité, vos références, vos capacités et les consultations que vous visez.",
-    deliverable: "Fiche de cadrage",
+    moment: "Publication de l’avis",
+    action: "La consultation est qualifiée : correspond-elle à votre activité, à vos références, à votre calendrier ?",
+    deliverable: "Une fiche de consultation",
   },
   {
-    number: "02",
-    title: "Veille",
-    text: "Identifier les avis pertinents et retenir ceux qui correspondent à vos critères.",
-    deliverable: "Sélection d’avis",
+    moment: "Retrait du dossier",
+    action: "Le dossier de consultation est téléchargé, lu et décortiqué, exigence par exigence.",
+    deliverable: "Une grille d’analyse",
   },
   {
-    number: "03",
-    title: "Analyse",
-    text: "Lire le dossier de consultation et relever exigences, pièces, critères et dates.",
-    deliverable: "Grille d’analyse",
+    moment: "Visite des lieux et questions",
+    action: "Les points flous sont listés et formulés pour être posés au maître d’ouvrage dans les délais.",
+    deliverable: "Une liste de questions",
   },
   {
-    number: "04",
-    title: "Checklist",
-    text: "Transformer chaque exigence en pièce attendue, avec un responsable et une échéance.",
-    deliverable: "Checklist du dossier",
+    moment: "Constitution",
+    action: "Les pièces sont réunies, mises en forme et classées, contributeur par contributeur.",
+    deliverable: "Un dossier constitué",
   },
   {
-    number: "05",
-    title: "Constitution",
-    text: "Rassembler, classer et mettre en forme les pièces administratives et techniques.",
-    deliverable: "Dossier constitué",
+    moment: "Revue",
+    action: "Le dossier complet est relu contre les exigences, avec le temps de corriger.",
+    deliverable: "Un rapport de revue",
   },
   {
-    number: "06",
-    title: "Revue",
-    text: "Contrôler chaque pièce contre la checklist, avant l’échéance, et corriger les écarts.",
-    deliverable: "Rapport de revue",
+    moment: "Dépôt",
+    action: "Fichiers et plis sont prêts : le dépôt se fait sans précipitation.",
+    deliverable: "Une arborescence de dépôt",
   },
   {
-    number: "07",
-    title: "Soumission & suivi",
-    text: "Préparer les fichiers pour le dépôt, puis suivre la consultation jusqu’au résultat.",
-    deliverable: "Dossier final · suivi",
+    moment: "Ouverture des plis et résultats",
+    action: "Compléments, additifs et résultats sont suivis jusqu’au bout, puis archivés.",
+    deliverable: "Un historique du dossier",
   },
 ];
 
-export const CHECKLIST: readonly { ref: string; label: string }[] = [
-  { ref: "A.01", label: "Pièces administratives" },
-  { ref: "A.02", label: "Offre technique" },
-  { ref: "A.03", label: "Annexes" },
-  { ref: "A.04", label: "Formulaires" },
-  { ref: "A.05", label: "Signatures" },
-  { ref: "A.06", label: "Versions" },
-  { ref: "A.07", label: "Formats" },
-  { ref: "A.08", label: "Échéance" },
-];
-
-/** Pièces d'un dossier de consultation (section « Problème »). */
-export const DOSSIER_PIECES: readonly { ref: string; label: string }[] = [
-  { ref: "01", label: "RC" },
-  { ref: "02", label: "CPS" },
-  { ref: "03", label: "Dossier administratif" },
-  { ref: "04", label: "Offre technique" },
-  { ref: "05", label: "Annexes" },
-  { ref: "06", label: "Planning" },
-  { ref: "07", label: "Formulaires" },
-  { ref: "08", label: "Validations" },
-  { ref: "09", label: "Signatures" },
-  { ref: "10", label: "Échéance" },
-];
+export const EXCHANGE = {
+  given: ["Les documents de votre entreprise", "Vos références et vos moyens", "Le contenu technique de vos équipes", "Vos validations"],
+  returned: ["Une checklist partagée du dossier", "Un calendrier de remise", "Des pièces classées et contrôlées", "Un dossier prêt au dépôt"],
+} as const;

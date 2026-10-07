@@ -1,4 +1,4 @@
-/* ---------- Piliers ---------- */
+/* ---------- Principes ---------- */
 
 .pillars {
   padding-block: var(--space-2xl);
@@ -20,28 +20,18 @@
   grid-template-columns: repeat(12, minmax(0, 1fr));
   column-gap: var(--grid-gap);
   row-gap: var(--space-sm);
-  align-items: start;
+  align-items: baseline;
   padding-block: var(--space-lg);
   border-bottom: 1px solid var(--line-strong);
 }
 
-.pillar__num {
+.pillar__title {
   grid-column: 1 / span 2;
-  font-size: clamp(3.5rem, 7vw, 7.5rem);
   color: var(--accent);
 }
 
-.pillar__head {
-  grid-column: 3 / span 5;
-  display: grid;
-  gap: var(--space-xs);
-}
-
-.pillar__title {
-  color: var(--fg-muted);
-}
-
 .pillar__statement {
+  grid-column: 3 / span 6;
   font-family: var(--font-display);
   font-size: var(--display-sm);
   line-height: 1.05;
@@ -49,7 +39,6 @@
 
 .pillar__text {
   grid-column: 9 / span 4;
-  padding-top: 1.6rem;
 }
 
 /* ---------- Matières ---------- */
@@ -74,7 +63,7 @@
 }
 
 .materials__fig figcaption {
-  color: var(--color-sand);
+  color: var(--accent);
 }
 
 .materials__fig--a {
@@ -98,17 +87,7 @@
   aspect-ratio: 4 / 4.6;
 }
 
-.materials__media picture,
-.materials__media img {
-  width: 100%;
-  height: 100%;
-}
-
-.materials__media img {
-  object-fit: cover;
-}
-
-/* ---------- Secteurs ---------- */
+/* ---------- Secteurs : une typographie libre, sans puces ---------- */
 
 .sectors {
   padding-block: var(--space-2xl);
@@ -130,40 +109,25 @@
 
 .sectors__list {
   grid-column: 7 / span 6;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border-top: 1px solid var(--line-strong);
-}
-
-.sectors__list li {
-  display: grid;
-  gap: 0.35rem;
-  padding: var(--space-md) var(--space-sm) var(--space-md) 0;
-  border-bottom: 1px solid var(--line-strong);
-}
-
-.sectors__list .label {
-  color: var(--accent);
-}
-
-.sectors__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: start;
+  gap: 0.2em 0.6em;
   font-family: var(--font-display);
-  font-size: var(--text-xl);
+  font-size: clamp(1.75rem, 3vw, 3.25rem);
   line-height: 1.1;
 }
 
+.sectors__item:nth-child(even) {
+  font-style: italic;
+  color: var(--accent);
+}
+
 @media (max-width: 1023px) {
-  .pillar__num {
-    grid-column: 1 / span 3;
-  }
-
-  .pillar__head {
-    grid-column: 4 / -1;
-  }
-
+  .pillar__title,
+  .pillar__statement,
   .pillar__text {
-    grid-column: 4 / -1;
-    padding-top: 0;
+    grid-column: 1 / -1;
   }
 
   .sectors__head,
@@ -186,21 +150,5 @@
 
   .materials__fig figcaption {
     padding-inline: var(--gutter);
-  }
-
-  .materials__fig--a .materials__media {
-    aspect-ratio: 4 / 4.4;
-  }
-}
-
-@media (max-width: 599px) {
-  .pillar__num,
-  .pillar__head,
-  .pillar__text {
-    grid-column: 1 / -1;
-  }
-
-  .sectors__list {
-    grid-template-columns: 1fr;
   }
 }

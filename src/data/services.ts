@@ -2,167 +2,99 @@ import type { PhotoName } from "./photos";
 
 export interface Service {
   slug: string;
-  number: string;
   title: string;
-  /** Ligne courte (accueil). */
+  /** Une ligne : accueil. */
   short: string;
-  /** Référence technique affichée en label. */
-  ref: string;
+  /** Page Services : le détail. */
   intro: string;
   tasks: readonly string[];
   deliverable: string;
-  note?: string;
-  photo?: PhotoName;
+  photo: PhotoName;
 }
 
 export const SERVICES: readonly Service[] = [
   {
     slug: "veille",
-    number: "01",
-    title: "Veille & opportunités",
-    short: "Repérer et organiser les consultations pertinentes.",
-    ref: "AO / Veille",
+    title: "Veille et opportunités",
+    short: "Les avis qui comptent pour vous, repérés et triés.",
     intro:
-      "Les avis sont dispersés, les délais courts. Nous suivons les publications correspondant à votre activité, filtrons les consultations selon vos critères et vous transmettons une sélection exploitable.",
+      "Les consultations se publient sur de nombreux supports, souvent avec des délais courts. Nous suivons celles qui correspondent à votre activité et vous transmettons une sélection prête à décider.",
     tasks: [
-      "Définition des critères : secteurs, zones, types de marchés",
-      "Suivi des avis publiés, des additifs et des reports",
-      "Fiche synthétique par opportunité : objet, maître d’ouvrage, échéance",
-      "Tableau des consultations en cours",
+      "Critères définis avec vous : secteurs, régions, types de marchés",
+      "Suivi des avis, des additifs et des reports",
+      "Une fiche claire par consultation retenue",
     ],
-    deliverable: "Sélection d’opportunités qualifiées",
+    deliverable: "Une sélection d’opportunités qualifiées",
     photo: "arch-niche",
   },
   {
     slug: "analyse",
-    number: "02",
     title: "Analyse du dossier",
-    short: "Extraire les exigences, pièces et échéances.",
-    ref: "RC · CPS",
+    short: "Règlement et cahier des prescriptions lus ligne à ligne.",
     intro:
-      "Règlement de consultation, cahier des prescriptions spéciales, annexes : nous lisons l’ensemble du dossier pour en extraire ce qui conditionne la recevabilité de votre offre.",
-    tasks: [
-      "Lecture du RC, du CPS et des annexes",
-      "Relevé des pièces exigées et des formats imposés",
-      "Identification des critères d’évaluation et des points d’attention",
-      "Calendrier : visite des lieux, questions, dépôt, ouverture des plis",
-    ],
-    deliverable: "Grille d’analyse et liste des exigences",
+      "Le règlement de consultation et le cahier des prescriptions spéciales fixent les règles du jeu. Nous en extrayons tout ce qui conditionne la recevabilité et l’évaluation de votre offre.",
+    tasks: ["Pièces exigées et formats imposés", "Critères d’évaluation et points d’attention", "Visite des lieux, questions, dépôt, ouverture des plis"],
+    deliverable: "Une grille d’analyse du dossier",
     photo: "lattice-facade",
   },
   {
     slug: "dossier-administratif",
-    number: "03",
     title: "Dossier administratif",
-    short: "Centraliser et structurer les documents demandés.",
-    ref: "Pièces A.",
+    short: "Attestations, déclarations, cautions : complètes, valides, en ordre.",
     intro:
-      "Attestations, déclarations, pouvoirs, références : nous centralisons les pièces fournies par votre entreprise, vérifions leur validité et les classons dans l’ordre demandé.",
-    tasks: [
-      "Liste des pièces administratives exigées",
-      "Collecte et classement des documents fournis",
-      "Contrôle des dates de validité et des signatures",
-      "Base documentaire réutilisable pour les consultations suivantes",
-    ],
-    deliverable: "Dossier administratif complet et ordonné",
-    photo: "paper-stack",
+      "Une pièce manquante ou expirée suffit à écarter une offre. Nous rassemblons les documents de votre entreprise, vérifions leur validité et les classons dans l’ordre demandé.",
+    tasks: ["Liste des pièces exigées", "Contrôle des dates de validité et des signatures", "Une base documentaire prête pour les prochaines consultations"],
+    deliverable: "Un dossier administratif complet",
+    photo: "archive-shelf",
   },
   {
     slug: "offre-technique",
-    number: "04",
     title: "Offre technique",
-    short: "Organiser les éléments techniques fournis et validés par l’entreprise.",
-    ref: "Mémoire · Moyens",
+    short: "Vos savoir-faire présentés face à chaque critère.",
     intro:
-      "Le contenu technique vient de vos équipes. Nous le structurons pour qu’il réponde point par point au cahier des charges : plan de l’offre, mise en forme, cohérence des pièces.",
-    tasks: [
-      "Plan de l’offre technique aligné sur les critères d’évaluation",
-      "Intégration des notes, CV, références et moyens fournis",
-      "Mise en forme et homogénéité du document",
-      "Vérification de la correspondance avec les exigences",
-    ],
-    deliverable: "Offre technique structurée, prête à valider",
+      "Notes méthodologiques, références, moyens humains et matériels : nous organisons le contenu de vos équipes en une offre lisible, alignée sur chaque critère du cahier des charges.",
+    tasks: ["Plan de l’offre calé sur les critères d’évaluation", "Mise en forme des notes, CV, références et moyens", "Cohérence entre toutes les pièces techniques"],
+    deliverable: "Une offre technique prête à valider",
     photo: "drawing-table",
   },
   {
     slug: "coordination",
-    number: "05",
     title: "Coordination",
-    short: "Piloter les différentes contributions nécessaires au dossier.",
-    ref: "Intervenants",
+    short: "Chaque contributeur sait quoi remettre, et quand.",
     intro:
-      "Direction, service technique, comptabilité, partenaires : chaque dossier mobilise plusieurs contributeurs. Nous répartissons les demandes, relançons et consolidons.",
-    tasks: [
-      "Répartition des pièces à produire par intervenant",
-      "Calendrier interne de remise",
-      "Relances et suivi des validations",
-      "Consolidation des contributions",
-    ],
-    deliverable: "Tableau des responsabilités et de l’avancement",
+      "Direction, bureau d’études, comptabilité, partenaires : un dossier mobilise plusieurs personnes. Nous répartissons les demandes, relançons et consolidons, pour que rien ne reste en attente.",
+    tasks: ["Répartition des pièces par intervenant", "Calendrier interne de remise", "Relances et suivi des validations"],
+    deliverable: "Un tableau de bord du dossier",
     photo: "arcade-shadow",
   },
   {
     slug: "controle",
-    number: "06",
     title: "Contrôle avant dépôt",
-    short: "Effectuer une revue structurée avant l’échéance.",
-    ref: "Revue · Rev. A",
+    short: "Une revue complète avant l’échéance, jamais après.",
     intro:
-      "Avant le dépôt, chaque pièce est confrontée à la liste des exigences : présence, version, signature, format. Les écarts sont signalés pour correction.",
-    tasks: [
-      "Contrôle pièce par pièce contre la checklist",
-      "Vérification des signatures, cachets et paraphes demandés",
-      "Cohérence des versions et des références",
-      "Liste des écarts à corriger",
-    ],
-    deliverable: "Revue documentaire et liste d’écarts",
+      "Chaque pièce est confrontée aux exigences du dossier : présence, version, signature, format. Les écarts sont signalés à temps pour être corrigés.",
+    tasks: ["Contrôle pièce par pièce", "Signatures, cachets et paraphes", "Cohérence des versions et des références"],
+    deliverable: "Un rapport de revue",
     photo: "rampart",
   },
   {
     slug: "soumission",
-    number: "07",
     title: "Préparation à la soumission",
-    short: "Préparer l’arborescence, les formats et les fichiers.",
-    ref: "Dépôt",
+    short: "Fichiers nommés, formats conformes, plis organisés.",
     intro:
-      "Dépôt électronique ou physique, chaque consultation impose ses règles. Nous préparons l’arborescence, le nommage, les formats et l’ordre des pièces.",
-    tasks: [
-      "Arborescence et nommage des fichiers",
-      "Conversion et contrôle des formats demandés",
-      "Organisation des plis et des enveloppes",
-      "Récapitulatif avant dépôt",
-    ],
-    deliverable: "Dossier prêt à déposer",
-    note: "La signature et le dépôt de l’offre restent effectués par l’entreprise.",
+      "Dépôt électronique ou plis physiques, chaque consultation impose ses règles. Nous préparons l’arborescence, le nommage, les formats et l’ordre des pièces pour un dépôt sans hésitation.",
+    tasks: ["Arborescence et nommage des fichiers", "Conversion et contrôle des formats", "Organisation des plis et des enveloppes"],
+    deliverable: "Un dossier prêt à déposer",
     photo: "white-arch",
   },
   {
     slug: "suivi",
-    number: "08",
     title: "Suivi",
-    short: "Centraliser les évolutions et prochaines actions.",
-    ref: "Échéances",
+    short: "Additifs, compléments, résultats : rien ne se perd après le dépôt.",
     intro:
-      "Après le dépôt, une consultation continue de vivre : additifs, demandes de compléments, ouverture des plis, résultats. Nous centralisons les informations et les prochaines actions.",
-    tasks: [
-      "Suivi des additifs et des reports de date",
-      "Centralisation des échanges et des compléments demandés",
-      "Suivi des résultats publiés",
-      "Archivage structuré du dossier",
-    ],
-    deliverable: "Historique et prochaines actions",
+      "Une consultation continue de vivre après le dépôt. Nous centralisons les échanges, les demandes de compléments et les résultats, puis archivons le dossier pour la prochaine fois.",
+    tasks: ["Suivi des additifs et des reports", "Réponses aux demandes de compléments", "Suivi des résultats et archivage"],
+    deliverable: "Un historique clair de chaque consultation",
     photo: "sand-tower",
   },
 ];
-
-/** Ce que MUNAQASA ne fait pas — affiché tel quel, sans ambiguïté. */
-export const OUT_OF_SCOPE: readonly string[] = [
-  "Métré",
-  "Chiffrage BTP",
-  "Calcul de quantités",
-  "Estimation du coût des travaux",
-  "Détermination de vos prix",
-];
-
-export const FINANCIAL_NOTE =
-  "Lorsqu’un dossier comporte une offre financière, les prix et données financières sont préparés et validés par votre entreprise. MUNAQASA peut uniquement les organiser ou les intégrer au dossier.";

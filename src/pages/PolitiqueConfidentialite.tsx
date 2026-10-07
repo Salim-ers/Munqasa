@@ -11,7 +11,7 @@ export default function PolitiqueConfidentialite() {
 
       <h2>Responsable du traitement</h2>
       <p>
-        MUNAQASA — <ToComplete>raison sociale et adresse</ToComplete>. Numéro de déclaration ou d’autorisation auprès de la
+        MUNAQASA, <ToComplete>raison sociale et adresse</ToComplete>. Numéro de déclaration ou d’autorisation auprès de la
         CNDP : <ToComplete>numéro</ToComplete>.
       </p>
 

@@ -49,7 +49,6 @@ function today(): string {
 
 interface FieldProps {
   id: string;
-  num: string;
   label: string;
   required?: boolean;
   error?: string;
@@ -58,11 +57,10 @@ interface FieldProps {
   children: ReactNode;
 }
 
-function Field({ id, num, label, required, error, hint, className, children }: FieldProps) {
+function Field({ id, label, required, error, hint, className, children }: FieldProps) {
   return (
     <div className={["field", error ? "has-error" : "", className].filter(Boolean).join(" ")}>
       <label className="field__label" htmlFor={id}>
-        <span className="label field__num">{num}</span>
         <span className="label">{label}</span>
         {required && (
           <span className="field__req" aria-hidden="true">
@@ -171,21 +169,19 @@ export default function Contact() {
   return (
     <div ref={ref}>
       <PageHero
-        tag="Contact"
-        sheet="Feuillet 05 / 05"
-        surface="night"
+        tag="Confier un dossier"
         lines={["Votre prochaine", "soumission", <em key="c">commence ici.</em>]}
         intro="Présentez la consultation, son échéance et ce dont vous avez besoin. Quelques informations suffisent pour un premier échange."
-        image="night-desk"
+        image="papers-table"
         imagePosition="45% 50%"
       />
 
-      <section className="contact surface-ivory has-grain" data-surface="light" aria-labelledby="demande-title">
+      <section className="contact tone-2 has-grain" aria-labelledby="demande-title">
         <div className="contact__inner container">
           <div className="contact__main">
             {status.kind === "sent" ? (
               <div className="contact__done">
-                <Tag dot>Demande transmise</Tag>
+                <Tag>Demande transmise</Tag>
                 <h2 ref={doneRef} tabIndex={-1} className="display-md" id="demande-title">
                   Merci. <em>Votre demande est enregistrée.</em>
                 </h2>
@@ -199,8 +195,7 @@ export default function Contact() {
             ) : (
               <form ref={formRef} className="contact__form" noValidate onSubmit={onSubmit} aria-labelledby="demande-title">
                 <header className="contact__form-head">
-                  <span className="label">Formulaire · Demande d’accompagnement</span>
-                  <span className="label contact__rev">Rev. A</span>
+                  <span className="label">Demande d’accompagnement</span>
                 </header>
                 <h2 id="demande-title" className="visually-hidden">
                   Demande d’accompagnement
@@ -212,7 +207,7 @@ export default function Contact() {
                 )}
 
                 <div className="contact__grid">
-                  <Field id={id("fullName")} num="A.01" label="Nom complet" required error={errors.fullName}>
+                  <Field id={id("fullName")} label="Nom complet" required error={errors.fullName}>
                     <input
                       id={id("fullName")}
                       data-field="fullName"
@@ -228,7 +223,7 @@ export default function Contact() {
                     />
                   </Field>
 
-                  <Field id={id("company")} num="A.02" label="Entreprise" required error={errors.company}>
+                  <Field id={id("company")} label="Entreprise" required error={errors.company}>
                     <input
                       id={id("company")}
                       data-field="company"
@@ -244,7 +239,7 @@ export default function Contact() {
                     />
                   </Field>
 
-                  <Field id={id("email")} num="A.03" label="E-mail" required error={errors.email}>
+                  <Field id={id("email")} label="E-mail" required error={errors.email}>
                     <input
                       id={id("email")}
                       data-field="email"
@@ -261,7 +256,7 @@ export default function Contact() {
                     />
                   </Field>
 
-                  <Field id={id("phone")} num="A.04" label="Téléphone" error={errors.phone}>
+                  <Field id={id("phone")} label="Téléphone" error={errors.phone}>
                     <input
                       id={id("phone")}
                       data-field="phone"
@@ -280,7 +275,6 @@ export default function Contact() {
 
                 <fieldset className={`field field--group${errors.consultationType ? " has-error" : ""}`} aria-describedby={describedBy("consultationType")}>
                   <legend className="field__label">
-                    <span className="label field__num">A.05</span>
                     <span className="label">Type de consultation</span>
                     <span className="field__req" aria-hidden="true">
                       *
@@ -309,7 +303,7 @@ export default function Contact() {
                 </fieldset>
 
                 <div className="contact__grid">
-                  <Field id={id("reference")} num="A.06" label="Référence de la consultation" hint="Numéro de l’avis, si vous l’avez." error={errors.reference}>
+                  <Field id={id("reference")} label="Référence de la consultation" hint="Numéro de l’avis, si vous l’avez." error={errors.reference}>
                     <input
                       id={id("reference")}
                       data-field="reference"
@@ -322,7 +316,7 @@ export default function Contact() {
                     />
                   </Field>
 
-                  <Field id={id("deadline")} num="A.07" label="Date limite" error={errors.deadline}>
+                  <Field id={id("deadline")} label="Date limite" error={errors.deadline}>
                     <input
                       id={id("deadline")}
                       data-field="deadline"
@@ -339,7 +333,6 @@ export default function Contact() {
 
                 <fieldset className={`field field--group${errors.needs ? " has-error" : ""}`} aria-describedby={describedBy("needs")}>
                   <legend className="field__label">
-                    <span className="label field__num">A.08</span>
                     <span className="label">Besoin</span>
                     <span className="field__req" aria-hidden="true">
                       *
@@ -366,7 +359,7 @@ export default function Contact() {
                   )}
                 </fieldset>
 
-                <Field id={id("message")} num="A.09" label="Message" hint="Contexte, pièces déjà disponibles, contraintes de calendrier…" error={errors.message}>
+                <Field id={id("message")} label="Message" hint="Contexte, pièces déjà disponibles, contraintes de calendrier…" error={errors.message}>
                   <textarea
                     id={id("message")}
                     data-field="message"
@@ -431,9 +424,8 @@ export default function Contact() {
             <div className="contact__block">
               <h2 className="label contact__aside-title">Après votre demande</h2>
               <ol className="contact__steps">
-                {NEXT_STEPS.map((s, i) => (
+                {NEXT_STEPS.map((s) => (
                   <li key={s.title}>
-                    <span className="label contact__step-num">{String(i + 1).padStart(2, "0")}</span>
                     <div>
                       <p className="contact__step-title">{s.title}</p>
                       <p className="contact__step-text">{s.text}</p>

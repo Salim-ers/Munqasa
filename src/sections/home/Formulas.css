@@ -17,20 +17,19 @@
 }
 
 .formula {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
   padding: clamp(1.5rem, 2.6vw, 2.5rem);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius-xs);
 }
 
 .formula--featured {
-  position: relative;
   margin-top: calc(var(--space-lg) * -1);
-  background: #24211e var(--grain);
-  background-size: 128px 128px;
-  border-color: rgb(184 141 94 / 0.4);
+  background: var(--bg-1);
+  border-color: var(--accent);
 }
 
 .formula--featured::before {
@@ -41,16 +40,8 @@
   background: var(--color-terracotta);
 }
 
-.formula__top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-sm);
-}
-
-.formula__num {
-  font-size: clamp(2.5rem, 3.6vw, 3.5rem);
-  color: var(--color-sand);
+.formula__flag {
+  color: var(--accent);
 }
 
 .formula__title {
@@ -66,27 +57,14 @@
 }
 
 .formula__includes {
-  display: grid;
-  gap: 0.55rem;
-  padding-top: var(--space-md);
   border-top: 1px solid var(--line);
   color: var(--fg-muted);
   font-size: var(--text-sm);
 }
 
 .formula__includes li {
-  position: relative;
-  padding-left: 1.4rem;
-}
-
-.formula__includes li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0.75em;
-  width: 0.7rem;
-  height: 1px;
-  background: var(--color-sand);
+  padding-block: 0.7rem;
+  border-bottom: 1px solid var(--line);
 }
 
 .formula__cta {

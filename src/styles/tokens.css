@@ -1,28 +1,25 @@
 /* ==========================================================================
    MUNAQASA — design tokens
    Palette mesurée sur le logo : sable #B88D5E, terracotta #A0411E.
+   Tout le site est soit en JOUR, soit en NUIT (html[data-theme]).
    ========================================================================== */
 
 :root {
-  /* Couleurs de marque */
+  /* Couleurs de marque (fixes) */
   --color-ink: #171717;
-  --color-night: #080a0b;
+  --color-night: #0b0c0d;
   --color-ivory: #f5f1e9;
   --color-warm-white: #fffdf8;
   --color-sand: #b88d5e;
-  --color-sand-soft: #d9c3a3;
   --color-terracotta: #a0411e;
   --color-terracotta-deep: #86351a;
   --color-stone: #d8cbbb;
-  --color-stone-deep: #c7b6a2;
-  --color-dusk: #211c18;
-  --color-dusk-soft: #3a3029;
 
   /* Typographie */
   --font-display: "Instrument Serif", "Iowan Old Style", "Times New Roman", serif;
   --font-body: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  --text-2xs: 0.6875rem; /* 11px — labels techniques */
+  --text-2xs: 0.6875rem;
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;
@@ -56,10 +53,8 @@
   --grid-gap: clamp(12px, 1.6vw, 24px);
 
   /* Formes */
-  --radius-0: 0;
   --radius-xs: 2px;
   --radius-sm: 4px;
-  --hairline: 1px;
 
   /* Mouvement */
   --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
@@ -67,7 +62,6 @@
   --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
   --dur-fast: 220ms;
   --dur-base: 480ms;
-  --dur-slow: 900ms;
 
   /* Chrome */
   --header-h: 88px;
@@ -89,71 +83,75 @@
 }
 
 /* --------------------------------------------------------------------------
-   Surfaces — chaque section déclare sa lumière ; les composants lisent
-   --bg / --fg / --fg-muted / --line / --accent et s'adaptent seuls.
+   Lumières
    -------------------------------------------------------------------------- */
 
-.surface-ivory,
-.surface-warm,
-.surface-stone {
-  --fg: var(--color-ink);
-  --fg-muted: rgb(23 23 23 / 0.66);
-  --fg-faint: rgb(23 23 23 / 0.42);
-  --line: rgb(23 23 23 / 0.14);
-  --line-strong: rgb(23 23 23 / 0.32);
-  --accent: var(--color-terracotta);
-  --accent-soft: var(--color-sand);
-  --paper: var(--color-warm-white);
+:root,
+[data-theme="day"] {
+  color-scheme: light;
+  --bg-1: #f5f1e9;
+  --bg-2: #ebe3d7;
+  --bg-3: #e0d5c6;
+  --fg: #171717;
+  --fg-muted: rgb(23 23 23 / 0.7);
+  --fg-faint: rgb(23 23 23 / 0.45);
+  --line: rgb(23 23 23 / 0.13);
+  --line-strong: rgb(23 23 23 / 0.3);
+  --accent: #a0411e;
+  --accent-2: #b88d5e;
+  --on-accent: #f5f1e9;
+  --paper: #fffdf8;
+  --paper-fg: #171717;
   --paper-line: rgb(23 23 23 / 0.1);
-  --focus: var(--color-terracotta);
-  color: var(--fg);
+  --shadow: rgb(23 23 23 / 0.32);
+  --header-glass: rgb(245 241 233 / 0.82);
+  --focus: #a0411e;
+  --error: #86351a;
 }
 
-.surface-ivory {
-  --bg: var(--color-ivory);
+[data-theme="night"] {
+  color-scheme: dark;
+  --bg-1: #0b0c0d;
+  --bg-2: #141414;
+  --bg-3: #1d1915;
+  --fg: #f5f1e9;
+  --fg-muted: rgb(245 241 233 / 0.72);
+  --fg-faint: rgb(245 241 233 / 0.45);
+  --line: rgb(245 241 233 / 0.13);
+  --line-strong: rgb(245 241 233 / 0.3);
+  --accent: #c9a06a;
+  --accent-2: #a0411e;
+  --on-accent: #171717;
+  --paper: #efe8dc;
+  --paper-fg: #171717;
+  --paper-line: rgb(23 23 23 / 0.12);
+  --shadow: rgb(0 0 0 / 0.65);
+  --header-glass: rgb(11 12 13 / 0.72);
+  --focus: #c9a06a;
+  --error: #e8916d;
 }
 
-.surface-warm {
-  --bg: var(--color-warm-white);
-}
+/* --------------------------------------------------------------------------
+   Tons de section — ils suivent la lumière du site.
+   -------------------------------------------------------------------------- */
 
-.surface-stone {
-  --bg: var(--color-stone);
-  --fg-muted: rgb(23 23 23 / 0.74);
-  --line: rgb(23 23 23 / 0.16);
-  --paper: var(--color-ivory);
-}
-
-.surface-dusk,
-.surface-night,
-.surface-ink {
-  --fg: var(--color-ivory);
-  --fg-muted: rgb(245 241 233 / 0.66);
-  --fg-faint: rgb(245 241 233 / 0.4);
-  --line: rgb(245 241 233 / 0.14);
-  --line-strong: rgb(245 241 233 / 0.32);
-  --accent: var(--color-sand);
-  --accent-soft: var(--color-terracotta);
-  --paper: #1c1a18;
-  --paper-line: rgb(245 241 233 / 0.1);
-  --focus: var(--color-sand);
-  color: var(--fg);
-}
-
-.surface-dusk {
-  --bg: var(--color-dusk);
-}
-
-.surface-night {
-  --bg: var(--color-night);
-}
-
-.surface-ink {
-  --bg: var(--color-ink);
-}
-
-:where(.surface-ivory, .surface-warm, .surface-stone, .surface-dusk, .surface-night, .surface-ink) {
+.tone-1,
+.tone-2,
+.tone-3 {
   background-color: var(--bg);
+  color: var(--fg);
+}
+
+.tone-1 {
+  --bg: var(--bg-1);
+}
+
+.tone-2 {
+  --bg: var(--bg-2);
+}
+
+.tone-3 {
+  --bg: var(--bg-3);
 }
 
 .has-grain {

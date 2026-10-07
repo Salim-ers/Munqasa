@@ -1,6 +1,6 @@
 /**
- * Photothèque du site. Dimensions et largeurs disponibles : photo-manifest.json
- * (généré par `npm run images:optimize`). Crédits : image-sources.json.
+ * Photothèque du site. Dimensions, largeurs et présence d'une version nuit :
+ * photo-manifest.json (généré par `npm run images:optimize`). Crédits : image-sources.json.
  */
 import manifest from "./photo-manifest.json";
 
@@ -12,31 +12,28 @@ export interface Photo {
   width: number;
   height: number;
   widths: readonly number[];
+  /** Une version nuit, éditée à partir de la même photographie, existe. */
+  night: boolean;
 }
 
 const ALT: Record<PhotoName, string> = {
-  "arcade-shadow": "Galerie à arcs et moucharabiehs, emmarchement découpé par les ombres",
-  "arch-niche": "Niche en arc outrepassé dans un mur enduit couleur sable, lumière rasante",
-  "archive-shelf": "Chemises d’archives alignées sur une étagère sombre",
-  binders: "Classeurs blancs empilés, tranches alignées",
-  blueprints: "Plans d’architecture superposés sur une table",
+  "arcade-shadow": "Galerie à arcs et moucharabiehs, emmarchement découpé par la lumière",
+  "arch-niche": "Niche en arc outrepassé dans un mur enduit couleur sable",
+  "archive-shelf": "Chemises d’archives alignées sur une étagère",
   "drawing-table": "Dessin technique, règle métallique et crayon sur une table en bois sombre",
   "earth-walls": "Murs en pisé aux arêtes vives se découpant sur le ciel",
-  "lattice-facade": "Façade contemporaine à résille géométrique blanche, vue en contre-plongée",
+  "lattice-facade": "Façade contemporaine à résille géométrique, vue en contre-plongée",
   "museum-entrance": "Entrée contemporaine en brique terracotta et pierre claire, porte en métal noir",
-  "night-desk": "Bureau dans la pénombre, une lampe éclaire un carnet ouvert",
-  "paper-stack": "Pile de feuilles blanches vue de profil",
-  "papers-shelf": "Documents reliés posés sur une tablette en bois devant un mur en béton",
   "papers-table": "Liasses de documents sur un guéridon noir devant un mur en béton brut",
-  rampart: "Rempart crénelé en terre ocre sous un ciel pâle",
-  "sand-tower": "Volume enduit couleur sable sur un ciel bleu profond",
-  "terracotta-walls": "Murs en terre ocre et terracotta sous un ciel bleu profond, ombres nettes",
+  rampart: "Rempart crénelé en terre ocre",
+  "sand-tower": "Volume enduit couleur sable sur un ciel profond",
+  "terracotta-walls": "Murs en terre ocre et terracotta, ombres architecturales",
   "white-arch": "Enfilade d’arches blanches ouvrant sur un sol en zellige",
 };
 
 export function photo(name: PhotoName): Photo {
-  const m = manifest[name];
-  return { name, alt: ALT[name], width: m.width, height: m.height, widths: m.widths };
+  const m = manifest[name] as { width: number; height: number; widths: number[]; night?: boolean };
+  return { name, alt: ALT[name], width: m.width, height: m.height, widths: m.widths, night: Boolean(m.night) };
 }
 
 /** Paire du hero : même bâtiment, même cadrage, deux lumières. */
@@ -45,8 +42,8 @@ export const HERO = {
   width: 2560,
   height: 1440,
   alt: {
-    day: "Architecture marocaine contemporaine sous la lumière du jour",
-    night: "La même architecture à l’heure bleue, même cadrage",
+    day: "Bâtiment marocain contemporain en travertin, arches brisées et résille de terre cuite, en plein jour",
+    night: "Le même bâtiment la nuit, arches éclairées d’une lumière dorée et bureau d’archives allumé",
   },
   src(mode: "day" | "night", width: number) {
     return width === 2560 ? `/images/hero-${mode}.webp` : `/images/hero-${mode}-${width}.webp`;

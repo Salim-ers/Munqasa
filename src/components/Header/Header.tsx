@@ -1,8 +1,10 @@
 import { useLocation } from "react-router";
-import { NAV } from "../../data/navigation";
+import { CTA, NAV } from "../../data/navigation";
 import { useHeaderState } from "../../hooks/useHeaderState";
+import { useAppState } from "../AppState";
 import { CtaLink } from "../CtaLink/CtaLink";
 import { Logo } from "../Logo/Logo";
+import { ThemeToggle } from "../ThemeToggle/ThemeToggle";
 import { TransitionLink } from "../TransitionLink/TransitionLink";
 import "./Header.css";
 
@@ -13,14 +15,14 @@ interface HeaderProps {
 
 export function Header({ menuOpen, onToggleMenu }: HeaderProps) {
   const { pathname } = useLocation();
-  const { surface, compact } = useHeaderState(pathname);
-  const tone = menuOpen ? "dark" : surface;
+  const { mode } = useAppState();
+  const compact = useHeaderState();
 
   return (
-    <header className={["header", `header--${tone}`, compact && !menuOpen ? "is-compact" : ""].filter(Boolean).join(" ")}>
+    <header className={["header", compact && !menuOpen ? "is-compact" : ""].filter(Boolean).join(" ")}>
       <div className="header__inner">
-        <TransitionLink to="/" className="header__brand" aria-label="MUNAQASA — accueil">
-          <Logo tone={tone} />
+        <TransitionLink to="/" className="header__brand" aria-label="MUNAQASA, accueil">
+          <Logo tone={mode === "night" ? "dark" : "light"} />
         </TransitionLink>
 
         <nav className="header__nav" aria-label="Navigation principale">
@@ -38,17 +40,14 @@ export function Header({ menuOpen, onToggleMenu }: HeaderProps) {
           </ul>
         </nav>
 
-        <CtaLink to="/contact" className="header__cta">
-          Confier un dossier
+        <ThemeToggle className="header__theme" />
+        <ThemeToggle compact className="header__theme-icon" />
+
+        <CtaLink to={CTA.to} className="header__cta">
+          {CTA.label}
         </CtaLink>
 
-        <button
-          type="button"
-          className="header__toggle"
-          aria-expanded={menuOpen}
-          aria-controls="menu-mobile"
-          onClick={onToggleMenu}
-        >
+        <button type="button" className="header__toggle" aria-expanded={menuOpen} aria-controls="menu-mobile" onClick={onToggleMenu}>
           <span className="label">{menuOpen ? "Fermer" : "Menu"}</span>
           <span className="header__toggle-lines" aria-hidden="true">
             <i />

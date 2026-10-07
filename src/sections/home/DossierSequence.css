@@ -1,0 +1,566 @@
+.seq {
+  position: relative;
+}
+
+.seq__track {
+  height: 520vh;
+}
+
+.seq__sticky {
+  position: sticky;
+  top: 0;
+  display: grid;
+  align-items: center;
+  height: 100vh;
+  padding-top: var(--header-h-compact);
+  overflow: hidden;
+}
+
+.seq__grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: var(--grid-gap);
+  align-items: center;
+  width: var(--container);
+  margin-inline: auto;
+}
+
+/* ---------- Légendes ---------- */
+
+.seq__captions {
+  grid-column: 1 / span 4;
+  display: grid;
+  gap: var(--space-md);
+}
+
+.seq__phases {
+  position: relative;
+  min-height: 15rem;
+}
+
+.seq__phase {
+  position: absolute;
+  inset: 0 0 auto;
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.seq__title {
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 3.6vw, 4.25rem);
+  line-height: 1;
+  letter-spacing: var(--tracking-display);
+  text-wrap: balance;
+}
+
+.seq__text {
+  max-width: 30ch;
+  color: var(--fg-muted);
+  font-size: var(--text-md);
+  line-height: 1.6;
+}
+
+/* ---------- Planche ---------- */
+
+.seq__stage {
+  --folder-bg: rgb(255 253 248 / 0.38);
+  position: relative;
+  grid-column: 5 / span 8;
+  height: min(76vh, 720px);
+  container-type: inline-size;
+}
+
+[data-theme="night"] .seq__stage {
+  --folder-bg: rgb(245 241 233 / 0.035);
+}
+
+/* Le temps qui passe, de la publication à l'échéance. */
+.seq__deadline {
+  position: absolute;
+  top: 2%;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  width: 54%;
+  color: var(--fg-muted);
+}
+
+.seq__deadline .label {
+  font-size: clamp(8px, 1.1cqi, 11px);
+}
+
+.seq__deadline-track {
+  position: relative;
+  flex: 1;
+  height: 1px;
+  background: var(--line-strong);
+}
+
+.seq__deadline-fill {
+  position: absolute;
+  inset: -0.5px 0;
+  background: var(--accent);
+  transform-origin: 0 50%;
+}
+
+.seq__deadline-mark {
+  position: absolute;
+  left: 86%;
+  bottom: 0.7rem;
+  color: var(--accent);
+  transform: translateX(-50%);
+}
+
+.seq__deadline-mark::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 0.25rem);
+  width: 1px;
+  height: 0.45rem;
+  background: currentColor;
+}
+
+/* Documents de la consultation */
+.seq__sheet {
+  position: absolute;
+  left: 35%;
+  top: 16%;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 2.2cqi;
+  width: 30%;
+  aspect-ratio: 1 / 1.25;
+  padding: 3.6cqi 3.2cqi;
+  color: var(--paper-fg);
+  background: var(--paper);
+  border: 1px solid var(--paper-line);
+  border-radius: var(--radius-xs);
+  box-shadow: 0 3cqi 6cqi -4cqi var(--shadow);
+}
+
+.seq__sheet--avis {
+  z-index: 4;
+}
+
+.seq__sheet-kicker {
+  color: var(--color-terracotta);
+  font-size: clamp(7px, 1.05cqi, 11px);
+}
+
+.seq__sheet-title {
+  font-family: var(--font-display);
+  font-size: clamp(12px, 2.3cqi, 26px);
+  line-height: 1.05;
+}
+
+.seq__sheet-lines {
+  display: grid;
+  gap: 1.7cqi;
+  padding-top: 0.8cqi;
+}
+
+.seq__sheet-lines i {
+  position: relative;
+  display: block;
+  height: 2px;
+  background: rgb(23 23 23 / 0.14);
+}
+
+.seq__hl {
+  position: absolute;
+  inset: -0.45cqi 0;
+  background: var(--color-terracotta);
+  opacity: 0.85;
+  transform-origin: 0 50%;
+}
+
+/* Trait de marge : l'exigence est relevée. */
+.seq__mark {
+  position: absolute;
+  left: -1.8cqi;
+  top: 50%;
+  width: 2px;
+  height: 2.4cqi;
+  margin-top: -1.2cqi;
+  background: var(--color-terracotta);
+}
+
+.seq__sheet-tab {
+  position: absolute;
+  top: 0;
+  right: 10%;
+  padding: 0.5em 0.9em 0.6em;
+  font-size: clamp(7px, 1cqi, 10px);
+  color: var(--color-ink);
+  background: var(--color-sand);
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  transform: translateY(-92%);
+}
+
+/* Dossiers */
+.seq__folder {
+  position: absolute;
+  top: 25%;
+  bottom: 0;
+  width: 31%;
+}
+
+.seq__folder--0 {
+  left: 0;
+}
+
+.seq__folder--1 {
+  left: 34.5%;
+}
+
+.seq__folder--2 {
+  left: 69%;
+}
+
+.seq__folder-frame {
+  position: absolute;
+  inset: 0;
+  background: var(--folder-bg);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-xs);
+}
+
+.seq__folder-tab {
+  position: absolute;
+  top: 0;
+  left: -1px;
+  padding: 0.55em 0.9em 0.6em;
+  font-size: clamp(7px, 1.05cqi, 11px);
+  white-space: nowrap;
+  color: var(--color-ink);
+  background: var(--color-sand);
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  transform: translateY(-100%);
+}
+
+.seq__tab-short {
+  display: none;
+}
+
+@container (max-width: 640px) {
+  .seq__tab-full {
+    display: none;
+  }
+
+  .seq__tab-short {
+    display: inline;
+  }
+}
+
+.seq__folder--1 .seq__folder-tab {
+  color: var(--color-ivory);
+  background: var(--color-terracotta);
+}
+
+.seq__folder--2 .seq__folder-tab {
+  background: var(--color-stone);
+}
+
+/* Pièces */
+.seq__piece {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: calc(6% + var(--slot) * 23%);
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-content: start;
+  gap: 0.6cqi 0.8cqi;
+  height: 20%;
+  padding: 1.2cqi 1.3cqi;
+  color: var(--paper-fg);
+  background: var(--paper);
+  border: 1px solid var(--paper-line);
+  border-left: 3px solid var(--color-sand);
+  border-radius: var(--radius-xs);
+  box-shadow: 0 2cqi 3.5cqi -2.5cqi var(--shadow);
+  will-change: transform;
+}
+
+.seq__folder--1 .seq__piece {
+  border-left-color: var(--color-terracotta);
+}
+
+.seq__folder--2 .seq__piece {
+  border-left-color: var(--color-stone);
+}
+
+.seq__piece-title {
+  font-size: clamp(8px, 1.4cqi, 13.5px);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.seq__piece-lines {
+  grid-column: 1;
+  display: grid;
+  gap: 0.7cqi;
+}
+
+.seq__piece-lines i {
+  display: block;
+  height: 2px;
+  background: rgb(23 23 23 / 0.12);
+}
+
+.seq__piece-lines i + i {
+  width: 70%;
+}
+
+.seq__check {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  width: 2.1cqi;
+  height: 2.1cqi;
+  min-width: 14px;
+  min-height: 14px;
+  border: 1px solid rgb(23 23 23 / 0.35);
+}
+
+.seq__check svg {
+  width: 85%;
+  height: 85%;
+  fill: none;
+  stroke: var(--color-terracotta);
+  stroke-width: 2;
+  stroke-linecap: square;
+}
+
+.seq__check path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+/* Revue : une ligne lumineuse balaie les dossiers. */
+.seq__scan {
+  position: absolute;
+  top: 22%;
+  bottom: 0;
+  left: 0;
+  z-index: 5;
+  width: 2px;
+  background: linear-gradient(180deg, transparent, var(--accent) 20%, var(--accent) 80%, transparent);
+  box-shadow: 0 0 18px 2px color-mix(in srgb, var(--accent) 45%, transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Le dossier fermé */
+.seq__cover {
+  position: absolute;
+  top: 23%;
+  bottom: 1%;
+  left: 33.5%;
+  z-index: 6;
+  display: grid;
+  align-content: end;
+  gap: 1.2cqi;
+  width: 33%;
+  padding: 3cqi;
+  color: var(--color-ivory);
+  background: var(--color-terracotta) var(--grain);
+  background-size: 128px 128px;
+  border-radius: var(--radius-xs);
+  box-shadow: 0 4cqi 8cqi -4cqi var(--shadow);
+  opacity: 0;
+  visibility: hidden;
+}
+
+.seq__cover-arch {
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  width: 46%;
+  overflow: visible;
+  transform: translateX(-50%);
+}
+
+.seq__cover-arch path {
+  fill: none;
+  stroke: rgb(245 241 233 / 0.55);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.seq__cover .label {
+  font-size: clamp(7px, 1.05cqi, 11px);
+  color: rgb(245 241 233 / 0.85);
+}
+
+.seq__cover-title {
+  font-family: var(--font-display);
+  font-size: clamp(16px, 3.2cqi, 38px);
+  line-height: 1;
+}
+
+/* ---------- Tablette / mobile : légende au-dessus, planche dessous ---------- */
+
+@media (max-width: 1023px) {
+  .seq__track {
+    height: 430vh;
+  }
+
+  .seq__sticky {
+    height: 100svh;
+    align-items: stretch;
+    padding-block: calc(var(--header-h-compact) + var(--space-sm)) var(--space-md);
+  }
+
+  .seq__grid {
+    grid-template-rows: auto 1fr;
+    row-gap: var(--space-md);
+    height: 100%;
+  }
+
+  .seq__captions,
+  .seq__stage {
+    grid-column: 1 / -1;
+  }
+
+  .seq__captions {
+    gap: var(--space-xs);
+  }
+
+  .seq__phases {
+    min-height: 8.25rem;
+  }
+
+  .seq__title {
+    font-size: clamp(1.9rem, 7.2vw, 3rem);
+  }
+
+  .seq__text {
+    font-size: var(--text-sm);
+  }
+
+  .seq__stage {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .seq__deadline {
+    width: 60%;
+  }
+
+  .seq__sheet {
+    left: 30%;
+    width: 40%;
+  }
+
+  .seq__folder {
+    top: 27%;
+  }
+
+  .seq__piece {
+    height: 21%;
+    padding: 1.6cqi;
+  }
+
+  .seq__piece-title {
+    font-size: clamp(8.5px, 2.5cqi, 12px);
+  }
+
+  .seq__piece-lines {
+    display: none;
+  }
+
+  .seq__folder-tab,
+  .seq__sheet-kicker,
+  .seq__cover .label,
+  .seq__deadline .label {
+    font-size: clamp(7px, 2cqi, 10px);
+  }
+
+  .seq__sheet-title {
+    font-size: clamp(11px, 3.6cqi, 18px);
+  }
+}
+
+/* ---------- État de départ de l’animation ----------
+   Défini en CSS : si ScrollTrigger réinitialise la séquence (redimensionnement,
+   chargement des polices), tout revient ici, jamais à l’état final. */
+
+@media (prefers-reduced-motion: no-preference) {
+  .seq__piece,
+  .seq__folder-tab,
+  .seq__sheet--rc,
+  .seq__sheet--cps,
+  .seq__deadline {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .seq__folder-frame {
+    clip-path: inset(100% 0% 0% 0%);
+  }
+
+  .seq__hl {
+    transform: scaleX(0);
+  }
+
+  .seq__mark {
+    opacity: 0;
+    transform: scale(0);
+  }
+
+  .seq__deadline-fill {
+    transform: scaleX(0);
+  }
+
+  .seq__deadline-mark {
+    opacity: 0.35;
+  }
+}
+
+/* ---------- Mouvement réduit : le dossier rangé et vérifié, sans animation ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .seq__track {
+    height: auto;
+  }
+
+  .seq__sticky {
+    position: relative;
+    height: auto;
+    padding-block: var(--space-2xl);
+  }
+
+  .seq__phases {
+    min-height: 0;
+    display: grid;
+    gap: var(--space-md);
+  }
+
+  .seq__phase {
+    position: static;
+  }
+
+  .seq__title {
+    font-size: var(--text-xl);
+  }
+
+  .seq__stage {
+    height: min(70vh, 640px);
+  }
+
+  .seq__sheet,
+  .seq__scan,
+  .seq__cover {
+    display: none;
+  }
+
+  .seq__check path {
+    stroke-dashoffset: 0;
+  }
+}

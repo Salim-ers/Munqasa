@@ -1,0 +1,110 @@
+{
+  "archive-shelf": {
+    "name": "archive-shelf",
+    "model": "gpt-image-2",
+    "size": "2048x1152",
+    "score": 0.963,
+    "verdict": "identique",
+    "kind": "interior",
+    "createdAt": "2026-10-07T22:27:37.096Z"
+  },
+  "lattice-facade": {
+    "name": "lattice-facade",
+    "model": "gpt-image-2",
+    "size": "1360x2048",
+    "score": 0.598,
+    "verdict": "à vérifier",
+    "kind": "exterior",
+    "createdAt": "2026-10-07T22:27:53.773Z"
+  },
+  "arch-niche": {
+    "name": "arch-niche",
+    "model": "gpt-image-2",
+    "size": "1600x2048",
+    "score": 0.486,
+    "verdict": "différent",
+    "kind": "exterior",
+    "createdAt": "2026-10-07T22:28:02.936Z"
+  },
+  "drawing-table": {
+    "name": "drawing-table",
+    "model": "gpt-image-2",
+    "size": "2048x1536",
+    "score": 0.914,
+    "verdict": "identique",
+    "kind": "interior",
+    "createdAt": "2026-10-07T22:29:09.652Z"
+  },
+  "rampart": {
+    "name": "rampart",
+    "model": "gpt-image-2",
+    "size": "1360x2048",
+    "score": 0.656,
+    "verdict": "à vérifier",
+    "kind": "exterior",
+    "createdAt": "2026-10-07T22:29:18.159Z"
+  },
+  "arcade-shadow": {
+    "name": "arcade-shadow",
+    "model": "gpt-image-2",
+    "size": "2048x1536",
+    "score": 0.672,
+    "verdict": "à vérifier",
+    "kind": "exterior",
+    "createdAt": "2026-10-07T22:29:26.402Z"
+  },
+  "white-arch": {
+    "name": "white-arch",
+    "model": "gpt-image-2",
+    "size": "1536x2048",
+    "score": 0.813,
+    "verdict": "identique",
+    "kind": "interior",
+    "createdAt": "2026-10-07T22:30:35.974Z"
+  },
+  "sand-tower": {
+    "name": "sand-tower",
+    "model": "gpt-image-2",
+    "size": "1584x2048",
+    "score": 0.795,
+    "verdict": "identique",
+    "kind": "exterior",
+    "createdAt": "2026-10-07T22:30:41.961Z"
+  },
+  "terracotta-walls": {
+    "name": "terracotta-walls",
+    "model": "gpt-image-2",
+    "size": "2048x1360",
+    "score": 0.639,
+    "verdict": "à vérifier",
+    "kind": "exterior",
+    "createdAt": "2026-10-07T22:30:43.433Z"
+  },
+  "earth-walls": {
+    "name": "earth-walls",
+    "model": "gpt-image-2",
+    "size": "2048x1360",
+    "score": 0.62,
+    "verdict": "à vérifier",
+    "kind": "exterior",
+    "createdAt": "2026-10-07T22:31:54.900Z"
+  },
+  "papers-table": {
+    "name": "papers-table",
+    "model": "gpt-image-2",
+    "size": "1360x2048",
+    "score": 0.952,
+    "verdict": "identique",
+    "kind": "interior",
+    "createdAt": "2026-10-07T22:32:02.447Z"
+  },
+  "museum-entrance": {
+    "name": "museum-entrance",
+    "model": "gpt-image-2",
+    "size": "1536x2048",
+    "score": 0.809,
+    "verdict": "identique",
+    "kind": "exterior",
+    "createdAt": "2026-10-07T22:32:18.846Z"
+  }
+}

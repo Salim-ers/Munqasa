@@ -1,215 +1,212 @@
-.progress {
+.method-page {
   padding-block: var(--space-3xl) var(--space-2xl);
 }
 
-.progress__head {
+.timeline__head {
   display: grid;
   gap: var(--space-md);
   max-width: 900px;
   margin-bottom: var(--space-2xl);
 }
 
-.progress__list {
+/* ---------- Calendrier ---------- */
+
+.timeline__list {
   position: relative;
+  --line-x: calc((100% - 11 * var(--grid-gap)) / 12 * 4 + 3.5 * var(--grid-gap));
 }
 
-/* Le trait de progression, au centre (desktop) ou à gauche (mobile). */
-.progress__line {
+.timeline__line {
   position: absolute;
-  left: 50%;
-  top: 0;
+  top: 0.6rem;
   bottom: 0;
+  left: var(--line-x);
   width: 1px;
   background: var(--line);
 }
 
-.progress__line-fill {
+.timeline__line-fill {
   position: absolute;
   inset: 0;
-  background: var(--color-sand);
+  background: var(--accent);
   transform-origin: 50% 0%;
 }
 
-.progress__list ol {
-  display: grid;
-  gap: var(--space-2xl);
-}
-
-.progress__step {
+.timeline__row {
   position: relative;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  column-gap: clamp(4rem, 10vw, 10rem);
-  align-items: center;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: var(--grid-gap);
+  padding-bottom: var(--space-xl);
 }
 
-.progress__node {
+/* Repère sur le trait : un court trait horizontal qui s'allume. */
+.timeline__row::before {
+  content: "";
   position: absolute;
-  left: 50%;
-  top: 50%;
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  font-size: var(--text-2xs);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: var(--fg-muted);
-  background: var(--color-dusk);
-  border: 1px solid var(--line-strong);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
+  top: 0.95rem;
+  left: calc(var(--line-x) - 0.75rem);
+  width: 1.5rem;
+  height: 1px;
+  background: var(--line-strong);
   transition:
-    color var(--dur-base) var(--ease-premium),
     background-color var(--dur-base) var(--ease-premium),
-    border-color var(--dur-base) var(--ease-premium);
+    transform var(--dur-base) var(--ease-premium);
 }
 
-.progress__step.is-reached .progress__node {
-  color: var(--color-ink);
-  background: var(--color-sand);
-  border-color: var(--color-sand);
+.timeline__row.is-reached::before {
+  background: var(--accent);
+  transform: scaleX(1.6);
 }
 
-.progress__content {
-  display: grid;
-  gap: var(--space-sm);
-  justify-items: start;
-  text-align: left;
-}
-
-.progress__step:not(.progress__step--alt) .progress__content {
-  justify-items: end;
-  text-align: right;
-}
-
-.progress__step:not(.progress__step--alt) .progress__content .body-text {
-  margin-left: auto;
-}
-
-.progress__step--alt .progress__content {
-  grid-column: 2;
-  grid-row: 1;
-}
-
-.progress__step--alt .progress__stage {
-  grid-column: 1;
-  grid-row: 1;
-  justify-self: end;
-}
-
-.progress__count {
-  color: var(--color-sand);
-}
-
-.progress__title {
+.timeline__moment {
+  grid-column: 1 / span 4;
+  padding-right: var(--space-md);
   font-family: var(--font-display);
   font-weight: 400;
   font-size: var(--display-sm);
-  line-height: 1;
+  line-height: 1.02;
+  text-align: right;
+  color: var(--fg-faint);
+  transition: color 0.6s var(--ease-premium);
 }
 
-.progress__deliverable {
+.timeline__row.is-reached .timeline__moment {
+  color: var(--fg);
+}
+
+.timeline__body {
+  grid-column: 6 / span 6;
+  display: grid;
+  gap: var(--space-sm);
+  padding-top: 0.35rem;
+}
+
+.timeline__action {
+  font-size: var(--text-lg);
+  line-height: 1.5;
+  color: var(--fg-muted);
+}
+
+.timeline__deliverable {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: 0.75rem;
-  padding: 0.6rem 0.9rem;
-  border: 1px solid var(--line-strong);
   font-size: var(--text-sm);
 }
 
-.progress__deliverable .label {
-  color: var(--color-sand);
+.timeline__deliverable .label {
+  color: var(--accent);
 }
 
-.progress__stage {
-  width: min(100%, 360px);
-}
+/* ---------- Échange ---------- */
 
-/* ---------- Principes ---------- */
-
-.principles {
-  padding-block: var(--space-2xl);
-}
-
-.principles__inner {
+.exchange {
   display: grid;
   gap: var(--space-xl);
+  margin-top: var(--space-2xl);
+  padding-top: var(--space-2xl);
+  border-top: 1px solid var(--line-strong);
 }
 
-.principles__inner header {
+.exchange__title {
+  max-width: 16ch;
+}
+
+.exchange__cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(4rem, 0.35fr) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.exchange__col {
   display: grid;
   gap: var(--space-md);
 }
 
-.principles__list {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--grid-gap);
-}
-
-.principles__list li {
-  display: grid;
-  align-content: start;
-  gap: var(--space-sm);
-  padding-top: var(--space-md);
-  border-top: 1px solid var(--fg);
-}
-
-.principles__num {
-  font-size: 3rem;
+.exchange__col .label {
   color: var(--accent);
 }
 
-.principles__title {
+.exchange__col ul {
+  border-top: 1px solid var(--line);
+}
+
+.exchange__col li {
+  padding-block: 0.9rem;
+  border-bottom: 1px solid var(--line);
   font-family: var(--font-display);
-  font-weight: 400;
   font-size: var(--text-xl);
+  line-height: 1.15;
+}
+
+/* Le flux : un trait qui part de vos documents vers le dossier. */
+.exchange__flow {
+  position: relative;
+  height: 1px;
+  background: var(--line);
+}
+
+.exchange__flow-line {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  transform-origin: 0 50%;
+}
+
+.exchange__flow-line::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: -4px;
+  width: 9px;
+  height: 9px;
+  border-top: 1px solid var(--accent);
+  border-right: 1px solid var(--accent);
+  transform: rotate(45deg);
 }
 
 @media (max-width: 899px) {
-  .progress__line {
-    left: 26px;
+  .timeline__list {
+    --line-x: 0px;
   }
 
-  .progress__step,
-  .progress__step--alt {
-    grid-template-columns: 1fr;
-    row-gap: var(--space-lg);
-    padding-left: 76px;
+  .timeline__row {
+    padding-left: var(--space-lg);
   }
 
-  .progress__node {
-    left: 26px;
-    top: 0;
-    transform: translate(-50%, 0);
+  .timeline__row::before {
+    left: -0.75rem;
   }
 
-  .progress__step .progress__content,
-  .progress__step--alt .progress__content,
-  .progress__step:not(.progress__step--alt) .progress__content {
-    grid-column: 1;
-    grid-row: auto;
-    justify-items: start;
+  .timeline__moment,
+  .timeline__body {
+    grid-column: 1 / -1;
     text-align: left;
+    padding-right: 0;
   }
 
-  .progress__step:not(.progress__step--alt) .progress__content .body-text {
-    margin-left: 0;
-  }
-
-  .progress__step--alt .progress__stage {
-    grid-column: 1;
-    grid-row: auto;
-    justify-self: start;
-  }
-
-  .progress__stage {
-    width: min(100%, 300px);
-  }
-
-  .principles__list {
+  .exchange__cols {
     grid-template-columns: 1fr;
+  }
+
+  .exchange__flow {
+    width: 1px;
+    height: 3rem;
+    justify-self: start;
+    margin-left: 1rem;
+  }
+
+  .exchange__flow-line {
+    transform-origin: 50% 0%;
+  }
+
+  .exchange__flow-line::after {
+    right: -4px;
+    top: auto;
+    bottom: 0;
+    transform: rotate(135deg);
   }
 }

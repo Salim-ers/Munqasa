@@ -122,19 +122,19 @@ export function validateContact(input: Record<string, unknown>): ValidationResul
 
 /** Corps texte de l'e-mail transmis à MUNAQASA (aucun HTML : pas d'injection). */
 export function formatContactEmail(d: ContactRequest): { subject: string; text: string } {
-  const subject = cleanLine(`Demande — ${d.company} — ${CONSULTATION_TYPES[d.consultationType]}`, 140);
+  const subject = cleanLine(`Demande de ${d.company}, ${CONSULTATION_TYPES[d.consultationType]}`, 140);
   const lines = [
     `Nom complet : ${d.fullName}`,
     `Entreprise : ${d.company}`,
     `E-mail : ${d.email}`,
-    `Téléphone : ${d.phone || "—"}`,
+    `Téléphone : ${d.phone || "non renseigné"}`,
     `Type : ${CONSULTATION_TYPES[d.consultationType]}`,
-    `Référence de la consultation : ${d.reference || "—"}`,
-    `Date limite : ${d.deadline || "—"}`,
+    `Référence de la consultation : ${d.reference || "non renseigné"}`,
+    `Date limite : ${d.deadline || "non renseigné"}`,
     `Besoins : ${d.needs.map((n) => NEEDS[n]).join(", ")}`,
     "",
     "Message :",
-    d.message || "—",
+    d.message || "non renseigné",
   ];
   return { subject, text: lines.join("\n") };
 }

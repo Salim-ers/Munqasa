@@ -22,6 +22,11 @@
   pointer-events: none;
 }
 
+[data-theme="day"] .menu__arch {
+  filter: brightness(0.2);
+  opacity: 0.06;
+}
+
 .menu__nav ol {
   display: grid;
   gap: clamp(0.25rem, 1.2vh, 0.75rem);
@@ -43,11 +48,6 @@
   padding-block: clamp(0.5rem, 1.6vh, 1rem);
 }
 
-.menu__num {
-  min-width: 2.2em;
-  color: var(--color-sand);
-}
-
 .menu__label {
   font-family: var(--font-display);
   font-size: clamp(2.5rem, 11vw, 4.5rem);
@@ -61,12 +61,12 @@
 .menu__link:hover .menu__label,
 .menu__link:focus-visible .menu__label {
   transform: translateX(0.4rem);
-  color: var(--color-sand);
+  color: var(--accent);
 }
 
 .menu__link[aria-current="page"] .menu__label {
   font-style: italic;
-  color: var(--color-sand);
+  color: var(--accent);
 }
 
 .menu__foot-wrap {

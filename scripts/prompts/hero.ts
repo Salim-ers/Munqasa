@@ -27,18 +27,19 @@ Strictly: ${NEGATIVES}.
 `.trim();
 
 export const HERO_NIGHT_PROMPT = `
-Transform this exact architectural photograph into a realistic blue-hour / early-night version of the same photograph, as if the photographer stayed on the tripod and shot again 40 minutes after sunset.
+Transform this exact architectural photograph into a richly lit Moroccan night photograph of the same building, as if the photographer stayed on the tripod and shot again after dark for a luxury architecture magazine.
 
-ABSOLUTELY PRESERVE, pixel-aligned: the exact building, camera position, lens, crop, framing, perspective, geometry, facade, every opening and arch, window frames, doors, materials, forecourt paving, surroundings and horizon line. Do not redesign, add, remove, move or resize any architectural element. Do not change the composition.
+ABSOLUTELY PRESERVE, pixel-aligned: the exact building, camera position, lens, crop, framing, perspective, geometry, facade, every opening and arch, window frames, doors, materials, the terracotta screen, the terracotta wall, forecourt paving, surroundings and horizon line. Do not redesign, add, remove, move or resize any architectural element. No new lamps or lanterns in view: the light comes from hidden fixtures.
 
-ONLY CHANGE the lighting:
-- sky: deep blue-black dusk sky, smooth, with a faint residual glow near the horizon;
-- overall exposure: realistic night exposure, the stone keeps its texture but reads darker and cooler;
-- interior lighting: warm 2700–3000K light inside a selection of openings, especially the ground-floor office where the shelves of folders are now softly lit, as if someone is working late before a deadline (but the office remains empty — nobody inside);
-- exterior lighting: restrained architectural uplighting grazing the stone and recessed reveals, a few low ground lights on the forecourt;
-- shadows and reflections consistent with these light sources; daylight shadows removed.
+ONLY CHANGE the light:
+- sky: deep, smooth indigo night sky;
+- the facade is generously and beautifully lit with warm golden-amber light (2400–2700K): every pointed arch and deep recess glows warmly from within, the stone piers are washed by hidden ground uplights;
+- the perforated terracotta screen is backlit: warm light passes through it and casts intricate geometric light patterns, like light through a carved moucharabieh;
+- the ground-floor office is warmly lit, its shelves of folders glowing, as if someone is working late before a deadline (the office stays empty, nobody inside);
+- the terracotta wall on the left is softly grazed by warm light; low warm lights line the forecourt;
+- exposure is bright and detailed, not dark: stone and concrete keep their full texture with rich warm highlights; every shadow is consistent with the artificial light; all sunlight removed.
 
-Real long-exposure night architecture photography from a premium magazine: natural, quiet, believable.
+Warm, inviting, majestic, believable long-exposure photograph.
 
-Strictly: no people, no silhouettes, no text, no logos, no new architectural elements, no neon, no colored LEDs, no exaggerated glow or bloom, no lens flares, no stars, no moon, no CGI look, no oversaturation.
+Strictly: no people, no silhouettes, no text, no logos, no new architectural elements, no neon, no colored LEDs, no blue or purple artificial light, no lens flares, no stars, no moon, no CGI look, no plastic rendering.
 `.trim();

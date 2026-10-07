@@ -27,7 +27,7 @@ function revealLines(el: HTMLElement) {
     autoSplit: true,
     onSplit: (self: SplitText) =>
       gsap.from(self.lines, {
-        yPercent: 108,
+        yPercent: 120,
         duration: 1.15,
         ease: EASE.premium,
         stagger: 0.085,
