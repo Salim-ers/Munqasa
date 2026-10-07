@@ -1,0 +1,6 @@
+node_modules/
+dist/
+# Secrets — ne jamais versionner
+.env
+.env.local
+.env.*.local
