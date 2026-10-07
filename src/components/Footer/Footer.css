@@ -1,0 +1,113 @@
+.footer {
+  position: relative;
+  overflow: hidden;
+  padding-top: var(--space-2xl);
+}
+
+.footer__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  padding-bottom: var(--space-xl);
+  border-bottom: 1px solid var(--line);
+}
+
+.footer__intro {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.footer__statement {
+  max-width: 14ch;
+}
+
+.footer__cols {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-lg) var(--grid-gap);
+  padding-block: var(--space-xl);
+}
+
+.footer__title {
+  margin-bottom: var(--space-md);
+  color: var(--color-sand);
+}
+
+.footer__col ul {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.footer__col a {
+  display: inline-block;
+  padding-block: 0.15rem;
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.footer__col a:hover,
+.footer__col a:focus-visible {
+  color: var(--fg);
+}
+
+/* Nom de marque monumental, légèrement coupé par le bas. */
+.footer__giant {
+  position: relative;
+  margin-top: var(--space-lg);
+  font-family: var(--font-display);
+  font-size: clamp(5rem, 21.5vw, 26rem);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-align: center;
+  white-space: nowrap;
+  color: var(--color-ivory);
+  user-select: none;
+}
+
+.footer__giant span {
+  display: block;
+  padding-bottom: 0.12em;
+  background: linear-gradient(180deg, rgb(245 241 233 / 0.92) 25%, rgb(245 241 233 / 0.1) 92%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.footer__bar {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm) var(--space-lg);
+  padding-block: var(--space-md) max(var(--space-md), env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+}
+
+.footer__top-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  color: var(--fg);
+}
+
+@media (max-width: 899px) {
+  .footer__cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 479px) {
+  .footer__cols {
+    grid-template-columns: 1fr 1fr;
+    column-gap: var(--space-md);
+  }
+
+  .footer__top .cta {
+    width: 100%;
+  }
+}

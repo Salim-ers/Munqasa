@@ -1,0 +1,155 @@
+[
+  {
+    "file": "public/images/photos/arch-niche-*.{avif,webp}",
+    "source": "Unsplash",
+    "license": "Unsplash License — https://unsplash.com/license",
+    "photographer": "Santiago Boada",
+    "photographerUrl": "https://unsplash.com/@santiagoboada",
+    "originalUrl": "https://unsplash.com/photos/a-close-up-of-a-wall-with-a-small-arch-77Ps4Ub14tA",
+    "usage": "Services — veille ; page Services (hero)"
+  },
+  {
+    "file": "public/images/photos/terracotta-walls-*.{avif,webp}",
+    "source": "Unsplash",
+    "license": "Unsplash License — https://unsplash.com/license",
+    "photographer": "Elodie Lvn",
+    "photographerUrl": "https://unsplash.com/@elodielv",
+    "originalUrl": "https://unsplash.com/photos/a-building-with-a-blue-sky-in-the-background-rc8WJZTABTw",
+    "usage": "Accueil — section immersive"
+  },
+  {
+    "file": "public/images/photos/earth-walls-*.{avif,webp}",
+    "source": "Unsplash",
+    "license": "Unsplash License — https://unsplash.com/license",
+    "photographer": "Alex Plesovskich",
+    "photographerUrl": "https://unsplash.com/@aples",
+    "originalUrl": "https://unsplash.com/photos/beige-concrete-building-under-blue-sky-during-daytime-OKOqDFzY1tU",
+    "usage": "Page Expertise (hero) ; services"
+  },
+  {
+    "file": "public/images/photos/lattice-facade-*.{avif,webp}",
+    "source": "Unsplash",
+    "license": "Unsplash License — https://unsplash.com/license",
+    "photographer": "HamZa NOUASRIA",
+    "photographerUrl": "https://unsplash.com/@hamza01nsr",
+    "originalUrl": "https://unsplash.com/photos/a-close-up-of-a-building-SAbSp5NgntU",
+    "usage": "Services — analyse du dossier"
+  },
+  {
+    "file": "public/images/photos/arcade-shadow-*.{avif,webp}",
+    "source": "Unsplash",
+    "license": "Unsplash License — https://unsplash.com/license",
+    "photographer": "HamZa NOUASRIA",
+    "photographerUrl": "https://unsplash.com/@hamza01nsr",
+    "originalUrl": "https://unsplash.com/photos/white-and-brown-concrete-building-vreNlt4ICMY",
+    "usage": "Page Méthode ; coordination"
+  },
+  {
+    "file": "public/images/photos/white-arch-*.{avif,webp}",
+    "source": "Unsplash",
+    "license": "Unsplash License — https://unsplash.com/license",
+    "photographer": "Maik Winnecke",
+    "photographerUrl": "https://unsplash.com/@maik_wi",
+    "originalUrl": "https://unsplash.com/photos/a-hallway-with-a-white-arch-and-blue-and-white-tiles-Be20u4KnmMY",
+    "usage": "Services — préparation à la soumission ; contact"
+  },
+  {
+    "file": "public/images/photos/sand-tower-*.{avif,webp}",
+    "source": "Unsplash",
+    "license": "Unsplash License — https://unsplash.com/license",
+    "photographer": "Gunnar Ridderström",
+    "photographerUrl": "https://unsplash.com/@gunnarridder",
+    "originalUrl": "https://unsplash.com/photos/a-tall-building-with-a-clock-on-the-side-of-it-BE8cBDYX2iU",
+    "usage": "Services — suivi"
+  },
+  {
+    "file": "public/images/photos/museum-entrance-*.{avif,webp}",
+    "source": "Unsplash",
+    "license": "Unsplash License — https://unsplash.com/license",
+    "photographer": "Liubov Novikova",
+    "photographerUrl": "https://unsplash.com/@lub_angeles",
+    "originalUrl": "https://unsplash.com/photos/a-building-with-a-black-door-and-some-plants-CTLdlgaQYa0",
+    "usage": "Page Expertise"
+  },
+  {
+    "file": "public/images/photos/rampart-*.{avif,webp}",
+    "source": "Unsplash",
+    "license": "Unsplash License — https://unsplash.com/license",
+    "photographer": "Mauro Lima",
+    "photographerUrl": "https://unsplash.com/@limamauro23",
+    "originalUrl": "https://unsplash.com/photos/a-wall-made-of-bricks-with-a-sky-in-the-background-A3N6NC7MYT4",
+    "usage": "Services — contrôle avant dépôt"
+  },
+  {
+    "file": "public/images/photos/paper-stack-*.{avif,webp}",
+    "source": "Unsplash",
+    "license": "Unsplash License — https://unsplash.com/license",
+    "photographer": "ron dyar",
+    "photographerUrl": "https://unsplash.com/@prolabprints",
+    "originalUrl": "https://unsplash.com/photos/stack-of-papers-V29UWcALNko",
+    "usage": "Services — dossier administratif"
+  },
+  {
+    "file": "public/images/photos/archive-shelf-*.{avif,webp}",
+    "source": "Unsplash",
+    "license": "Unsplash License — https://unsplash.com/license",
+    "photographer": "Leiada Krözjhen",
+    "photographerUrl": "https://unsplash.com/@leiadakrozjhen",
+    "originalUrl": "https://unsplash.com/photos/a-book-shelf-filled-with-lots-of-books-AxA3YVYdv80",
+    "usage": "Page Services ; organisation documentaire"
+  },
+  {
+    "file": "public/images/photos/papers-table-*.{avif,webp}",
+    "source": "Unsplash",
+    "license": "Unsplash License — https://unsplash.com/license",
+    "photographer": "Yazid N",
+    "photographerUrl": "https://unsplash.com/@mzynasx",
+    "originalUrl": "https://unsplash.com/photos/a-stack-of-books-sitting-on-top-of-a-black-table-qUpdelkd30U",
+    "usage": "Services — offre technique"
+  },
+  {
+    "file": "public/images/photos/papers-shelf-*.{avif,webp}",
+    "source": "Unsplash",
+    "license": "Unsplash License — https://unsplash.com/license",
+    "photographer": "Yazid N",
+    "photographerUrl": "https://unsplash.com/@mzynasx",
+    "originalUrl": "https://unsplash.com/photos/a-wooden-shelf-with-a-book-on-top-of-it-yt1dDVr6-TY",
+    "usage": "Page Méthode"
+  },
+  {
+    "file": "public/images/photos/binders-*.{avif,webp}",
+    "source": "Unsplash",
+    "license": "Unsplash License — https://unsplash.com/license",
+    "photographer": "Beatriz Pérez Moya",
+    "photographerUrl": "https://unsplash.com/@beatriz_perez",
+    "originalUrl": "https://unsplash.com/photos/a-stack-of-thick-folders-on-a-white-surface-XN4T2PVUUgk",
+    "usage": "Formules d'accompagnement"
+  },
+  {
+    "file": "public/images/photos/night-desk-*.{avif,webp}",
+    "source": "Unsplash",
+    "license": "Unsplash License — https://unsplash.com/license",
+    "photographer": "Calvin Wise",
+    "photographerUrl": "https://unsplash.com/@wiseboysca",
+    "originalUrl": "https://unsplash.com/photos/desk-with-lamp-sketchbook-pencils-and-eraser-6hVS5dXige8",
+    "usage": "Page Contact ; revue avant échéance"
+  },
+  {
+    "file": "public/images/photos/drawing-table-*.{avif,webp}",
+    "source": "Unsplash",
+    "license": "Unsplash License — https://unsplash.com/license",
+    "photographer": "Declan Sun",
+    "photographerUrl": "https://unsplash.com/@declansun",
+    "originalUrl": "https://unsplash.com/photos/a-wooden-table-topped-with-a-piece-of-paper-and-a-pair-of-scissors-OspMUpCBeqQ",
+    "usage": "Page Services — offre technique"
+  },
+  {
+    "file": "public/images/photos/blueprints-*.{avif,webp}",
+    "source": "Unsplash",
+    "license": "Unsplash License — https://unsplash.com/license",
+    "photographer": "Marina Zvada",
+    "photographerUrl": "https://unsplash.com/@zvada_photo",
+    "originalUrl": "https://unsplash.com/photos/architectural-blueprints-spread-out-on-a-surface-fNxmdlYHRm8",
+    "usage": "Page Expertise"
+  }
+]

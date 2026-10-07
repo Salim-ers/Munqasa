@@ -1,0 +1,137 @@
+/* Contraste éditorial : grands titres serif / petits labels techniques. */
+
+.display-xl,
+.display-lg,
+.display-md,
+.display-sm {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: var(--tracking-display);
+  text-wrap: balance;
+  font-kerning: normal;
+}
+
+.display-xl {
+  font-size: var(--display-xl);
+  line-height: 0.9;
+}
+
+.display-lg {
+  font-size: var(--display-lg);
+  line-height: 0.94;
+}
+
+.display-md {
+  font-size: var(--display-md);
+  line-height: 0.98;
+}
+
+.display-sm {
+  font-size: var(--display-sm);
+  line-height: 1.04;
+}
+
+:is(.display-xl, .display-lg, .display-md, .display-sm) em {
+  font-style: italic;
+  color: var(--accent, var(--color-terracotta));
+}
+
+/* Une ligne par élément, pour les titres composés ligne à ligne. */
+.display-line {
+  display: block;
+}
+
+.label {
+  font-family: var(--font-body);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.label--muted {
+  color: var(--fg-muted);
+}
+
+.lead {
+  font-size: var(--text-lg);
+  line-height: 1.55;
+  max-width: 40ch;
+  text-wrap: pretty;
+}
+
+.body-text {
+  font-size: var(--text-md);
+  line-height: 1.7;
+  color: var(--fg-muted);
+  max-width: 62ch;
+  text-wrap: pretty;
+}
+
+.numeral {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-variant-numeric: lining-nums tabular-nums;
+  line-height: 0.8;
+}
+
+.prose {
+  max-width: 68ch;
+  color: var(--fg-muted);
+  font-size: var(--text-md);
+  line-height: 1.75;
+}
+
+.prose h2 {
+  margin-top: var(--space-xl);
+  margin-bottom: var(--space-sm);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--display-sm);
+  line-height: 1.05;
+  color: var(--fg);
+}
+
+.prose h3 {
+  margin-top: var(--space-lg);
+  margin-bottom: var(--space-2xs);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--fg);
+}
+
+.prose p + p,
+.prose ul + p,
+.prose p + ul {
+  margin-top: var(--space-sm);
+}
+
+.prose ul {
+  display: grid;
+  gap: var(--space-2xs);
+}
+
+.prose li {
+  position: relative;
+  padding-left: 1.5em;
+}
+
+.prose li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.85em;
+  width: 0.75em;
+  height: 1px;
+  background: var(--accent);
+}
+
+.prose a {
+  color: var(--fg);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 0.2em;
+}

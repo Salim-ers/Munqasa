@@ -1,0 +1,276 @@
+/* ---------- Sommaire ---------- */
+
+.services-index {
+  position: sticky;
+  top: var(--header-h-compact);
+  z-index: 5;
+  border-block: 1px solid var(--line);
+  background: rgb(245 241 233 / 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.services-index__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* Le fondu à droite signale que le sommaire se prolonge. */
+  mask-image: linear-gradient(90deg, #000 88%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent);
+}
+
+.services-index__inner::-webkit-scrollbar {
+  display: none;
+}
+
+.services-index__title {
+  flex: none;
+  color: var(--fg-muted);
+}
+
+.services-index ol {
+  display: flex;
+  gap: var(--space-lg);
+}
+
+.services-index a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  color: var(--fg-muted);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.services-index a .label {
+  color: var(--accent);
+}
+
+.services-index a:hover {
+  color: var(--fg);
+}
+
+/* ---------- Chapitres ---------- */
+
+.chapter {
+  position: relative;
+  padding-block: var(--space-2xl);
+  overflow: hidden;
+  scroll-margin-top: calc(var(--header-h-compact) + 48px);
+}
+
+.chapter__grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: var(--grid-gap);
+  row-gap: var(--space-xl);
+  align-items: center;
+}
+
+.chapter__num {
+  grid-column: 1 / span 2;
+  align-self: start;
+  font-size: clamp(4.5rem, 10vw, 11rem);
+  color: transparent;
+  -webkit-text-stroke: 1px var(--line-strong);
+}
+
+.chapter__content {
+  grid-column: 3 / span 5;
+  display: grid;
+  gap: var(--space-md);
+}
+
+.chapter__lead {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  line-height: 1.25;
+}
+
+.chapter__tasks {
+  display: grid;
+  border-top: 1px solid var(--line);
+}
+
+.chapter__tasks li {
+  position: relative;
+  padding: 0.8rem 0 0.8rem 1.6rem;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--text-sm);
+  color: var(--fg-muted);
+}
+
+.chapter__tasks li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 1.45rem;
+  width: 0.75rem;
+  height: 1px;
+  background: var(--accent);
+}
+
+.chapter__deliverable {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--paper);
+  border-left: 3px solid var(--accent);
+  font-size: var(--text-sm);
+}
+
+.chapter__deliverable .label {
+  color: var(--accent);
+}
+
+.chapter__note {
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+  font-style: italic;
+}
+
+.chapter__media {
+  grid-column: 9 / span 4;
+  position: relative;
+}
+
+.chapter__frame {
+  overflow: hidden;
+}
+
+.chapter__clip,
+.chapter__frame picture,
+.chapter__frame img {
+  width: 100%;
+  height: 100%;
+}
+
+.chapter__frame img {
+  object-fit: cover;
+}
+
+/* Variante arche */
+.chapter--arch .chapter__frame {
+  aspect-ratio: 4 / 5.2;
+}
+
+/* Variante verticale : photographie à gauche, contenu à droite */
+.chapter--tall .chapter__num {
+  grid-column: 11 / span 2;
+  grid-row: 1;
+  text-align: right;
+}
+
+.chapter--tall .chapter__media {
+  grid-column: 1 / span 4;
+  grid-row: 1;
+}
+
+.chapter--tall .chapter__content {
+  grid-column: 6 / span 5;
+  grid-row: 1;
+}
+
+.chapter--tall .chapter__frame {
+  aspect-ratio: 3 / 4.2;
+}
+
+/* Variante feuille : section de nuit, documents abstraits */
+.chapter--sheet .chapter__num {
+  -webkit-text-stroke-color: rgb(184 141 94 / 0.5);
+}
+
+.chapter__sheets {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 5;
+}
+
+.chapter__sheet {
+  grid-area: 1 / 1;
+  width: 72%;
+}
+
+.chapter__sheet--back {
+  transform: translate(-12%, -6%) rotate(-5deg);
+  opacity: 0.55;
+}
+
+.chapter--sheet .sheet {
+  --paper: var(--color-ivory);
+  --fg: var(--color-ink);
+  --fg-muted: rgb(23 23 23 / 0.6);
+  --fg-faint: rgb(23 23 23 / 0.4);
+  --paper-line: rgb(23 23 23 / 0.1);
+}
+
+/* Variante bande : photographie panoramique sous le texte */
+.chapter--band .chapter__content {
+  grid-column: 3 / span 6;
+}
+
+.chapter--band .chapter__media {
+  grid-column: 3 / -1;
+  grid-row: 2;
+}
+
+.chapter--band .chapter__frame {
+  aspect-ratio: 21 / 8;
+}
+
+@media (max-width: 1023px) {
+  .chapter__num,
+  .chapter--tall .chapter__num {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    text-align: left;
+    font-size: clamp(4rem, 16vw, 7rem);
+  }
+
+  .chapter__content,
+  .chapter--tall .chapter__content,
+  .chapter--band .chapter__content {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+
+  .chapter__media,
+  .chapter--tall .chapter__media,
+  .chapter--band .chapter__media {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+
+  .chapter--arch .chapter__media {
+    grid-column: 2 / span 10;
+  }
+
+  .chapter--tall .chapter__frame,
+  .chapter--band .chapter__frame {
+    aspect-ratio: 16 / 10;
+  }
+}
+
+@media (max-width: 599px) {
+  .chapter--tall .chapter__media,
+  .chapter--band .chapter__media {
+    margin-inline: calc(var(--gutter) * -1);
+  }
+
+  .chapter--arch .chapter__media {
+    grid-column: 1 / -1;
+    padding-inline: 10%;
+  }
+
+  .chapter__sheets {
+    width: 86%;
+    margin-inline: auto;
+  }
+}

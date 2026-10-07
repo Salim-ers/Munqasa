@@ -1,0 +1,215 @@
+.progress {
+  padding-block: var(--space-3xl) var(--space-2xl);
+}
+
+.progress__head {
+  display: grid;
+  gap: var(--space-md);
+  max-width: 900px;
+  margin-bottom: var(--space-2xl);
+}
+
+.progress__list {
+  position: relative;
+}
+
+/* Le trait de progression, au centre (desktop) ou à gauche (mobile). */
+.progress__line {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--line);
+}
+
+.progress__line-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--color-sand);
+  transform-origin: 50% 0%;
+}
+
+.progress__list ol {
+  display: grid;
+  gap: var(--space-2xl);
+}
+
+.progress__step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: clamp(4rem, 10vw, 10rem);
+  align-items: center;
+}
+
+.progress__node {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--fg-muted);
+  background: var(--color-dusk);
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition:
+    color var(--dur-base) var(--ease-premium),
+    background-color var(--dur-base) var(--ease-premium),
+    border-color var(--dur-base) var(--ease-premium);
+}
+
+.progress__step.is-reached .progress__node {
+  color: var(--color-ink);
+  background: var(--color-sand);
+  border-color: var(--color-sand);
+}
+
+.progress__content {
+  display: grid;
+  gap: var(--space-sm);
+  justify-items: start;
+  text-align: left;
+}
+
+.progress__step:not(.progress__step--alt) .progress__content {
+  justify-items: end;
+  text-align: right;
+}
+
+.progress__step:not(.progress__step--alt) .progress__content .body-text {
+  margin-left: auto;
+}
+
+.progress__step--alt .progress__content {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.progress__step--alt .progress__stage {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: end;
+}
+
+.progress__count {
+  color: var(--color-sand);
+}
+
+.progress__title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--display-sm);
+  line-height: 1;
+}
+
+.progress__deliverable {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--line-strong);
+  font-size: var(--text-sm);
+}
+
+.progress__deliverable .label {
+  color: var(--color-sand);
+}
+
+.progress__stage {
+  width: min(100%, 360px);
+}
+
+/* ---------- Principes ---------- */
+
+.principles {
+  padding-block: var(--space-2xl);
+}
+
+.principles__inner {
+  display: grid;
+  gap: var(--space-xl);
+}
+
+.principles__inner header {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.principles__list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--grid-gap);
+}
+
+.principles__list li {
+  display: grid;
+  align-content: start;
+  gap: var(--space-sm);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--fg);
+}
+
+.principles__num {
+  font-size: 3rem;
+  color: var(--accent);
+}
+
+.principles__title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--text-xl);
+}
+
+@media (max-width: 899px) {
+  .progress__line {
+    left: 26px;
+  }
+
+  .progress__step,
+  .progress__step--alt {
+    grid-template-columns: 1fr;
+    row-gap: var(--space-lg);
+    padding-left: 76px;
+  }
+
+  .progress__node {
+    left: 26px;
+    top: 0;
+    transform: translate(-50%, 0);
+  }
+
+  .progress__step .progress__content,
+  .progress__step--alt .progress__content,
+  .progress__step:not(.progress__step--alt) .progress__content {
+    grid-column: 1;
+    grid-row: auto;
+    justify-items: start;
+    text-align: left;
+  }
+
+  .progress__step:not(.progress__step--alt) .progress__content .body-text {
+    margin-left: 0;
+  }
+
+  .progress__step--alt .progress__stage {
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: start;
+  }
+
+  .progress__stage {
+    width: min(100%, 300px);
+  }
+
+  .principles__list {
+    grid-template-columns: 1fr;
+  }
+}

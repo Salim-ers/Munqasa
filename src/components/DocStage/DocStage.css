@@ -1,0 +1,374 @@
+.doc-stage {
+  container-type: inline-size;
+  margin: 0;
+  --ds-t: 0.75s;
+  --ds-paper: var(--paper, var(--color-warm-white));
+  --ds-ink: var(--fg, var(--color-ink));
+  --ds-folder: var(--color-ink);
+}
+
+:is(.surface-dusk, .surface-night, .surface-ink) .doc-stage {
+  --ds-paper: var(--color-ivory);
+  --ds-ink: var(--color-ink);
+  --ds-folder: #2c2621;
+}
+
+.doc-stage__board {
+  position: relative;
+  aspect-ratio: 4 / 5;
+}
+
+.doc-stage__board .label {
+  font-size: clamp(6.5px, 1.9cqi, 10px);
+}
+
+.ds-sheet {
+  position: absolute;
+  left: 12%;
+  top: 10%;
+  width: 54%;
+  aspect-ratio: 1 / 1.414;
+  padding: 5.5cqi 5cqi;
+  background: var(--ds-paper);
+  color: var(--ds-ink);
+  border: 1px solid rgb(23 23 23 / 0.1);
+  border-radius: var(--radius-xs);
+  box-shadow:
+    0 1px 0 rgb(23 23 23 / 0.05),
+    0 4cqi 8cqi -6cqi rgb(8 10 11 / 0.55);
+  transition:
+    transform var(--ds-t) var(--ease-premium),
+    opacity var(--ds-t) var(--ease-premium);
+}
+
+.ds-head {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 2cqi;
+  border-bottom: 1px solid rgb(23 23 23 / 0.12);
+  color: rgb(23 23 23 / 0.6);
+}
+
+/* 01 — page vierge */
+.ds-blank {
+  position: absolute;
+  inset: 16cqi 5cqi 6cqi;
+  display: grid;
+  place-items: center;
+  border: 1px dashed rgb(23 23 23 / 0.2);
+  color: rgb(23 23 23 / 0.45);
+  opacity: 0;
+  transition: opacity 0.5s var(--ease-premium);
+}
+
+.ds-blank.is-on {
+  opacity: 1;
+}
+
+/* 02 — avis */
+.ds-notice {
+  display: grid;
+  gap: 2.4cqi;
+  padding-top: 4cqi;
+  opacity: 0;
+  transform: translateY(2cqi);
+  transition:
+    opacity var(--ds-t) var(--ease-premium),
+    transform var(--ds-t) var(--ease-premium);
+}
+
+.ds-notice.is-on {
+  opacity: 1;
+  transform: none;
+}
+
+.ds-notice__kicker {
+  color: var(--color-terracotta);
+}
+
+.ds-notice__title {
+  font-family: var(--font-display);
+  font-size: 6.4cqi;
+  line-height: 1;
+}
+
+.ds-lines {
+  display: grid;
+  gap: 2.6cqi;
+  padding-top: 1.5cqi;
+}
+
+.ds-lines i {
+  position: relative;
+  display: block;
+  height: 0.55cqi;
+  min-height: 2px;
+  background: rgb(23 23 23 / 0.14);
+}
+
+/* 03 — exigences relevées : surlignage + repère numéroté en marge */
+.ds-lines i.is-key::after {
+  content: "";
+  position: absolute;
+  inset: -0.9cqi 0;
+  background: var(--color-terracotta);
+  opacity: 0.85;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform 0.9s var(--ease-architect);
+}
+
+.ds-lines i.is-key::before {
+  content: attr(data-n);
+  position: absolute;
+  left: -4.4cqi;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 3.2cqi;
+  height: 3.2cqi;
+  font: 600 clamp(6px, 1.7cqi, 9px) / 1 var(--font-body);
+  color: var(--color-ivory);
+  background: var(--color-terracotta);
+  border-radius: 50%;
+  opacity: 0;
+  transform: translateY(-50%) scale(0.4);
+  transition:
+    opacity 0.4s var(--ease-premium),
+    transform 0.6s var(--ease-premium);
+}
+
+.is-annotated .ds-lines i.is-key::after {
+  transform: scaleX(1);
+}
+
+.is-annotated .ds-lines i.is-key::before {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+
+.is-annotated .ds-lines i.is-key:nth-child(5)::after,
+.is-annotated .ds-lines i.is-key:nth-child(5)::before {
+  transition-delay: 0.15s;
+}
+
+.is-annotated .ds-lines i.is-key:nth-child(7)::after,
+.is-annotated .ds-lines i.is-key:nth-child(7)::before {
+  transition-delay: 0.3s;
+}
+
+/* 04 — checklist */
+.ds-check {
+  left: 46%;
+  top: 24%;
+  width: 44%;
+  z-index: 3;
+  opacity: 0;
+  transform: translate(26%, 4%) rotate(7deg);
+}
+
+.ds-check.is-on {
+  opacity: 1;
+  transform: rotate(2deg);
+}
+
+.ds-check__rows {
+  display: grid;
+  gap: 3.6cqi;
+  padding-top: 4.5cqi;
+}
+
+.ds-check__rows li {
+  display: flex;
+  align-items: center;
+  gap: 2.4cqi;
+}
+
+.ds-check__rows i {
+  height: 0.55cqi;
+  min-height: 2px;
+  background: rgb(23 23 23 / 0.14);
+}
+
+.ds-box {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 3.6cqi;
+  height: 3.6cqi;
+  border: 1px solid rgb(23 23 23 / 0.45);
+  transition:
+    background-color 0.4s var(--ease-premium),
+    border-color 0.4s var(--ease-premium);
+}
+
+.ds-box svg {
+  width: 80%;
+  height: 80%;
+  fill: none;
+  stroke: var(--color-ivory);
+  stroke-width: 1.8;
+  stroke-linecap: square;
+}
+
+.ds-box path {
+  stroke-dasharray: 14;
+  stroke-dashoffset: 14;
+  transition: stroke-dashoffset 0.5s var(--ease-premium);
+}
+
+.is-checked .ds-box {
+  background: var(--color-terracotta);
+  border-color: var(--color-terracotta);
+}
+
+.is-checked .ds-box path {
+  stroke-dashoffset: 0;
+}
+
+/* 05 — intercalaires assemblés */
+.ds-stack {
+  padding: 0;
+  opacity: 0;
+}
+
+.ds-stack__tab {
+  position: absolute;
+  left: 0;
+  padding: 1.2cqi 1.4cqi;
+  color: var(--color-ink);
+  border-radius: var(--radius-xs) 0 0 var(--radius-xs);
+  transform: translateX(-100%);
+}
+
+.ds-stack--1 .ds-stack__tab {
+  top: 18%;
+  background: var(--color-stone);
+}
+
+.ds-stack--2 .ds-stack__tab {
+  top: 34%;
+  background: var(--color-sand);
+}
+
+.ds-stack--3 .ds-stack__tab {
+  top: 50%;
+  background: var(--color-terracotta);
+  color: var(--color-ivory);
+}
+
+.ds-stack.is-on {
+  opacity: 1;
+}
+
+.ds-stack--1.is-on {
+  transform: translate(-9%, -6%);
+}
+
+.ds-stack--2.is-on {
+  transform: translate(-6%, -4%);
+  transition-delay: 0.08s;
+}
+
+.ds-stack--3.is-on {
+  transform: translate(-3%, -2%);
+  transition-delay: 0.16s;
+}
+
+.ds-main {
+  z-index: 2;
+}
+
+/* 06 — visa de revue */
+.ds-stamp {
+  position: absolute;
+  left: 18%;
+  top: 66%;
+  z-index: 4;
+  display: grid;
+  justify-items: center;
+  gap: 1cqi;
+  padding: 2cqi 3.2cqi;
+  color: var(--color-terracotta);
+  border: 2px solid currentColor;
+  background: rgb(255 253 248 / 0.7);
+  opacity: 0;
+  transform: rotate(-7deg) scale(1.35);
+  transition:
+    opacity 0.35s var(--ease-premium) 0.5s,
+    transform 0.55s var(--ease-premium) 0.5s;
+}
+
+.ds-stamp.is-on {
+  opacity: 1;
+  transform: rotate(-7deg) scale(1);
+}
+
+.ds-stamp__rule {
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+}
+
+/* 07 — dossier final */
+.ds-folder {
+  position: absolute;
+  left: 6%;
+  top: 7%;
+  z-index: 5;
+  width: 64%;
+  aspect-ratio: 1 / 1.32;
+  display: grid;
+  align-content: end;
+  gap: 2.4cqi;
+  padding: 6cqi;
+  background: var(--ds-folder) var(--grain);
+  background-size: 128px 128px;
+  color: var(--color-ivory);
+  border-radius: var(--radius-xs);
+  box-shadow: 0 5cqi 10cqi -6cqi rgb(8 10 11 / 0.7);
+  opacity: 0;
+  transform: translateY(18%);
+  transition:
+    transform 0.9s var(--ease-premium),
+    opacity 0.6s var(--ease-premium);
+}
+
+.ds-folder.is-on {
+  opacity: 1;
+  transform: none;
+}
+
+.ds-folder__tab {
+  position: absolute;
+  top: 0;
+  left: 8%;
+  padding: 1.2cqi 3cqi 1.6cqi;
+  background: inherit;
+  color: var(--color-sand);
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  transform: translateY(-90%);
+}
+
+.ds-folder__kicker,
+.ds-folder__meta {
+  color: var(--color-sand);
+}
+
+.ds-folder__title {
+  font-family: var(--font-display);
+  font-size: 9cqi;
+  line-height: 0.95;
+}
+
+.ds-folder__rule {
+  height: 1px;
+  background: var(--color-sand);
+  opacity: 0.6;
+}
+
+.doc-stage__caption {
+  margin-top: var(--space-sm);
+  color: var(--fg-muted);
+  font-size: var(--text-2xs);
+}

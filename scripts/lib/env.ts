@@ -46,6 +46,7 @@ export function loadServerEnv(root = process.cwd()) {
 
   return {
     apiKey,
-    imageModel: process.env.OPENAI_IMAGE_MODEL ?? fileVars.OPENAI_IMAGE_MODEL ?? "gpt-image-1",
+    /** Facultatif : sans valeur, gpt-image-2 puis gpt-image-1 sont essayés. */
+    imageModel: process.env.OPENAI_IMAGE_MODEL || fileVars.OPENAI_IMAGE_MODEL || undefined,
   };
 }

@@ -40,17 +40,19 @@ function record(key: string, value: unknown) {
 
 async function stepDay() {
   const { apiKey, imageModel } = loadServerEnv(ROOT);
-  console.log(`→ Génération JOUR (${count} proposition(s), modèle ${imageModel})… 1 à 2 min.`);
-  const images = await generateImages({ apiKey, model: imageModel, prompt: HERO_DAY_PROMPT, n: count });
+  console.log(`→ Génération JOUR (${count} proposition(s), modèle ${imageModel ?? "gpt-image-2 → gpt-image-1"})… 1 à 3 min.`);
+  const { images, model, size } = await generateImages({ apiKey, modelOverride: imageModel, prompt: HERO_DAY_PROMPT, n: count });
   const paths = images.map((buf, i) => {
     const p = join(SRC_DIR, `hero-day-${String(i + 1).padStart(2, "0")}.png`);
     writeFileSync(p, buf);
     return p;
   });
-  copyFileSync(paths[0], DAY);
-  record("day", { model: imageModel, prompt: HERO_DAY_PROMPT, candidates: paths.map(rel), selected: rel(paths[0]), createdAt: new Date().toISOString() });
-  paths.forEach((p) => console.log(`  ✓ ${rel(p)}`));
-  console.log(`  Sélection : ${rel(paths[0])} (change avec --from à l'étape nuit)`);
+  const [first] = paths;
+  if (!first) throw new Error("Aucune image jour reçue.");
+  copyFileSync(first, DAY);
+  record("day", { model, size, prompt: HERO_DAY_PROMPT, candidates: paths.map(rel), selected: rel(first), createdAt: new Date().toISOString() });
+  paths.forEach((p) => console.log(`  ✓ ${rel(p)}  (${model}, ${size})`));
+  console.log(`  Sélection : ${rel(first)} (change avec --from à l'étape nuit)`);
 }
 
 async function stepNight() {
@@ -62,10 +64,19 @@ async function stepNight() {
   }
   if (!existsSync(DAY)) throw new Error("Aucune image jour. Lance d'abord : npm run hero:day");
 
-  console.log(`→ Génération NUIT à partir de ${rel(DAY)} (${count} essai(s))… 1 à 2 min.`);
-  const images = await editImage({ apiKey, model: imageModel, prompt: HERO_NIGHT_PROMPT, imagePath: DAY, n: count });
   const dayBuf = await sharp(DAY).png().toBuffer();
-  const { width, height } = await sharp(DAY).metadata();
+  const { width = 1536, height = 1024 } = await sharp(DAY).metadata();
+  const dayModel = (manifest.day as { model?: string } | undefined)?.model;
+  console.log(`→ Génération NUIT à partir de ${rel(DAY)} (${width}×${height}, ${count} essai(s))… 1 à 3 min.`);
+  const { images, model } = await editImage({
+    apiKey,
+    modelOverride: imageModel,
+    preferModel: dayModel,
+    prompt: HERO_NIGHT_PROMPT,
+    imagePath: DAY,
+    size: `${width}x${height}`,
+    n: count,
+  });
 
   // Chaque essai est noté sur la conservation de la géométrie ; le meilleur est retenu.
   const scored = await Promise.all(
@@ -78,9 +89,11 @@ async function stepNight() {
   );
   scored.sort((a, b) => b.score - a.score);
   scored.forEach((s) => console.log(`  ${rel(s.path)}  géométrie ${s.score.toFixed(3)}  (${verdictFor(s.score)})`));
-  copyFileSync(scored[0].path, NIGHT);
-  record("night", { model: imageModel, prompt: HERO_NIGHT_PROMPT, source: rel(DAY), input_fidelity: "high", candidates: scored.map((s) => ({ file: rel(s.path), score: +s.score.toFixed(3) })), selected: rel(scored[0].path), createdAt: new Date().toISOString() });
-  console.log(`  Sélection : ${rel(scored[0].path)}`);
+  const [best] = scored;
+  if (!best) throw new Error("Aucune image nuit reçue.");
+  copyFileSync(best.path, NIGHT);
+  record("night", { model, prompt: HERO_NIGHT_PROMPT, source: rel(DAY), candidates: scored.map((s) => ({ file: rel(s.path), score: +s.score.toFixed(3) })), selected: rel(best.path), createdAt: new Date().toISOString() });
+  console.log(`  Sélection : ${rel(best.path)}`);
 }
 
 async function stepFinalize() {

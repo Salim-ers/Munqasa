@@ -1,0 +1,41 @@
+.final-cta {
+  position: relative;
+  overflow: hidden;
+  padding-block: var(--space-3xl);
+  border-bottom: 1px solid var(--line);
+}
+
+/* Arche du logo en filigrane, à 5 % d'opacité. */
+.final-cta__arch {
+  position: absolute;
+  right: -6%;
+  top: 50%;
+  width: min(70vw, 900px);
+  height: auto;
+  opacity: 0.05;
+  transform: translateY(-50%);
+  pointer-events: none;
+  user-select: none;
+}
+
+.final-cta__inner {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  gap: var(--space-lg);
+}
+
+.final-cta h2 {
+  max-width: 11ch;
+}
+
+.final-cta__text {
+  color: var(--fg-muted);
+}
+
+@media (max-width: 767px) {
+  .final-cta__arch {
+    right: -30%;
+    width: 120vw;
+  }
+}

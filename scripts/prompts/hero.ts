@@ -8,26 +8,7 @@
  * s'allument — « la rigueur avant l'échéance ».
  */
 
-const PHOTO_CONSTRAINTS = [
-  "ultra-realistic architectural photography",
-  "editorial architecture magazine photography",
-  "shot on a full-frame camera with a 35mm tilt-shift lens, verticals corrected",
-  "natural exposure and natural dynamic range",
-  "realistic lens characteristics, very slight vignetting",
-  "subtle sensor grain",
-  "physically accurate materials with natural imperfections: weathering on stone, small stains on concrete, uneven tadelakt",
-  "realistic architectural geometry that could actually be built",
-].join(", ");
-
-const NEGATIVES = [
-  "no people", "no human silhouettes", "no hands", "no faces",
-  "no text", "no letters", "no signage", "no logos", "no flags", "no watermark",
-  "no cars", "no palm trees as decoration", "no lanterns", "no souk", "no desert",
-  "no futuristic elements", "no glass skyscraper", "no Dubai-style architecture",
-  "no surreal or impossible geometry", "no floating objects",
-  "no CGI look", "no glossy render", "no plastic materials",
-  "no exaggerated HDR", "no oversaturated colors", "no perfect artificial symmetry",
-].join(", ");
+import { NEGATIVES, PHOTO_CONSTRAINTS } from "./shared.ts";
 
 export const HERO_DAY_PROMPT = `
 ${PHOTO_CONSTRAINTS}.

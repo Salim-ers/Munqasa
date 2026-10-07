@@ -1,0 +1,162 @@
+/* ==========================================================================
+   MUNAQASA — design tokens
+   Palette mesurée sur le logo : sable #B88D5E, terracotta #A0411E.
+   ========================================================================== */
+
+:root {
+  /* Couleurs de marque */
+  --color-ink: #171717;
+  --color-night: #080a0b;
+  --color-ivory: #f5f1e9;
+  --color-warm-white: #fffdf8;
+  --color-sand: #b88d5e;
+  --color-sand-soft: #d9c3a3;
+  --color-terracotta: #a0411e;
+  --color-terracotta-deep: #86351a;
+  --color-stone: #d8cbbb;
+  --color-stone-deep: #c7b6a2;
+  --color-dusk: #211c18;
+  --color-dusk-soft: #3a3029;
+
+  /* Typographie */
+  --font-display: "Instrument Serif", "Iowan Old Style", "Times New Roman", serif;
+  --font-body: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --text-2xs: 0.6875rem; /* 11px — labels techniques */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-md: 1.0625rem;
+  --text-lg: clamp(1.125rem, 0.6vw + 0.95rem, 1.375rem);
+  --text-xl: clamp(1.375rem, 1vw + 1.05rem, 1.875rem);
+
+  --display-sm: clamp(2.125rem, 2.6vw + 1.2rem, 3.75rem);
+  --display-md: clamp(2.625rem, 4.4vw + 1.1rem, 6rem);
+  --display-lg: clamp(3.125rem, 7vw + 0.6rem, 9.5rem);
+  --display-xl: clamp(3.5rem, 9.6vw, 12.5rem);
+
+  --tracking-label: 0.18em;
+  --tracking-display: -0.012em;
+
+  /* Espacements */
+  --space-3xs: 0.25rem;
+  --space-2xs: 0.5rem;
+  --space-xs: 0.75rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: clamp(2rem, 3vw, 3rem);
+  --space-xl: clamp(3rem, 5vw, 5rem);
+  --space-2xl: clamp(5rem, 9vw, 9rem);
+  --space-3xl: clamp(6.5rem, 13vw, 13rem);
+
+  /* Grille */
+  --gutter: clamp(16px, 4vw, 64px);
+  --container: min(100% - 2 * var(--gutter), 1520px);
+  --container-narrow: min(100% - 2 * var(--gutter), 1080px);
+  --grid-gap: clamp(12px, 1.6vw, 24px);
+
+  /* Formes */
+  --radius-0: 0;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --hairline: 1px;
+
+  /* Mouvement */
+  --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-architect: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
+  --dur-fast: 220ms;
+  --dur-base: 480ms;
+  --dur-slow: 900ms;
+
+  /* Chrome */
+  --header-h: 88px;
+  --header-h-compact: 64px;
+  --z-header: 50;
+  --z-menu: 40;
+  --z-transition: 80;
+  --z-loader: 90;
+  --z-cursor: 100;
+
+  --grain: url("/textures/grain.webp");
+}
+
+@media (max-width: 767px) {
+  :root {
+    --header-h: 68px;
+    --header-h-compact: 60px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Surfaces — chaque section déclare sa lumière ; les composants lisent
+   --bg / --fg / --fg-muted / --line / --accent et s'adaptent seuls.
+   -------------------------------------------------------------------------- */
+
+.surface-ivory,
+.surface-warm,
+.surface-stone {
+  --fg: var(--color-ink);
+  --fg-muted: rgb(23 23 23 / 0.66);
+  --fg-faint: rgb(23 23 23 / 0.42);
+  --line: rgb(23 23 23 / 0.14);
+  --line-strong: rgb(23 23 23 / 0.32);
+  --accent: var(--color-terracotta);
+  --accent-soft: var(--color-sand);
+  --paper: var(--color-warm-white);
+  --paper-line: rgb(23 23 23 / 0.1);
+  --focus: var(--color-terracotta);
+  color: var(--fg);
+}
+
+.surface-ivory {
+  --bg: var(--color-ivory);
+}
+
+.surface-warm {
+  --bg: var(--color-warm-white);
+}
+
+.surface-stone {
+  --bg: var(--color-stone);
+  --fg-muted: rgb(23 23 23 / 0.74);
+  --line: rgb(23 23 23 / 0.16);
+  --paper: var(--color-ivory);
+}
+
+.surface-dusk,
+.surface-night,
+.surface-ink {
+  --fg: var(--color-ivory);
+  --fg-muted: rgb(245 241 233 / 0.66);
+  --fg-faint: rgb(245 241 233 / 0.4);
+  --line: rgb(245 241 233 / 0.14);
+  --line-strong: rgb(245 241 233 / 0.32);
+  --accent: var(--color-sand);
+  --accent-soft: var(--color-terracotta);
+  --paper: #1c1a18;
+  --paper-line: rgb(245 241 233 / 0.1);
+  --focus: var(--color-sand);
+  color: var(--fg);
+}
+
+.surface-dusk {
+  --bg: var(--color-dusk);
+}
+
+.surface-night {
+  --bg: var(--color-night);
+}
+
+.surface-ink {
+  --bg: var(--color-ink);
+}
+
+:where(.surface-ivory, .surface-warm, .surface-stone, .surface-dusk, .surface-night, .surface-ink) {
+  background-color: var(--bg);
+}
+
+.has-grain {
+  background-image: var(--grain);
+  background-size: 128px 128px;
+}

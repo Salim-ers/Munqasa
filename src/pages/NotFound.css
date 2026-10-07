@@ -1,0 +1,36 @@
+.not-found {
+  position: relative;
+  display: grid;
+  align-items: center;
+  min-height: 100svh;
+  overflow: hidden;
+  padding-block: calc(var(--header-h) + var(--space-xl)) var(--space-2xl);
+}
+
+.not-found__arch {
+  position: absolute;
+  right: -10%;
+  bottom: -12%;
+  width: min(80vw, 760px);
+  height: auto;
+  opacity: 0.05;
+  pointer-events: none;
+}
+
+.not-found__inner {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  gap: var(--space-lg);
+}
+
+.not-found__text {
+  color: var(--fg-muted);
+}
+
+.not-found__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md) var(--space-lg);
+}

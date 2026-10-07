@@ -1,0 +1,63 @@
+.immersive {
+  position: relative;
+  display: grid;
+  align-items: end;
+  min-height: 100svh;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.immersive__media {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+
+.immersive__media picture,
+.immersive__media img {
+  width: 100%;
+  height: 100%;
+}
+
+.immersive__media img {
+  object-fit: cover;
+  transform-origin: 50% 60%;
+  will-change: transform;
+}
+
+/* Bleu nuit en multiplication : la terre cuite s'assombrit comme au crépuscule. */
+.immersive__dusk {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #0d1622 0%, #121a24 55%, #1a1410 100%);
+  mix-blend-mode: multiply;
+  opacity: 0.12;
+}
+
+.immersive__shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgb(8 10 11 / 0.82) 0%, rgb(8 10 11 / 0.2) 45%, rgb(8 10 11 / 0) 70%);
+}
+
+.immersive__content {
+  display: grid;
+  gap: var(--space-lg);
+  padding-block: var(--space-2xl) var(--space-xl);
+}
+
+.immersive__label {
+  display: grid;
+  gap: 0.2rem;
+  color: var(--color-sand);
+}
+
+.immersive h2 {
+  max-width: 12ch;
+}
+
+@media (max-width: 767px) {
+  .immersive {
+    min-height: 88svh;
+  }
+}

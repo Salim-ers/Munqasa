@@ -1,0 +1,134 @@
+# MUNAQASA — site vitrine
+
+Gestion et accompagnement des appels d'offres au Maroc. *De l'avis à la soumission.*
+
+React 19 · TypeScript · Vite 8 · React Router 8 · GSAP (ScrollTrigger, SplitText) · Lenis · Lucide.
+
+```bash
+npm install
+npm run dev        # http://localhost:5173 (le formulaire fonctionne : les demandes s'affichent dans le terminal)
+npm run build      # vérification TypeScript + build de production dans dist/
+npm run preview    # sert dist/ en local
+```
+
+## Structure
+
+```
+src/
+  animations/   GSAP centralisé (plugins, courbes) et révélations déclaratives (data-reveal)
+  components/   en-tête, menu mobile, footer, loader, transition de page, curseur, logo, DocSheet, DocStage…
+  sections/     sections de l'accueil (home/) et blocs partagés (shared/)
+  pages/        une page par route
+  hooks/        useGsap, useSmoothScroll (Lenis), useHeaderState, useRouteSeo…
+  lib/          validation du formulaire (partagée avec le serveur), défilement, arche, stockage
+  data/         contenus : routes et SEO, services, méthode, formules, photos
+  styles/       design tokens, base, typographie, grille
+api/            fonction serveur Vercel : POST /api/contact
+build/          plugins Vite : SEO statique par route, API de développement
+scripts/        outils de production : logo, photos, génération d'images (OpenAI)
+public/         images optimisées, logos détourés, polices auto-hébergées, favicons
+```
+
+Routes : `/`, `/services`, `/methode`, `/expertise`, `/contact`, `/mentions-legales`, `/politique-confidentialite`, et une page 404.
+
+## Variables d'environnement
+
+Copier `.env.example` vers `.env.local` (ignoré par Git).
+
+| Variable | Rôle | Exposée au navigateur |
+|---|---|---|
+| `OPENAI_API_KEY` | génération d'images (outil local uniquement) | **non** |
+| `OPENAI_IMAGE_MODEL` | facultatif, force un modèle d'image | non |
+| `RESEND_API_KEY`, `CONTACT_TO`, `CONTACT_FROM` | envoi des demandes du formulaire | **non** |
+| `VITE_SITE_URL` | URL canonique (canonical, sitemap, Open Graph) | oui (non secrète) |
+
+Le build échoue si une variable sensible porte le préfixe `VITE_`.
+
+## Images
+
+### Photographies (Unsplash)
+
+```bash
+npm run images:fetch      # télécharge la sélection dans assets-src/photos/ et écrit image-sources.json
+npm run images:optimize   # AVIF + WebP en 640 / 1024 / 1600 (/ 2560) px + src/data/photo-manifest.json
+```
+
+Chaque photo a été vérifiée : aucun humain, aucun logo, aucun texte lisible. Crédits et usages : `image-sources.json`
+(également affichés dans les mentions légales).
+
+### Hero jour / nuit (OpenAI)
+
+Outil de production : il tourne sur ta machine, une fois, et dépose des images statiques dans `public/images/`.
+Le site public n'appelle jamais OpenAI, et la clé n'existe que dans `.env.local`.
+
+```bash
+npm run hero            # jour → nuit (éditée à partir du jour) → recadrage commun → WebP → contrôle
+```
+
+- Modèles : `gpt-image-2` (2560×1440 natif) puis repli automatique sur `gpt-image-1` (1536×1024) si le compte n'y a pas
+  accès. Chaque repli est affiché dans le terminal.
+- La nuit n'est **jamais** générée seule : c'est une édition de l'image jour (haute fidélité), qui ne change que la lumière.
+- Sorties : `hero-day.webp`, `hero-day-1920.webp`, `hero-day-1280.webp` et leurs équivalents `hero-night-*`.
+- Sources et prompts : `assets-src/generated/hero/` (`manifest.json`, planche de contrôle `hero-compare.webp`).
+
+Itérer :
+
+```bash
+npm run hero:day -- --count 3                       # 3 propositions jour
+npm run hero:night -- --from assets-src/generated/hero/hero-day-02.png --count 3
+npm run hero:finalize -- --crop-y 0.6               # décale le recadrage 16:9 (0 = haut, 1 = bas)
+```
+
+Contrôle « même bâtiment » : la finalisation compare les contours jour et nuit (exposition neutralisée).
+≥ 0,70 identique · 0,50–0,70 à vérifier · < 0,50 différent, relancer la nuit. La décision finale se prend à l'œil sur
+`hero-compare.webp`.
+
+### Visuels éditoriaux générés (facultatifs)
+
+```bash
+npm run images:generate -- dossier | analyse | architecture | all
+```
+
+Sorties dans `public/images/generated/`. À utiliser seulement si aucune photographie réelle ne convient, après
+vérification (humains, texte, logos, géométrie).
+
+### Logo
+
+`npm run logo` décline le fichier fourni (`assets-src/brand/munaqasa-logo-source.png`) : détourage par projection sur les
+trois encres du logo (aucun redessin), version négative pour les fonds sombres, symbole et mot-symbole séparés,
+favicons et image Open Graph.
+
+## Formulaire de contact
+
+`POST /api/contact` — validation serveur (schéma partagé `src/lib/contact.ts`), nettoyage des entrées, champ piège,
+délai minimal de saisie, contrôle d'origine, limitation de débit (5 envois / 10 min / IP, en mémoire par instance),
+e-mail en texte brut via Resend. Aucun envoi de fichier : les dossiers d'appel d'offres peuvent contenir des
+informations sensibles. Sans configuration Resend, l'API répond 503 en production.
+
+## Déploiement (Vercel)
+
+`vercel.json` définit le build, les URL propres, les en-têtes de sécurité (CSP stricte, HSTS, nosniff, frame-ancestors,
+Permissions-Policy) et le cache des assets. Le build écrit un HTML par route avec ses propres balises (title,
+description, canonical, Open Graph, JSON-LD), ainsi que `sitemap.xml`, `robots.txt` et `404.html`.
+
+Renseigner dans Vercel : `VITE_SITE_URL`, `RESEND_API_KEY`, `CONTACT_TO`, `CONTACT_FROM`.
+
+## Accessibilité et mouvement
+
+`prefers-reduced-motion` : pas de Lenis, pas de curseur, pas de scènes épinglées ni de parallaxe ; fondus courts
+uniquement. Lien d'évitement, focus visible, menu mobile modal (Échap, focus piégé), libellés et erreurs de formulaire
+reliés aux champs, focus ramené au contenu après chaque navigation.
+
+## À compléter avant la mise en ligne
+
+Aucune de ces informations n'a été inventée :
+
+- domaine définitif (`VITE_SITE_URL`) ;
+- mentions légales : raison sociale, forme juridique, siège, RC / ICE / IF, directeur de la publication, hébergeur ;
+- numéro de déclaration CNDP (politique de confidentialité) ;
+- e-mail et téléphone de contact, si souhaités : `src/data/site.ts` ;
+- configuration Resend pour recevoir les demandes.
+
+## Licences
+
+Polices Instrument Serif et Manrope : SIL Open Font License. Photographies : licence Unsplash.

@@ -1,0 +1,26 @@
+import react from "@vitejs/plugin-react";
+import { defineConfig, loadEnv } from "vite";
+import { devApiPlugin } from "./build/dev-api.ts";
+import { seoPlugin } from "./build/seo-plugin.ts";
+
+export default defineConfig(({ mode }) => {
+  // Le troisième argument "" charge aussi les variables serveur, utilisées
+  // UNIQUEMENT par le middleware de développement — jamais exposées au bundle
+  // (seules les variables VITE_ le sont, et aucune n'est secrète).
+  const env = loadEnv(mode, process.cwd(), "");
+  const exposed = Object.keys(env).filter((k) => k.startsWith("VITE_") && /KEY|SECRET|TOKEN|PASSWORD/i.test(k));
+  if (exposed.length) throw new Error(`Secret exposé au navigateur : ${exposed.join(", ")}. Retire le préfixe VITE_.`);
+
+  return {
+    plugins: [
+      react(),
+      seoPlugin(env.VITE_SITE_URL || "https://munaqasa.ma"),
+      devApiPlugin({ RESEND_API_KEY: env.RESEND_API_KEY, CONTACT_TO: env.CONTACT_TO, CONTACT_FROM: env.CONTACT_FROM }),
+    ],
+    build: {
+      target: "es2022",
+      cssMinify: true,
+      assetsInlineLimit: 2048,
+    },
+  };
+});

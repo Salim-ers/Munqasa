@@ -1,0 +1,72 @@
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-loader);
+  display: grid;
+  place-items: center;
+  color: var(--color-ivory);
+}
+
+.loader__door {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50.5%;
+  background: var(--color-night) var(--grain);
+  background-size: 128px 128px;
+}
+
+.loader__door--left {
+  left: 0;
+  border-right: 1px solid rgb(184 141 94 / 0.25);
+}
+
+.loader__door--right {
+  right: 0;
+}
+
+.loader__content {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  width: min(62vw, 280px);
+}
+
+.loader__arch {
+  width: 64%;
+  height: auto;
+  overflow: visible;
+}
+
+.loader__arch path {
+  fill: none;
+  stroke: var(--color-sand);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.loader__arch path + path {
+  stroke-opacity: 0.45;
+}
+
+/* Le symbole se pose dans l'arche tracée. */
+.loader__symbol {
+  position: absolute;
+  top: 27%;
+  width: 38%;
+  height: auto;
+  clip-path: inset(100% 0% 0% 0%);
+}
+
+.loader__wordmark {
+  width: 100%;
+  height: auto;
+  margin-top: 1.5rem;
+  clip-path: inset(0% 100% 0% 0%);
+}
+
+.loader__label {
+  margin-top: 1rem;
+  color: var(--color-sand);
+  opacity: 0;
+}

@@ -1,6 +1,13 @@
 node_modules/
 dist/
+*.log
+.DS_Store
+.vercel
+
 # Secrets — ne jamais versionner
 .env
 .env.local
 .env.*.local
+
+# Sources photo lourdes (re-téléchargeables : npm run images:fetch)
+assets-src/photos/

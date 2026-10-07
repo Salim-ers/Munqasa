@@ -1,0 +1,26 @@
+.page-transition {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-transition);
+  display: grid;
+  place-items: center;
+  background: var(--color-terracotta) var(--grain);
+  background-size: 128px 128px;
+  color: var(--color-ivory);
+  visibility: hidden;
+  clip-path: inset(0% 100% 0% 0%);
+  pointer-events: none;
+}
+
+.page-transition__label {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-sm);
+}
+
+.page-transition__title {
+  font-family: var(--font-display);
+  font-size: var(--display-lg);
+  line-height: 0.9;
+  letter-spacing: var(--tracking-display);
+}

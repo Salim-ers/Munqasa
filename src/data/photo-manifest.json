@@ -1,0 +1,159 @@
+{
+  "arcade-shadow": {
+    "width": 2560,
+    "height": 1920,
+    "widths": [
+      640,
+      1024,
+      1600,
+      2560
+    ]
+  },
+  "arch-niche": {
+    "width": 1600,
+    "height": 2044,
+    "widths": [
+      640,
+      1024,
+      1600
+    ]
+  },
+  "archive-shelf": {
+    "width": 2560,
+    "height": 1441,
+    "widths": [
+      640,
+      1024,
+      1600,
+      2560
+    ]
+  },
+  "binders": {
+    "width": 1600,
+    "height": 869,
+    "widths": [
+      640,
+      1024,
+      1600
+    ]
+  },
+  "blueprints": {
+    "width": 1600,
+    "height": 2133,
+    "widths": [
+      640,
+      1024,
+      1600
+    ]
+  },
+  "drawing-table": {
+    "width": 1600,
+    "height": 1200,
+    "widths": [
+      640,
+      1024,
+      1600
+    ]
+  },
+  "earth-walls": {
+    "width": 2560,
+    "height": 1707,
+    "widths": [
+      640,
+      1024,
+      1600,
+      2560
+    ]
+  },
+  "lattice-facade": {
+    "width": 1600,
+    "height": 2400,
+    "widths": [
+      640,
+      1024,
+      1600
+    ]
+  },
+  "museum-entrance": {
+    "width": 1600,
+    "height": 2134,
+    "widths": [
+      640,
+      1024,
+      1600
+    ]
+  },
+  "night-desk": {
+    "width": 1600,
+    "height": 1065,
+    "widths": [
+      640,
+      1024,
+      1600
+    ]
+  },
+  "paper-stack": {
+    "width": 1600,
+    "height": 1124,
+    "widths": [
+      640,
+      1024,
+      1600
+    ]
+  },
+  "papers-shelf": {
+    "width": 1600,
+    "height": 1067,
+    "widths": [
+      640,
+      1024,
+      1600
+    ]
+  },
+  "papers-table": {
+    "width": 1600,
+    "height": 2400,
+    "widths": [
+      640,
+      1024,
+      1600
+    ]
+  },
+  "rampart": {
+    "width": 1600,
+    "height": 2400,
+    "widths": [
+      640,
+      1024,
+      1600
+    ]
+  },
+  "sand-tower": {
+    "width": 1600,
+    "height": 2079,
+    "widths": [
+      640,
+      1024,
+      1600
+    ]
+  },
+  "terracotta-walls": {
+    "width": 2560,
+    "height": 1706,
+    "widths": [
+      640,
+      1024,
+      1600,
+      2560
+    ]
+  },
+  "white-arch": {
+    "width": 1600,
+    "height": 2134,
+    "widths": [
+      640,
+      1024,
+      1600
+    ]
+  }
+}

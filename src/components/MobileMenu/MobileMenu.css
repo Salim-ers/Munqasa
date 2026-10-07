@@ -1,0 +1,80 @@
+.menu {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-menu);
+  display: grid;
+  grid-template-rows: 1fr auto;
+  padding: calc(var(--header-h) + var(--space-lg)) var(--gutter) max(var(--space-lg), env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background-image: var(--grain);
+  background-size: 128px 128px;
+  visibility: hidden;
+}
+
+.menu__arch {
+  position: absolute;
+  right: -18%;
+  bottom: -6%;
+  width: min(92vw, 560px);
+  height: auto;
+  opacity: 0.05;
+  pointer-events: none;
+}
+
+.menu__nav ol {
+  display: grid;
+  gap: clamp(0.25rem, 1.2vh, 0.75rem);
+}
+
+.menu__item {
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+}
+
+.menu__item-inner {
+  display: block;
+}
+
+.menu__link {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-md);
+  padding-block: clamp(0.5rem, 1.6vh, 1rem);
+}
+
+.menu__num {
+  min-width: 2.2em;
+  color: var(--color-sand);
+}
+
+.menu__label {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 11vw, 4.5rem);
+  line-height: 1;
+  letter-spacing: var(--tracking-display);
+  transition:
+    transform var(--dur-base) var(--ease-premium),
+    color var(--dur-base) var(--ease-premium);
+}
+
+.menu__link:hover .menu__label,
+.menu__link:focus-visible .menu__label {
+  transform: translateX(0.4rem);
+  color: var(--color-sand);
+}
+
+.menu__link[aria-current="page"] .menu__label {
+  font-style: italic;
+  color: var(--color-sand);
+}
+
+.menu__foot-wrap {
+  overflow: hidden;
+  margin-top: var(--space-xl);
+}
+
+.menu__foot {
+  display: grid;
+  gap: var(--space-md);
+}

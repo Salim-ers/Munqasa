@@ -1,0 +1,105 @@
+.cta {
+  --cta-h: 56px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-height: var(--cta-h);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+  isolation: isolate;
+  transition:
+    color var(--dur-base) var(--ease-premium),
+    border-color var(--dur-base) var(--ease-premium),
+    background-color var(--dur-base) var(--ease-premium);
+}
+
+.cta__icon {
+  display: grid;
+  place-items: center;
+  transition: transform var(--dur-base) var(--ease-premium);
+}
+
+.cta:hover .cta__icon {
+  transform: translate(3px, -3px);
+}
+
+.cta--solid,
+.cta--outline {
+  padding-inline: 1.75rem 1.5rem;
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+}
+
+/* Le remplissage monte comme une feuille qu'on glisse. */
+.cta--solid::before,
+.cta--outline::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  transform: scaleY(0);
+  transform-origin: 50% 100%;
+  transition: transform var(--dur-base) var(--ease-premium);
+}
+
+.cta--solid {
+  background: var(--color-terracotta);
+  color: var(--color-ivory);
+}
+
+.cta--solid::before {
+  background: var(--color-ink);
+}
+
+.cta--solid:hover::before,
+.cta--outline:hover::before {
+  transform: scaleY(1);
+}
+
+.cta--outline {
+  border: 1px solid var(--line-strong);
+  color: var(--fg);
+}
+
+.cta--outline::before {
+  background: var(--fg);
+}
+
+.cta--outline:hover {
+  color: var(--bg);
+  border-color: var(--fg);
+}
+
+.cta--text {
+  --cta-h: 44px;
+  color: var(--fg);
+  background-image: linear-gradient(var(--accent), var(--accent));
+  background-size: 100% 1px;
+  background-position: 0 calc(50% + 1em);
+  background-repeat: no-repeat;
+}
+
+.cta--text:hover {
+  background-size: 0% 1px;
+  background-position: 100% calc(50% + 1em);
+}
+
+:is(.surface-dusk, .surface-night, .surface-ink) .cta--solid::before {
+  background: var(--color-ivory);
+}
+
+:is(.surface-dusk, .surface-night, .surface-ink) .cta--solid:hover {
+  color: var(--color-ink);
+}
+
+@media (max-width: 479px) {
+  .cta--solid,
+  .cta--outline {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
