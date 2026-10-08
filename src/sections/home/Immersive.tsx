@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { EASE, gsap } from "../../animations/gsap";
+import { EASE, gsap, SCRUB } from "../../animations/gsap";
 import { Picture } from "../../components/Picture/Picture";
 import { Tag } from "../../components/Tag/Tag";
 import { photo } from "../../data/photos";
@@ -14,7 +14,7 @@ export function Immersive() {
     ({ reduced, scope }) => {
       if (reduced) return;
       const q = gsap.utils.selector(scope);
-      gsap.fromTo(q(".immersive__media img"), { scale: 1 }, { scale: 1.06, ease: EASE.linear, scrollTrigger: { trigger: scope, start: "top bottom", end: "bottom top", scrub: true } });
+      gsap.fromTo(q(".immersive__media img"), { scale: 1 }, { scale: 1.06, ease: EASE.linear, scrollTrigger: { trigger: scope, start: "top bottom", end: "bottom top", scrub: SCRUB } });
       gsap.from(q(".immersive__panel"), { yPercent: 30, autoAlpha: 0, duration: 1.2, ease: EASE.premium, scrollTrigger: { trigger: scope, start: "top 55%", once: true } });
     },
     root,

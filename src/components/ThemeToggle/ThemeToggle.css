@@ -22,7 +22,7 @@
   width: calc(50% - var(--tt-pad));
   background: var(--accent);
   border-radius: 1px;
-  transition: transform 0.7s var(--ease-architect);
+  transition: transform 0.4s var(--ease-architect);
 }
 
 .theme-toggle--night .theme-toggle__thumb {
@@ -58,4 +58,13 @@
 
 .theme-toggle__btn:focus-visible {
   outline-offset: 2px;
+}
+
+/* Écran tactile : pas de flou d'arrière-plan, fond opaque. */
+@media (hover: none) and (pointer: coarse) {
+  .theme-toggle {
+    background: var(--header-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }

@@ -165,6 +165,14 @@ html.lenis body {
   }
 }
 
+/* Pendant le changement de lumière, aucune transition CSS : la nouvelle lumière est peinte en une fois
+   (la View Transition fait le lien), au lieu de centaines de couleurs animées image par image. */
+html.is-switching-light *,
+html.is-switching-light *::before,
+html.is-switching-light *::after {
+  transition: none !important;
+}
+
 /* Changement de lumière : la nouvelle lumière balaie toute la page, de gauche à droite. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
@@ -182,5 +190,22 @@ html.lenis body {
   }
   to {
     clip-path: inset(0 0 0 0);
+  }
+}
+
+/* Écran tactile : fondu enchaîné, animé par le processeur graphique (fluide même quand l'appareil
+   peint la nouvelle lumière), plutôt que le balayage, animé image par image. */
+@media (hover: none) and (pointer: coarse) {
+  ::view-transition-new(root) {
+    animation: light-fade 0.5s var(--ease-out) both;
+  }
+}
+
+@keyframes light-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }

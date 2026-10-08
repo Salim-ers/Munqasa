@@ -22,6 +22,16 @@
   opacity: 1;
 }
 
+/* Écran tactile : pas de flou d'arrière-plan (recalculé à chaque image du défilement), fond opaque et grain du site. */
+@media (hover: none) and (pointer: coarse) {
+  .header::before {
+    background: var(--header-solid) var(--grain);
+    background-size: 128px 128px;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
 .header__inner {
   position: relative;
   display: flex;

@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { EASE, gsap, MEDIA } from "../../animations/gsap";
+import { EASE, gsap, MEDIA, SCRUB } from "../../animations/gsap";
 import { useAppState, type LightMode } from "../../components/AppState";
 import { CtaLink } from "../../components/CtaLink/CtaLink";
 import { Tag } from "../../components/Tag/Tag";
@@ -54,12 +54,12 @@ export function Hero() {
         .fromTo(q(".hero__fade"), { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 1, ease: EASE.premium, stagger: 0.08 }, 0.55);
 
       gsap.matchMedia().add(MEDIA.desktop, () => {
-        gsap.to(q(".hero__media"), { yPercent: 10, ease: EASE.linear, scrollTrigger: { trigger: scope, start: "top top", end: "bottom top", scrub: true } });
+        gsap.to(q(".hero__media"), { yPercent: 10, ease: EASE.linear, scrollTrigger: { trigger: scope, start: "top top", end: "bottom top", scrub: SCRUB } });
         gsap.to(q(".hero__content"), {
           yPercent: -12,
           autoAlpha: 0.2,
           ease: EASE.linear,
-          scrollTrigger: { trigger: scope, start: "35% top", end: "bottom top", scrub: true },
+          scrollTrigger: { trigger: scope, start: "35% top", end: "bottom top", scrub: SCRUB },
         });
       });
     },

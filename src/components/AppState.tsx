@@ -1,5 +1,6 @@
 import { createContext, use, useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
+import { isTouchDevice } from "../lib/device";
 import { readStorage, writeStorage } from "../lib/storage";
 
 export type LightMode = "day" | "night";
@@ -10,8 +11,8 @@ interface AppState {
   setIntroDone: (done: boolean) => void;
   /** Lumière de tout le site, mémorisée par visiteur. */
   mode: LightMode;
-  /** Change la lumière : la nouvelle balaie la page de gauche à droite. */
-  switchMode: (mode: LightMode) => void;
+  /** Change la lumière : la nouvelle balaie la page (fondu sur écran tactile). */
+  switchMode: (mode: LightMode) => Promise<void>;
 }
 
 const Ctx = createContext<AppState | null>(null);
@@ -19,8 +20,13 @@ const Ctx = createContext<AppState | null>(null);
 export const LOADER_SEEN_KEY = "talab:intro";
 export const LIGHT_KEY = "talab:light";
 
-/** Photos et logo de la lumière demandée visibles à l'écran : chargés avant le changement. */
-async function preloadVisible(mode: LightMode) {
+/** Durée du glissement du sélecteur (ThemeToggle.css) : la bascule démarre une fois le geste fini. */
+const TOGGLE_MS = 400;
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Photos et logo de la lumière demandée visibles à l'écran : chargés avant le changement (attente plafonnée). */
+async function preloadVisible(mode: LightMode, maxWait: number) {
   const root = document.documentElement;
   root.dataset.themePreload = mode;
   const imgs = [...document.querySelectorAll<HTMLImageElement>(`.tpic__${mode} img`)].filter((img) => {
@@ -29,7 +35,7 @@ async function preloadVisible(mode: LightMode) {
   });
   await Promise.race([
     Promise.all(imgs.map((img) => img.decode().catch(() => undefined))),
-    new Promise((resolve) => setTimeout(resolve, 1500)),
+    wait(maxWait),
   ]);
   delete root.dataset.themePreload;
 }
@@ -43,21 +49,27 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     async (next: LightMode) => {
       if (next === mode || busy.current) return;
       busy.current = true;
+      const root = document.documentElement;
       const apply = () => {
+        // Transitions CSS coupées le temps de la bascule : la nouvelle lumière est peinte en une fois.
+        root.classList.add("is-switching-light");
         flushSync(() => setMode(next));
-        document.documentElement.dataset.theme = next;
+        root.dataset.theme = next;
         document.querySelector('meta[name="theme-color"]')?.setAttribute("content", next === "night" ? "#0B0C0D" : "#F5F1E9");
         writeStorage("local", LIGHT_KEY, next);
       };
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       try {
-        await preloadVisible(next);
+        // Le sélecteur a déjà répondu au geste (ThemeToggle) : on attend la fin de son glissement et,
+        // brièvement, les photos de la nouvelle lumière (moins longtemps sur écran tactile).
+        await Promise.all([preloadVisible(next, isTouchDevice() ? 800 : 1500), reduced ? undefined : wait(TOGGLE_MS)]);
         if (reduced || typeof document.startViewTransition !== "function") {
           apply();
         } else {
-          await document.startViewTransition(apply).finished;
+          await document.startViewTransition(apply).finished.catch(() => undefined);
         }
       } finally {
+        requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove("is-switching-light")));
         busy.current = false;
       }
     },

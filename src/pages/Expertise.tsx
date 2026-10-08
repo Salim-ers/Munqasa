@@ -1,5 +1,5 @@
 import { useRef, type CSSProperties } from "react";
-import { EASE, gsap, MEDIA, ScrollTrigger } from "../animations/gsap";
+import { EASE, gsap, MEDIA, SCRUB, ScrollTrigger } from "../animations/gsap";
 import { Picture } from "../components/Picture/Picture";
 import { Tag } from "../components/Tag/Tag";
 import { PILLARS, SECTORS } from "../data/offer";
@@ -21,11 +21,11 @@ function Pillars() {
         gsap.fromTo(
           card.querySelector(".pcard__word"),
           { xPercent: 4 },
-          { xPercent: -8, ease: EASE.linear, scrollTrigger: { trigger: card, start: "top bottom", end: "bottom top", scrub: true } },
+          { xPercent: -8, ease: EASE.linear, scrollTrigger: { trigger: card, start: "top bottom", end: "bottom top", scrub: SCRUB } },
         );
         const next = cards[i + 1];
         if (!next) return;
-        const st = { trigger: next, start: "top bottom", end: "top 30%", scrub: true };
+        const st = { trigger: next, start: "top bottom", end: "top 30%", scrub: SCRUB };
         gsap.to(card, { scale: 0.92, ease: EASE.linear, scrollTrigger: st });
         gsap.to(card.querySelector(".pcard__shade"), { opacity: 0.55, ease: EASE.linear, scrollTrigger: { ...st } });
       });
@@ -66,7 +66,7 @@ function Materials() {
   useGsap(
     ({ scope }) => {
       gsap.matchMedia().add(MEDIA.desktop, () => {
-        const st = { trigger: scope, start: "top bottom", end: "bottom top", scrub: true };
+        const st = { trigger: scope, start: "top bottom", end: "bottom top", scrub: SCRUB };
         gsap.fromTo(scope.querySelector(".materials__fig--a"), { yPercent: 10 }, { yPercent: -10, ease: EASE.linear, scrollTrigger: st });
         gsap.fromTo(scope.querySelector(".materials__fig--b"), { yPercent: -6 }, { yPercent: 12, ease: EASE.linear, scrollTrigger: { ...st } });
         scope.querySelectorAll<HTMLElement>(".materials__media .tpic").forEach((pic) => {

@@ -39,8 +39,10 @@ photographies. Chaque photo du site existe en deux versions : la nuit n’est pa
 photographie de nuit, éditée à partir de la photo de jour (même cadrage), avec un éclairage chaud et oriental.
 
 - Le choix est mémorisé (`localStorage`) et appliqué avant le premier rendu par `public/theme-init.js` : aucun flash.
-- Au changement, la nouvelle lumière balaie la page de gauche à droite (View Transitions) ; les photos et le logo
-  visibles sont chargés avant le balayage. Mouvement réduit : bascule sans balayage.
+- Au geste, le sélecteur glisse aussitôt ; puis la nouvelle lumière balaie la page de gauche à droite
+  (View Transitions), en fondu enchaîné sur écran tactile. Les photos et le logo visibles sont chargés juste avant
+  (attente plafonnée) et les transitions CSS sont coupées le temps de la bascule : la page est peinte en une fois.
+  Mouvement réduit : bascule sans animation.
 - Seule la version de la lumière active est téléchargée (photos et logo : classes `.tpic__day` / `.tpic__night`,
   règles globales dans `src/styles/base.css`).
 
@@ -53,6 +55,9 @@ photographie de nuit, éditée à partir de la photo de jour (même cadrage), av
 - **Tablette paysage** (1024 à 1279 px) : voile du hero élargi sous le texte.
 - Séquence « Le dossier » sur écran étroit : frise du temps sur toute la largeur, documents de référence rangés
   dessous, onglets des dossiers à la largeur de chaque dossier.
+- **Fluidité sur écran tactile** (`(hover: none) and (pointer: coarse)`, `src/lib/device.ts`) : défilement natif
+  seul (pas de Lenis), en-tête et sélecteur opaques sans flou d’arrière-plan, effets de parallaxe légèrement lissés
+  (`SCRUB` dans `src/animations/gsap.ts`), fondu au lieu du balayage pour le changement de lumière.
 
 ## Motion design par page
 

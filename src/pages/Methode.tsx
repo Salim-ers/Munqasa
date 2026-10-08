@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { EASE, gsap, MEDIA, ScrollTrigger } from "../animations/gsap";
+import { EASE, gsap, MEDIA, SCRUB, ScrollTrigger } from "../animations/gsap";
 import { Tag } from "../components/Tag/Tag";
 import { EXCHANGE, TIMELINE } from "../data/method";
 import { useGsap } from "../hooks/useGsap";
@@ -113,7 +113,7 @@ function VerticalCalendar() {
       gsap.fromTo(
         scope.querySelector(".timeline__line-fill"),
         { scaleY: 0 },
-        { scaleY: 1, ease: EASE.linear, scrollTrigger: { trigger: scope, start: "top 62%", end: "bottom 62%", scrub: true } },
+        { scaleY: 1, ease: EASE.linear, scrollTrigger: { trigger: scope, start: "top 62%", end: "bottom 62%", scrub: SCRUB } },
       );
       rows.forEach((row) => {
         ScrollTrigger.create({
