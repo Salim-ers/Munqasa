@@ -22,7 +22,7 @@ const ARCH = archPolygon(32);
 export function PageHero({ tag, lines, intro, image, imagePosition, frame = "rect", children }: PageHeroProps) {
   return (
     <section className="page-hero tone-1 has-grain" aria-labelledby="page-title">
-      <div className="page-hero__inner container">
+      <div className={`page-hero__inner page-hero__inner--${frame} container`}>
         <div className="page-hero__text">
           <Tag>{tag}</Tag>
           <h1 id="page-title" className="display-xl page-hero__title" data-reveal="lines">

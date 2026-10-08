@@ -37,8 +37,11 @@
   height: var(--header-h-compact);
 }
 
+/* Zone tactile de 44 px autour du logo. */
 .header__brand {
   display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   margin-right: auto;
 }
 
@@ -180,8 +183,27 @@
   }
 
   .header__theme .theme-toggle__btn {
+    min-width: 44px;
+    min-height: 40px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .header__brand .logo,
+  .header.is-compact .header__brand .logo {
+    --logo-h: 32px;
+  }
+}
+
+/* Très petits écrans (320 px) : logo et sélecteur un peu plus compacts pour tenir sur une ligne. */
+@media (max-width: 359px) {
+  .header__brand .logo,
+  .header.is-compact .header__brand .logo {
+    --logo-h: 24px;
+  }
+
+  .header__theme .theme-toggle__btn {
     min-width: 40px;
-    min-height: 36px;
   }
 }
 

@@ -10,10 +10,11 @@ import "./Loader.css";
 /**
  * Loader (1re visite de la session, ≈ 1,8 s), dans la lumière du site : une ligne
  * trace l'arche, le symbole Talab prend sa place, puis le nom apparaît ; le cadre
- * s'ouvre comme deux battants. Jour : logo noir et terracotta ; nuit : logo or.
+ * s'ouvre comme deux battants. Jour : logo noir et terracotta ; nuit : logo or. Seule la version
+ * de la lumière active est chargée (la lumière ne peut pas changer pendant le loader).
  */
 export function Loader() {
-  const { introDone, setIntroDone } = useAppState();
+  const { mode, introDone, setIntroDone } = useAppState();
   const reduced = useReducedMotion();
   const root = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(!introDone);
@@ -76,13 +77,11 @@ export function Loader() {
             <path d={ARCH_INNER} />
           </svg>
           <span className="loader__symbols">
-            <img className="loader__day" src="/logos/talab-day-symbol.webp" width={900} height={559} alt="" />
-            <img className="loader__night" src="/logos/talab-night-symbol.webp" width={900} height={569} alt="" />
+            <img src={`/logos/talab-${mode}-symbol.webp`} width={900} height={569} alt="" />
           </span>
         </div>
         <span className="loader__wordmarks">
-          <img className="loader__day" src="/logos/talab-day-wordmark-sm.webp" width={640} height={186} alt="" />
-          <img className="loader__night" src="/logos/talab-night-wordmark-sm.webp" width={640} height={188} alt="" />
+          <img src={`/logos/talab-${mode}-wordmark-sm.webp`} width={640} height={188} alt="" />
         </span>
         <p className="loader__label label">Appels d’offres au Maroc</p>
       </div>

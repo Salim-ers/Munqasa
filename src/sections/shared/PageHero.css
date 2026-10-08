@@ -57,9 +57,16 @@
   .page-hero__figure--rect .page-hero__media {
     aspect-ratio: 16 / 10;
   }
+}
 
-  .page-hero__figure--arch {
-    grid-column: 2 / span 10;
+/* Tablette : l'arche se place à côté du texte plutôt qu'en grand dessous. */
+@media (min-width: 600px) and (max-width: 1023px) {
+  .page-hero__inner--arch .page-hero__text {
+    grid-column: 1 / span 7;
+  }
+
+  .page-hero__inner--arch .page-hero__figure {
+    grid-column: 8 / span 5;
   }
 }
 

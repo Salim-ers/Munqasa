@@ -15,19 +15,3 @@
 .tpic img {
   object-fit: cover;
 }
-
-/* Une seule lumière à la fois. */
-[data-theme="day"] .tpic__night,
-[data-theme="night"] .tpic__day {
-  display: none;
-}
-
-/* Juste avant le changement de lumière : la nouvelle version se charge, invisible. */
-html[data-theme-preload="night"] .tpic__night,
-html[data-theme-preload="day"] .tpic__day {
-  position: absolute;
-  inset: 0;
-  display: block;
-  opacity: 0;
-  pointer-events: none;
-}

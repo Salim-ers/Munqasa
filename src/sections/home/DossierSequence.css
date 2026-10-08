@@ -449,8 +449,9 @@
     min-height: 0;
   }
 
+  /* La frise occupe toute la largeur ; les documents de référence se rangent dessous. */
   .seq__deadline {
-    width: 60%;
+    width: 100%;
   }
 
   .seq__sheet {
@@ -462,7 +463,9 @@
     top: 27%;
   }
 
+  /* La première pièce laisse la place à l'onglet du dossier. */
   .seq__piece {
+    top: calc(8% + var(--slot) * 23%);
     height: 21%;
     padding: 1.6cqi;
   }
@@ -475,15 +478,77 @@
     display: none;
   }
 
-  .seq__folder-tab,
-  .seq__sheet-kicker,
-  .seq__cover .label,
-  .seq__deadline .label {
+  .seq__cover .label {
     font-size: clamp(7px, 2cqi, 10px);
+  }
+
+  /* Onglets : le libellé tient dans la largeur du dossier (.seq__stage pour primer sur .label). */
+  .seq__stage .seq__folder-tab {
+    padding-inline: 0.7em;
+    font-size: clamp(7.5px, 2.5cqi, 10px);
+    letter-spacing: 0.12em;
+  }
+
+  .seq__deadline .label {
+    font-size: clamp(8.5px, 2.4cqi, 11px);
   }
 
   .seq__sheet-title {
     font-size: clamp(11px, 3.6cqi, 18px);
+  }
+}
+
+/* ---------- Téléphone à l'horizontale : légende à gauche, planche à droite, comme sur ordinateur ---------- */
+
+@media (max-width: 1023px) and (orientation: landscape) and (max-height: 560px) {
+  .seq__grid {
+    grid-template-rows: minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .seq__captions {
+    grid-column: 1 / span 4;
+  }
+
+  .seq__stage {
+    grid-column: 5 / span 8;
+  }
+
+  .seq__title {
+    font-size: clamp(1.5rem, 3.6vw, 2.25rem);
+  }
+
+  .seq__deadline {
+    width: 54%;
+  }
+
+  /* Documents plus bas et plus étroits : l'onglet « Échéance » ne recouvre pas la frise. */
+  .seq__sheet {
+    left: 36.5%;
+    top: 24%;
+    width: 27%;
+  }
+
+  .seq__folder {
+    top: 25%;
+  }
+
+  .seq__piece {
+    top: calc(10% + var(--slot) * 22.5%);
+    height: 19%;
+    padding: 1.2cqi 1.3cqi;
+  }
+
+  .seq__stage .seq__folder-tab {
+    font-size: clamp(7px, 1.5cqi, 9px);
+  }
+
+  .seq__piece-title {
+    font-size: clamp(8px, 1.9cqi, 11px);
+  }
+
+  .seq__deadline .label {
+    font-size: clamp(8px, 1.6cqi, 10px);
   }
 }
 

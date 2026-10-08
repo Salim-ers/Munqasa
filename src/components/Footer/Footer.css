@@ -73,28 +73,19 @@
   color: var(--fg);
 }
 
-/* Mot-symbole du logo : version noir et terracotta le jour, version blanc et or la nuit. */
+/* Mot-symbole du logo : noir et terracotta le jour, blanc et or la nuit (une seule version chargée). */
 .footer__brand {
   --wm-w: clamp(17rem, 44vw, 40rem);
+  position: relative;
   display: grid;
   justify-items: center;
   margin-block: var(--space-lg) var(--space-md);
 }
 
 .footer__brand img {
-  grid-area: 1 / 1;
   width: var(--wm-w);
   max-width: 100%;
   height: auto;
-  transition:
-    opacity var(--dur-base) var(--ease-premium),
-    visibility var(--dur-base);
-}
-
-[data-theme="day"] .footer__brand-night,
-[data-theme="night"] .footer__brand-day {
-  opacity: 0;
-  visibility: hidden;
 }
 
 .footer__bar {
@@ -115,6 +106,17 @@
   gap: 0.5rem;
   min-height: 44px;
   color: var(--fg);
+}
+
+/* Écran tactile : liens de 44 px de haut. */
+@media (pointer: coarse) {
+  .footer__nav a {
+    padding-block: 0.7rem;
+  }
+
+  .footer__nav ul {
+    row-gap: 0;
+  }
 }
 
 @media (max-width: 1023px) {

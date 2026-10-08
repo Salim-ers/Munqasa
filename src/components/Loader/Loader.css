@@ -61,11 +61,6 @@
   stroke-opacity: 0.45;
 }
 
-.loader__symbols,
-.loader__wordmarks {
-  display: grid;
-}
-
 .loader__symbols {
   width: 100%;
   clip-path: inset(100% 0% 0% 0%);
@@ -77,16 +72,15 @@
   clip-path: inset(0% 100% 0% 0%);
 }
 
-.loader__symbols img,
-.loader__wordmarks img {
-  grid-area: 1 / 1;
-  width: 100%;
-  height: auto;
+.loader__symbols,
+.loader__wordmarks {
+  display: block;
 }
 
-[data-theme="day"] .loader__night,
-[data-theme="night"] .loader__day {
-  visibility: hidden;
+.loader__symbols img,
+.loader__wordmarks img {
+  width: 100%;
+  height: auto;
 }
 
 .loader__label {

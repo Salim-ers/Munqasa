@@ -4,6 +4,7 @@ import { site } from "../../data/site";
 import { useReducedMotion } from "../../hooks/useMediaQuery";
 import { scrollToTop } from "../../lib/scroll";
 import { CtaLink } from "../CtaLink/CtaLink";
+import { LogoSymbol } from "../Logo/Logo";
 import { TransitionLink } from "../TransitionLink/TransitionLink";
 import "./Footer.css";
 
@@ -13,7 +14,7 @@ export function Footer() {
 
   return (
     <footer className="footer tone-1 has-grain">
-      <img className="footer__arch" src="/logos/talab-night-symbol.webp" width={900} height={569} alt="" loading="lazy" />
+      <LogoSymbol className="footer__arch" />
 
       <div className="footer__cta container">
         <p className="footer__question display-lg">
@@ -55,8 +56,8 @@ export function Footer() {
       </div>
 
       <div className="footer__brand" aria-hidden="true">
-        <img className="footer__brand-day" src="/logos/talab-day-wordmark.webp" width={1219} height={355} alt="" loading="lazy" />
-        <img className="footer__brand-night" src="/logos/talab-night-wordmark.webp" width={1240} height={365} alt="" loading="lazy" />
+        <img className="tpic__day" src="/logos/talab-day-wordmark.webp" width={1240} height={365} alt="" loading="lazy" />
+        <img className="tpic__night" src="/logos/talab-night-wordmark.webp" width={1240} height={365} alt="" loading="lazy" />
       </div>
 
       <div className="footer__bar container">

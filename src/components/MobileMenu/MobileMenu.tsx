@@ -5,6 +5,7 @@ import { CONTACT, NAV } from "../../data/navigation";
 import { useReducedMotion } from "../../hooks/useMediaQuery";
 import { lockScroll, unlockScroll } from "../../lib/scroll";
 import { CtaLink } from "../CtaLink/CtaLink";
+import { LogoSymbol } from "../Logo/Logo";
 import { TransitionLink } from "../TransitionLink/TransitionLink";
 import "./MobileMenu.css";
 
@@ -95,7 +96,7 @@ export function MobileMenu({ open, onClose }: MobileMenuProps) {
       aria-label="Menu"
       data-lenis-prevent
     >
-      <img className="menu__arch" src="/logos/talab-night-symbol.webp" width={900} height={569} alt="" />
+      <LogoSymbol className="menu__arch" />
       <nav className="menu__nav" aria-label="Navigation mobile">
         <ol>
           {NAV.map((item) => (

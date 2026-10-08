@@ -39,9 +39,20 @@ photographies. Chaque photo du site existe en deux versions : la nuit n’est pa
 photographie de nuit, éditée à partir de la photo de jour (même cadrage), avec un éclairage chaud et oriental.
 
 - Le choix est mémorisé (`localStorage`) et appliqué avant le premier rendu par `public/theme-init.js` : aucun flash.
-- Au changement, la nouvelle lumière balaie la page de gauche à droite (View Transitions) ; les photos visibles sont
-  chargées avant le balayage. Mouvement réduit : bascule instantanée.
-- Seule la version de la lumière active est téléchargée.
+- Au changement, la nouvelle lumière balaie la page de gauche à droite (View Transitions) ; les photos et le logo
+  visibles sont chargés avant le balayage. Mouvement réduit : bascule sans balayage.
+- Seule la version de la lumière active est téléchargée (photos et logo : classes `.tpic__day` / `.tpic__night`,
+  règles globales dans `src/styles/base.css`).
+
+## Mobile et tablette
+
+- **Téléphone** : cibles tactiles de 44 px (logo, sélecteur jour / nuit, liens du pied de page) ; en-tête sur une
+  ligne dès 320 px ; à l’horizontale, en-tête resserré et séquence « Le dossier » en deux colonnes.
+- **Tablette portrait** (600 à 1023 px) : hero lisible (voile depuis le bas, titre agrandi), arche des Services à côté
+  du texte, chronologie de la Méthode avec action et livrable côte à côte, formules sur deux colonnes.
+- **Tablette paysage** (1024 à 1279 px) : voile du hero élargi sous le texte.
+- Séquence « Le dossier » sur écran étroit : frise du temps sur toute la largeur, documents de référence rangés
+  dessous, onglets des dossiers à la largeur de chaque dossier.
 
 ## Motion design par page
 
@@ -143,14 +154,18 @@ vérification (humains, texte, logos, géométrie).
 
 ### Logo
 
-`npm run logo` décline les deux fichiers fournis (même géométrie, fond transparent), sans aucun redessin :
+`npm run logo` publie les dix fichiers fournis (`assets-src/brand/`, fond transparent), sans aucun redessin, avec le
+même lettrage et les mêmes dimensions de jour comme de nuit :
 
-- **jour** : logo noir et terracotta (`assets-src/brand/talab-logo-day-source.png`) ;
-- **nuit** : logo noir, blanc et or (`assets-src/brand/talab-logo-night-source.png`).
+- **jour** : logo noir et terracotta (`talab-day-*.png`) ;
+- **nuit** : logo noir, blanc et or (`talab-night-*.png`).
 
-Ils servent dans l’en-tête (les deux versions sont empilées, la place réservée est celle de la plus large), dans le pied
-de page (mot-symbole TALAB SOLUTIONS) et sur l’écran de chargement, qui prend la lumière du site (fond ivoire et logo
-terracotta le jour, fond nuit et logo or la nuit).
+Chaque fichier est décliné en logo complet, symbole, symbole réduit, mot-symbole et mot-symbole réduit. Le PNG est publié
+tel quel ; le WebP affiché par le site est quasi sans perte (contours et lettrage intacts, écart imperceptible).
+
+Ils servent dans l’en-tête, dans le pied de page (mot-symbole TALAB SOLUTIONS), en filigrane (symbole réduit, déjà
+chargé par l’en-tête) et sur l’écran de chargement, qui prend la lumière du site (fond ivoire et logo noir et
+terracotta le jour, fond nuit et logo or la nuit). Seule la version de la lumière active est téléchargée.
 
 Favicons : le bâtiment, version jour pour les onglets clairs, version or pour les onglets sombres
 (`prefers-color-scheme`). Icônes d’application (Apple, 192, 512 et « maskable ») : symbole de jour sur fond ivoire.

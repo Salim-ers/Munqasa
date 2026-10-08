@@ -440,3 +440,16 @@
     width: 120px;
   }
 }
+
+/* Tablette portrait : l'action et son livrable côte à côte. */
+@media (min-width: 600px) and (max-width: 899px) {
+  .timeline__body {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 17.5rem);
+    align-items: start;
+    column-gap: var(--space-lg);
+  }
+
+  .timeline__body .cal-doc {
+    align-self: start;
+  }
+}

@@ -1,77 +1,50 @@
 /**
- * Prépare les déclinaisons du logo Talab Solutions à partir des fichiers fournis.
+ * Publie le logo Talab Solutions à partir des fichiers fournis et en tire favicons, icônes et image de partage.
  *
  *   npm run logo
  *
- * Deux sources, jamais redessinées, déjà détourées (fond transparent), même géométrie :
- *  - JOUR : logo noir et terracotta (assets-src/brand/talab-logo-day-source.png) ;
- *  - NUIT : logo noir, blanc et or (assets-src/brand/talab-logo-night-source.png).
- * Les aplats des fichiers fournis sont à 99 % d'opacité : ils sont ramenés à 100 %.
+ * Dix fichiers fournis (assets-src/brand/), jamais redessinés, déjà détourés, même lettrage jour et nuit :
+ *  - JOUR : logo noir et terracotta (talab-day-*.png) ;
+ *  - NUIT : logo noir, blanc et or (talab-night-*.png).
+ * Chacun est publié tel quel en PNG, et en WebP quasi sans perte pour l'affichage : contours et lettrage intacts
+ * (écart imperceptible, ≈ 50 dB), fichiers plus légers que le PNG.
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import sharp from "sharp";
 
 const ROOT = process.cwd();
+const BRAND = resolve(ROOT, "assets-src/brand");
 const LOGOS = resolve(ROOT, "public/logos");
 const PUBLIC = resolve(ROOT, "public");
 
 const IVORY = "#F5F1E9";
 const NIGHT_BG = "#0B0C0D";
-/** Opacité des aplats dans les fichiers fournis (253 / 255). */
-const SOLID_ALPHA = 253;
 
-interface Box {
-  left?: number;
-  right?: number;
-  top: number;
-  bottom: number;
-}
+const LIGHTS = ["day", "night"] as const;
+/**
+ * logo : logo complet (données structurées) · symbol : loader, filigranes · symbol-sm : en-tête
+ * wordmark : pied de page · wordmark-sm : en-tête, loader
+ */
+const VARIANTS = ["logo", "symbol", "symbol-sm", "wordmark", "wordmark-sm"] as const;
 
-/** Zones mesurées sur les fichiers source (1254 × 1254, même mise en page jour et nuit). */
-const SOURCES = {
-  day: { file: "talab-logo-day-source.png", symbol: { top: 0, bottom: 844 }, wordmark: { top: 844, bottom: 1254 } },
-  night: { file: "talab-logo-night-source.png", symbol: { top: 0, bottom: 843 }, wordmark: { top: 843, bottom: 1254 } },
-} as const;
-/** Favicon : le bâtiment seul, sans la longue ligne de sol ni le palmier. */
-const BUILDING: Box = { left: 250, right: 940, top: 85, bottom: 847 };
+/** Favicon : le bâtiment seul, sans la longue ligne de sol ni le palmier (zone du symbole, 900 × 569). */
+const BUILDING = { left: 152, top: 0, width: 514, height: 569 };
 
-interface Rgba {
-  data: Buffer;
-  width: number;
-  height: number;
-}
+const master = (name: string) => resolve(BRAND, `${name}.png`);
 
-async function load(file: string): Promise<Rgba> {
-  const { data, info } = await sharp(resolve(ROOT, "assets-src/brand", file))
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  for (let q = 3; q < data.length; q += 4) data[q] = Math.min(255, Math.round((data[q]! * 255) / SOLID_ALPHA));
-  return { data, width: info.width, height: info.height };
-}
-
-const raw = (img: Rgba) => sharp(img.data, { raw: { width: img.width, height: img.height, channels: 4 } });
-
-async function crop(img: Rgba, box: Box): Promise<Buffer> {
-  const left = box.left ?? 0;
-  const right = box.right ?? img.width;
-  const cut = await raw(img)
-    .extract({ left, top: box.top, width: right - left, height: box.bottom - box.top })
-    .png()
-    .toBuffer();
-  return sharp(cut).trim({ threshold: 1 }).png().toBuffer();
-}
-
-const whole = (img: Rgba) => crop(img, { top: 0, bottom: img.height });
-
-async function save(buf: Buffer, name: string, width: number) {
-  const base = resolve(LOGOS, name);
-  const img = sharp(buf).resize({ width, withoutEnlargement: true });
-  await img.clone().png({ compressionLevel: 9 }).toFile(`${base}.png`);
-  await img.clone().webp({ quality: 92, alphaQuality: 100 }).toFile(`${base}.webp`);
-  const meta = await sharp(`${base}.png`).metadata();
+async function publish(name: string) {
+  copyFileSync(master(name), resolve(LOGOS, `${name}.png`));
+  await sharp(master(name))
+    .webp({ nearLossless: true, quality: 60, effort: 6 })
+    .toFile(resolve(LOGOS, `${name}.webp`));
+  const meta = await sharp(master(name)).metadata();
   console.log(`  ✓ public/logos/${name}.{png,webp}  ${meta.width}×${meta.height}`);
+}
+
+async function building(light: (typeof LIGHTS)[number]): Promise<Buffer> {
+  const cut = await sharp(master(`talab-${light}-symbol`)).extract(BUILDING).png().toBuffer();
+  return sharp(cut).trim({ threshold: 1 }).png().toBuffer();
 }
 
 /** ICO contenant des PNG (format accepté par tous les navigateurs actuels). */
@@ -95,7 +68,7 @@ function packIco(pngs: { size: number; data: Buffer }[]): Buffer {
 }
 
 /** Image centrée dans un carré, avec marge (fraction du côté), sur fond optionnel. */
-async function square(image: Buffer, size: number, pad: number, background?: string) {
+async function square(image: Buffer | string, size: number, pad: number, background?: string) {
   const inner = Math.round(size * (1 - pad * 2));
   const icon = await sharp(image)
     .resize(inner, inner, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 }, kernel: "lanczos3" })
@@ -110,30 +83,15 @@ async function square(image: Buffer, size: number, pad: number, background?: str
 
 async function main() {
   mkdirSync(LOGOS, { recursive: true });
-  const day = await load(SOURCES.day.file);
-  const night = await load(SOURCES.night.file);
 
-  console.log("→ Jour : logo noir et terracotta");
-  const daySymbol = await crop(day, SOURCES.day.symbol);
-  const dayWordmark = await crop(day, SOURCES.day.wordmark);
-  await save(await whole(day), "talab-day-logo", 1254);
-  await save(daySymbol, "talab-day-symbol", 900); // loader
-  await save(daySymbol, "talab-day-symbol-sm", 360); // en-tête
-  await save(dayWordmark, "talab-day-wordmark", 1254); // pied de page
-  await save(dayWordmark, "talab-day-wordmark-sm", 640); // en-tête, loader
-
-  console.log("→ Nuit : logo noir, blanc et or");
-  const nightSymbol = await crop(night, SOURCES.night.symbol);
-  const nightWordmark = await crop(night, SOURCES.night.wordmark);
-  await save(await whole(night), "talab-night-logo", 1254);
-  await save(nightSymbol, "talab-night-symbol", 900); // loader, filigranes
-  await save(nightSymbol, "talab-night-symbol-sm", 360); // en-tête
-  await save(nightWordmark, "talab-night-wordmark", 1254); // pied de page
-  await save(nightWordmark, "talab-night-wordmark-sm", 640); // en-tête, loader
+  for (const light of LIGHTS) {
+    console.log(light === "day" ? "→ Jour : logo noir et terracotta" : "→ Nuit : logo noir, blanc et or");
+    for (const variant of VARIANTS) await publish(`talab-${light}-${variant}`);
+  }
 
   console.log("→ Favicons : le bâtiment, version jour (onglets clairs) et version or (onglets sombres)");
-  const dayBuilding = await crop(day, BUILDING);
-  const nightBuilding = await crop(night, BUILDING);
+  const dayBuilding = await building("day");
+  const nightBuilding = await building("night");
   const icoParts = await Promise.all([16, 32, 48].map(async (size) => ({ size, data: await square(dayBuilding, size, 0.02) })));
   writeFileSync(resolve(PUBLIC, "favicon.ico"), packIco(icoParts));
   writeFileSync(resolve(PUBLIC, "favicon-32.png"), await square(dayBuilding, 32, 0.02));
@@ -141,6 +99,7 @@ async function main() {
   console.log("  ✓ favicon.ico (16, 32, 48), favicon-32.png, favicon-dark-32.png");
 
   console.log("→ Icônes d'application (fond ivoire, symbole de jour)");
+  const daySymbol = master("talab-day-symbol");
   writeFileSync(resolve(PUBLIC, "apple-touch-icon.png"), await square(daySymbol, 180, 0.1, IVORY));
   writeFileSync(resolve(PUBLIC, "icon-192.png"), await square(daySymbol, 192, 0.1, IVORY));
   writeFileSync(resolve(PUBLIC, "icon-512.png"), await square(daySymbol, 512, 0.1, IVORY));
@@ -150,7 +109,7 @@ async function main() {
 
   console.log("→ Image Open Graph (logo or sur fond nuit)");
   const W = 1200, H = 630;
-  const lockup = await sharp(await whole(night)).resize({ height: 480 }).toBuffer();
+  const lockup = await sharp(master("talab-night-logo")).resize({ height: 480 }).toBuffer();
   const frame = Buffer.from(
     `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">` +
       `<rect x="36" y="36" width="${W - 72}" height="${H - 72}" fill="none" stroke="#C9A06A" stroke-opacity=".4"/>` +

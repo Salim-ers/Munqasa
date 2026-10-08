@@ -82,6 +82,14 @@
   }
 }
 
+/* Téléphone à l'horizontale : la hauteur d'écran est rare, l'en-tête se resserre. */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root {
+    --header-h: 64px;
+    --header-h-compact: 56px;
+  }
+}
+
 /* --------------------------------------------------------------------------
    Lumières
    -------------------------------------------------------------------------- */

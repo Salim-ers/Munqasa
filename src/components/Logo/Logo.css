@@ -4,27 +4,18 @@
   initial-value: 46px;
 }
 
-/* Les deux versions occupent la même cellule ; seule celle de la lumière active est visible. */
+/* Une seule version affichée, celle de la lumière active (règles .tpic__day / .tpic__night). */
 .logo {
-  display: inline-grid;
+  position: relative;
+  display: inline-flex;
   align-items: center;
   --logo-h: 46px;
 }
 
 .logo__set {
-  grid-area: 1 / 1;
   display: inline-flex;
   align-items: center;
   gap: clamp(8px, 0.9vw, 14px);
-  transition:
-    opacity var(--dur-base) var(--ease-premium),
-    visibility var(--dur-base);
-}
-
-.logo--light .logo__set--night,
-.logo--dark .logo__set--day {
-  opacity: 0;
-  visibility: hidden;
 }
 
 .logo__symbol,

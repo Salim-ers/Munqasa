@@ -63,15 +63,23 @@ export function DossierSequence() {
         const offY = (i: number) => scatterY(i) + ((SCATTER[i]?.y ?? 0.5) - 0.5) * H() * 1.8 + (i % 2 ? -1 : 1) * H() * 0.35;
 
         // Les trois documents de la consultation finissent en vignettes de référence, en haut à gauche
-        // (origine des transformations au centre : on compense pour viser le coin).
+        // (origine des transformations au centre : on compense pour viser le coin). Si la frise du temps
+        // occupe cette place (mobile, tablette), elles se rangent juste en dessous.
         const refScale = 0.34;
+        const deadline = q(".seq__deadline")[0] as HTMLElement | undefined;
+        const refTop = () => {
+          if (!deadline || !avis) return H() * 0.015;
+          const d = layoutBox(deadline, stage);
+          const row = 3 * avis.offsetWidth * refScale + 2 * W() * 0.012;
+          return row > d.x - W() * 0.02 ? d.y + d.h + H() * 0.035 : H() * 0.015;
+        };
         const refX = (el: HTMLElement, i: number) => {
           const box = layoutBox(el, stage);
           return i * (box.w * refScale + W() * 0.012) - box.x - (box.w * (1 - refScale)) / 2;
         };
         const refY = (el: HTMLElement) => {
           const box = layoutBox(el, stage);
-          return H() * 0.015 - box.y - (box.h * (1 - refScale)) / 2;
+          return refTop() - box.y - (box.h * (1 - refScale)) / 2;
         };
 
         gsap.set(phases.slice(1), { autoAlpha: 0, y: 24 });

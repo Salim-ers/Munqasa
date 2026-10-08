@@ -73,12 +73,25 @@
 }
 
 @media (max-width: 1023px) {
-  .formulas__list {
-    grid-template-columns: 1fr;
-  }
-
   .formula--featured {
     margin-top: 0;
     order: -1;
+  }
+}
+
+/* Tablette : la formule mise en avant sur toute la largeur, les deux autres côte à côte. */
+@media (min-width: 600px) and (max-width: 1023px) {
+  .formulas__list {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .formula--featured {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 599px) {
+  .formulas__list {
+    grid-template-columns: 1fr;
   }
 }

@@ -19,7 +19,7 @@ const Ctx = createContext<AppState | null>(null);
 export const LOADER_SEEN_KEY = "talab:intro";
 export const LIGHT_KEY = "talab:light";
 
-/** Photos de la lumière demandée visibles à l'écran : chargées avant le balayage. */
+/** Photos et logo de la lumière demandée visibles à l'écran : chargés avant le changement. */
 async function preloadVisible(mode: LightMode) {
   const root = document.documentElement;
   root.dataset.themePreload = mode;
@@ -51,10 +51,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       };
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       try {
+        await preloadVisible(next);
         if (reduced || typeof document.startViewTransition !== "function") {
           apply();
         } else {
-          await preloadVisible(next);
           await document.startViewTransition(apply).finished;
         }
       } finally {

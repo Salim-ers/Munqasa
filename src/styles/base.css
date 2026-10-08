@@ -121,6 +121,22 @@ button {
   display: none;
 }
 
+/* Images jour / nuit (photos, logo) : une seule lumière à la fois, l'autre n'est pas téléchargée. */
+[data-theme="day"] .tpic__night,
+[data-theme="night"] .tpic__day {
+  display: none;
+}
+
+/* Juste avant le changement de lumière : la nouvelle version se charge, invisible. */
+html[data-theme-preload="night"] .tpic__night,
+html[data-theme-preload="day"] .tpic__day {
+  position: absolute;
+  inset: 0;
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* Lenis */
 html.lenis,
 html.lenis body {
@@ -135,7 +151,7 @@ html.lenis body {
 @media (pointer: fine) {
   html {
     scrollbar-width: thin;
-    scrollbar-color: var(--color-stone-deep) transparent;
+    scrollbar-color: var(--line-strong) transparent;
   }
 }
 

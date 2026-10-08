@@ -142,11 +142,41 @@
   }
 }
 
-/* ---------- Tablette / mobile ---------- */
+/* ---------- Tablette paysage : la photo est plus serrée, le voile s'élargit sous le texte ---------- */
+
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .hero__scrim {
+    background:
+      linear-gradient(90deg, rgb(245 241 233 / 0.9) 0%, rgb(245 241 233 / 0.74) 40%, rgb(245 241 233 / 0) 72%),
+      linear-gradient(0deg, rgb(245 241 233 / 0.55) 0%, rgb(245 241 233 / 0) 28%);
+  }
+
+  [data-theme="night"] .hero__scrim {
+    background:
+      linear-gradient(90deg, rgb(11 12 13 / 0.86) 0%, rgb(11 12 13 / 0.68) 40%, rgb(11 12 13 / 0) 74%),
+      linear-gradient(0deg, rgb(11 12 13 / 0.55) 0%, rgb(11 12 13 / 0) 28%);
+  }
+}
+
+/* ---------- Tablette portrait, mobile : texte en bas de l'écran, voile depuis le bas ---------- */
 
 @media (max-width: 1023px) {
   .hero__content {
     max-width: 100%;
+  }
+
+  .hero__scrim {
+    background: linear-gradient(0deg, rgb(245 241 233 / 0.95) 0%, rgb(245 241 233 / 0.8) 36%, rgb(245 241 233 / 0) 66%);
+  }
+
+  [data-theme="night"] .hero__scrim {
+    background: linear-gradient(0deg, rgb(11 12 13 / 0.88) 0%, rgb(11 12 13 / 0.6) 36%, rgb(11 12 13 / 0) 64%);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .hero__title {
+    font-size: clamp(4.5rem, 10vw, 6.5rem);
   }
 }
 
@@ -157,14 +187,6 @@
 
   .hero__img {
     object-position: 70% 50%;
-  }
-
-  .hero__scrim {
-    background: linear-gradient(0deg, rgb(245 241 233 / 0.95) 0%, rgb(245 241 233 / 0.8) 36%, rgb(245 241 233 / 0) 66%);
-  }
-
-  [data-theme="night"] .hero__scrim {
-    background: linear-gradient(0deg, rgb(11 12 13 / 0.88) 0%, rgb(11 12 13 / 0.6) 36%, rgb(11 12 13 / 0) 64%);
   }
 
   .hero__content {

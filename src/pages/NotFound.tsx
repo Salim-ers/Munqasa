@@ -1,4 +1,5 @@
 import { CtaLink } from "../components/CtaLink/CtaLink";
+import { LogoSymbol } from "../components/Logo/Logo";
 import { Tag } from "../components/Tag/Tag";
 import { usePageReveals } from "../hooks/usePageReveals";
 import "./NotFound.css";
@@ -8,7 +9,7 @@ export default function NotFound() {
   return (
     <div ref={ref}>
       <section className="not-found tone-1 has-grain" aria-labelledby="page-title">
-        <img className="not-found__arch" src="/logos/talab-night-symbol.webp" width={900} height={569} alt="" />
+        <LogoSymbol className="not-found__arch" />
         <div className="not-found__inner container">
           <Tag>Erreur 404</Tag>
           <h1 id="page-title" className="display-xl" data-reveal="lines">
