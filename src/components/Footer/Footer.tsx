@@ -1,5 +1,5 @@
 import { ArrowUp } from "lucide-react";
-import { CTA, LEGAL_NAV, NAV } from "../../data/navigation";
+import { CONTACT, CTA_LABEL, LEGAL_NAV, NAV } from "../../data/navigation";
 import { site } from "../../data/site";
 import { useReducedMotion } from "../../hooks/useMediaQuery";
 import { scrollToTop } from "../../lib/scroll";
@@ -21,14 +21,14 @@ export function Footer() {
         </p>
         <div className="footer__cta-side">
           <p className="body-text">Parlons de l’échéance, des documents disponibles et de l’accompagnement dont votre entreprise a besoin.</p>
-          <CtaLink to={CTA.to}>{CTA.label}</CtaLink>
+          <CtaLink to={CONTACT.to}>{CTA_LABEL}</CtaLink>
         </div>
       </div>
 
       <div className="footer__nav container">
         <nav aria-label="Navigation du pied de page">
           <ul>
-            {[...NAV, CTA].map((item) => (
+            {NAV.map((item) => (
               <li key={item.to}>
                 <TransitionLink to={item.to}>{item.label}</TransitionLink>
               </li>

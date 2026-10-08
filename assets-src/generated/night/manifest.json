@@ -106,5 +106,32 @@
     "verdict": "identique",
     "kind": "exterior",
     "createdAt": "2026-10-07T22:32:18.846Z"
+  },
+  "corridor": {
+    "name": "corridor",
+    "model": "gpt-image-2",
+    "size": "2048x1248",
+    "score": 0.696,
+    "verdict": "à vérifier",
+    "kind": "interior",
+    "createdAt": "2026-10-08T07:50:49.391Z"
+  },
+  "plaster-niche": {
+    "name": "plaster-niche",
+    "model": "gpt-image-2",
+    "size": "2048x1360",
+    "score": 0.483,
+    "verdict": "différent",
+    "kind": "exterior",
+    "createdAt": "2026-10-08T07:50:56.323Z"
+  },
+  "screen-tower": {
+    "name": "screen-tower",
+    "model": "gpt-image-2",
+    "size": "1392x2048",
+    "score": 0.776,
+    "verdict": "identique",
+    "kind": "exterior",
+    "createdAt": "2026-10-08T07:51:01.527Z"
   }
 }

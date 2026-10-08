@@ -2,6 +2,7 @@
   position: relative;
   padding-block: var(--space-2xl);
   overflow: hidden;
+  scroll-margin-top: var(--header-h-compact);
 }
 
 .chapter__grid {
@@ -13,9 +14,23 @@
 }
 
 .chapter__content {
-  grid-column: 1 / span 6;
+  grid-column: 1 / span 5;
   display: grid;
   gap: var(--space-md);
+}
+
+.chapter__scene {
+  grid-column: 7 / span 6;
+}
+
+.chapter--flip .chapter__content {
+  grid-column: 8 / span 5;
+  grid-row: 1;
+}
+
+.chapter--flip .chapter__scene {
+  grid-column: 1 / span 6;
+  grid-row: 1;
 }
 
 .chapter__lead {
@@ -42,96 +57,31 @@
   align-items: baseline;
   gap: 0.75rem;
   padding: var(--space-sm) var(--space-md);
-  background: var(--bg-1);
+  background: var(--bg-2);
   border-left: 3px solid var(--accent);
   font-size: var(--text-sm);
 }
 
-.tone-1 .chapter__deliverable {
-  background: var(--bg-2);
+.tone-2 .chapter__deliverable {
+  background: var(--bg-1);
 }
 
 .chapter__deliverable .label {
   color: var(--accent);
 }
 
-.chapter__media {
-  grid-column: 8 / span 5;
-  position: relative;
-}
-
-.chapter__frame {
-  overflow: hidden;
-}
-
-.chapter__clip {
-  width: 100%;
-  height: 100%;
-}
-
-/* Arche */
-.chapter--arch .chapter__frame {
-  aspect-ratio: 4 / 5.2;
-}
-
-/* Photographie verticale à gauche */
-.chapter--tall .chapter__media {
-  grid-column: 1 / span 5;
-  grid-row: 1;
-}
-
-.chapter--tall .chapter__content {
-  grid-column: 7 / span 6;
-  grid-row: 1;
-}
-
-.chapter--tall .chapter__frame {
-  aspect-ratio: 3 / 4;
-}
-
-/* Bande panoramique sous le texte */
-.chapter--band .chapter__content {
-  grid-column: 1 / span 7;
-}
-
-.chapter--band .chapter__media {
-  grid-column: 3 / -1;
-  grid-row: 2;
-}
-
-.chapter--band .chapter__frame {
-  aspect-ratio: 21 / 8;
-}
-
 @media (max-width: 1023px) {
   .chapter__content,
-  .chapter--tall .chapter__content,
-  .chapter--band .chapter__content,
-  .chapter__media,
-  .chapter--tall .chapter__media,
-  .chapter--band .chapter__media {
+  .chapter__scene,
+  .chapter--flip .chapter__content,
+  .chapter--flip .chapter__scene {
     grid-column: 1 / -1;
     grid-row: auto;
-  }
-
-  .chapter--arch .chapter__media {
-    grid-column: 2 / span 10;
-  }
-
-  .chapter--tall .chapter__frame,
-  .chapter--band .chapter__frame {
-    aspect-ratio: 16 / 10;
   }
 }
 
 @media (max-width: 599px) {
-  .chapter--tall .chapter__media,
-  .chapter--band .chapter__media {
-    margin-inline: calc(var(--gutter) * -1);
-  }
-
-  .chapter--arch .chapter__media {
-    grid-column: 1 / -1;
-    padding-inline: 10%;
+  .chapter__scene {
+    margin-inline: calc(var(--gutter) * -0.5);
   }
 }

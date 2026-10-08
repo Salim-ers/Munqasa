@@ -1,0 +1,1099 @@
+/* ==========================================================================
+   Scènes de services. Toutes les mesures sont relatives à la scène (cqi) :
+   la scène garde ses proportions du mobile au grand écran.
+   État naturel = état final ; état de départ sous `no-preference` (en bas).
+   ========================================================================== */
+
+.sc {
+  --scene-bg: var(--bg-1);
+  position: relative;
+  aspect-ratio: 5 / 4;
+  container-type: inline-size;
+  overflow: hidden;
+  background: var(--scene-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+}
+
+.tone-1 .sc {
+  --scene-bg: var(--bg-2);
+}
+
+/* Zone utile : 90 × 70 cqi. */
+.sc__body {
+  position: absolute;
+  inset: 5cqi;
+}
+
+/* ---------- Éléments communs ---------- */
+
+.sc-label,
+.sc-kicker {
+  font-size: clamp(7px, 1.45cqi, 11px);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.sc-label {
+  color: var(--fg-muted);
+}
+
+.sc-kicker {
+  color: var(--color-terracotta);
+}
+
+.sc-title {
+  font-size: clamp(8px, 1.7cqi, 14px);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--paper-fg);
+}
+
+.sc-paper {
+  color: var(--paper-fg);
+  background: var(--paper);
+  border: 1px solid var(--paper-line);
+  border-radius: 2px;
+  box-shadow: 0 1.4cqi 2.8cqi -2cqi var(--shadow);
+}
+
+.sc-lines {
+  display: grid;
+  gap: 1cqi;
+}
+
+.sc-lines i {
+  display: block;
+  height: max(2px, 0.42cqi);
+  background: rgb(23 23 23 / 0.14);
+  transform-origin: 0 50%;
+}
+
+.sc-check {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: max(12px, 2.4cqi);
+  height: max(12px, 2.4cqi);
+  border: 1px solid var(--line-strong);
+}
+
+.sc-paper .sc-check {
+  border-color: rgb(23 23 23 / 0.35);
+}
+
+.sc-check svg {
+  width: 82%;
+  height: 82%;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: square;
+}
+
+.sc-paper .sc-check svg {
+  stroke: var(--color-terracotta);
+}
+
+.sc-check path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+/* Tampon : la rotation passe par `rotate` pour laisser `transform` à l'animation. */
+.sc-stamp {
+  position: absolute;
+  z-index: 20;
+  padding: 0.7cqi 1.4cqi;
+  font: 700 clamp(7px, 1.35cqi, 11px) / 1 var(--font-body);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-terracotta);
+  background: rgb(255 253 248 / 0.8);
+  border: 2px solid currentColor;
+  rotate: -7deg;
+}
+
+/* ---------- Veille ---------- */
+
+.sv {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 5cqi;
+}
+
+.sv-feed {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 2cqi;
+  min-height: 0;
+}
+
+.sv-list {
+  position: relative;
+  display: grid;
+  grid-template-rows: repeat(5, 1fr);
+  gap: 1.6cqi;
+  min-height: 0;
+}
+
+.sv-card {
+  position: relative;
+  display: grid;
+  align-content: center;
+  gap: 1cqi;
+  padding: 1.2cqi 2cqi 1.2cqi 2.6cqi;
+  overflow: hidden;
+}
+
+.sv-mark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0.7cqi;
+  background: var(--color-terracotta);
+  transform-origin: 50% 100%;
+}
+
+.sv-badge {
+  position: absolute;
+  right: 1.2cqi;
+  bottom: 1cqi;
+  padding: 0.4cqi 0.9cqi;
+  font: 700 clamp(6.5px, 1.15cqi, 10px) / 1 var(--font-body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-terracotta);
+  border: 1px solid currentColor;
+}
+
+.sv-card:not(.is-match) {
+  opacity: 0.38;
+}
+
+.sv-scan {
+  position: absolute;
+  left: -1.4cqi;
+  right: -1.4cqi;
+  top: -0.8cqi;
+  height: calc((100% - 4 * 1.6cqi) / 5 + 1.6cqi);
+  border: 1.5px solid var(--accent);
+  border-radius: 2px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.sv-scan .sc-label {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  padding-bottom: 0.5cqi;
+  color: var(--accent);
+}
+
+.sv-picks {
+  display: grid;
+  align-content: start;
+  gap: 1.6cqi;
+}
+
+.sv-picks > .sc-label {
+  margin-bottom: 0.4cqi;
+}
+
+.sv-pick {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5cqi;
+  padding: 1.6cqi 1.8cqi;
+  border-left: 0.7cqi solid var(--color-terracotta);
+}
+
+/* ---------- Analyse ---------- */
+
+.sa {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 5cqi;
+}
+
+.sa-doc {
+  display: grid;
+  align-content: start;
+  gap: 1.6cqi;
+  padding: 3cqi 3.2cqi;
+}
+
+.sa-lines {
+  position: relative;
+  display: grid;
+  gap: 2.6cqi;
+  padding-top: 2.6cqi;
+}
+
+.sa-lines i {
+  position: relative;
+  display: block;
+  height: max(2px, 0.42cqi);
+  background: rgb(23 23 23 / 0.14);
+}
+
+.sa-hl {
+  position: absolute;
+  inset: -0.55cqi 0;
+  background: var(--color-terracotta);
+  opacity: 0.85;
+  transform-origin: 0 50%;
+}
+
+.sa-tag {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 0.7cqi);
+  font: 700 clamp(6px, 1.1cqi, 9px) / 1 var(--font-body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-terracotta);
+}
+
+.sa-reader {
+  position: absolute;
+  left: -1.6cqi;
+  right: -1.6cqi;
+  top: 0;
+  height: 1px;
+  background: var(--color-terracotta);
+  box-shadow: 0 0 1.2cqi 0.2cqi rgb(160 65 30 / 0.45);
+  opacity: 0;
+  visibility: hidden;
+}
+
+.sa-grid {
+  display: grid;
+  align-content: start;
+  gap: 1.6cqi;
+}
+
+.sa-grid > .sc-label {
+  margin-bottom: 0.4cqi;
+}
+
+.sa-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5cqi;
+  padding: 2cqi 1.8cqi;
+  border: 1px solid var(--line-strong);
+  overflow: hidden;
+}
+
+.sa-fill {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  transform-origin: 0 50%;
+}
+
+.sa-row-label {
+  position: relative;
+  font-size: clamp(8px, 1.6cqi, 13px);
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.sa-row .sc-check {
+  position: relative;
+}
+
+/* ---------- Dossier administratif ---------- */
+
+.sd-back {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 7%;
+  bottom: 0;
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
+}
+
+.sd-pile {
+  position: absolute;
+  left: 16%;
+  right: 16%;
+  top: 12%;
+  bottom: 0;
+}
+
+.sd-card {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--i) * 10.5cqi);
+  z-index: calc(var(--i) + 1);
+  display: grid;
+  align-content: start;
+  gap: 1.5cqi;
+  height: 26cqi;
+  padding: 2.2cqi 2.6cqi;
+}
+
+.sd-stamp {
+  top: 1.8cqi;
+  right: 2.2cqi;
+  color: var(--paper-fg);
+}
+
+.sd-stamp--expired {
+  color: var(--color-terracotta);
+}
+
+/* Pièce périmée : sortie du dossier (état final). */
+.sd-card--expired {
+  z-index: 4;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(75cqi) rotate(9deg);
+}
+
+.sd-front {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  align-items: flex-end;
+  height: 38%;
+  padding: 2.4cqi 3cqi;
+  background: var(--color-terracotta) var(--grain);
+  background-size: 128px 128px;
+  border-radius: 2px;
+  box-shadow: 0 -1.4cqi 3cqi -2cqi var(--shadow);
+}
+
+.sd-front .sc-label {
+  color: var(--color-ivory);
+}
+
+/* ---------- Offre technique ---------- */
+
+.so {
+  display: grid;
+  grid-template-rows: auto repeat(4, 1fr);
+  row-gap: 1.4cqi;
+}
+
+.so-paper {
+  position: absolute;
+  left: 42%;
+  right: 0;
+  top: -1.4cqi;
+  bottom: -1.4cqi;
+}
+
+.so-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 30% 12% 1fr;
+  align-items: center;
+}
+
+.so-head-r {
+  padding-left: 3cqi;
+}
+
+.so-crit {
+  position: relative;
+  justify-self: start;
+  font-size: clamp(8px, 1.7cqi, 13px);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--fg);
+}
+
+.so-underline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.6cqi;
+  height: 1px;
+  background: var(--accent);
+  transform-origin: 0 50%;
+}
+
+.so-link {
+  height: 1px;
+  margin-inline: 1.2cqi 0;
+  background: var(--accent);
+  transform-origin: 0 50%;
+}
+
+.so-sec {
+  display: grid;
+  gap: 0.9cqi;
+  padding-left: 3cqi;
+  padding-right: 2cqi;
+}
+
+.so-sec-title {
+  font-size: clamp(6.5px, 1.2cqi, 10px);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-terracotta);
+}
+
+.so-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.8cqi;
+  height: 5cqi;
+}
+
+.so-bars i {
+  flex: 1;
+  background: var(--color-sand);
+  transform-origin: 50% 100%;
+}
+
+.so-tiles {
+  display: flex;
+  gap: 1cqi;
+}
+
+.so-tiles i {
+  width: 6cqi;
+  height: 3.8cqi;
+  background: rgb(160 65 30 / 0.12);
+  border: 1px solid rgb(23 23 23 / 0.22);
+}
+
+.so-stamp {
+  right: 3cqi;
+  bottom: 1cqi;
+}
+
+/* ---------- Coordination ---------- */
+
+.cd-links {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.cd-links path {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 0.22;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.cd-node {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: 1cqi;
+  translate: -50% -50%;
+}
+
+.cd-name {
+  white-space: nowrap;
+  color: var(--fg);
+}
+
+.cd-chip {
+  display: grid;
+  align-content: center;
+  width: 13cqi;
+  height: 8.5cqi;
+  padding: 1.4cqi;
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* La coche prend la place de la pièce, une fois celle-ci remise. */
+.cd-done {
+  position: absolute;
+  left: 50%;
+  bottom: 4.25cqi;
+  translate: -50% 50%;
+}
+
+.cd-done .sc-check {
+  background: var(--scene-bg);
+}
+
+.cd-hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 3;
+  display: grid;
+  gap: 1.4cqi;
+  width: 32cqi;
+  padding: 2.6cqi;
+  translate: -50% -50%;
+}
+
+.cd-tab {
+  position: absolute;
+  left: -1px;
+  top: 0;
+  padding: 0.6cqi 1.4cqi;
+  font: 700 clamp(6.5px, 1.2cqi, 10px) / 1.2 var(--font-body);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+  background: var(--color-sand);
+  border-radius: 2px 2px 0 0;
+  transform: translateY(-100%);
+}
+
+.cd-progress {
+  height: 1.1cqi;
+  min-height: 4px;
+  overflow: hidden;
+  background: rgb(23 23 23 / 0.1);
+}
+
+.cd-progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--color-terracotta);
+  transform-origin: 0 50%;
+}
+
+.cd-complete {
+  font: 700 clamp(6.5px, 1.25cqi, 10px) / 1.2 var(--font-body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-terracotta);
+}
+
+/* ---------- Contrôle avant dépôt ---------- */
+
+.sk {
+  display: grid;
+  place-items: center;
+}
+
+.sk-sheet {
+  position: relative;
+  display: grid;
+  gap: 2.2cqi;
+  width: 80%;
+  padding: 3.2cqi 3.6cqi 3.6cqi;
+}
+
+.sk-rows {
+  position: relative;
+  display: grid;
+  gap: 1.2cqi;
+}
+
+.sk-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1.6cqi;
+  padding: 1.5cqi 1.8cqi;
+  border-bottom: 1px solid rgb(23 23 23 / 0.1);
+}
+
+.sk-row-tint {
+  position: absolute;
+  inset: 0;
+  background: rgb(160 65 30 / 0.12);
+  opacity: 0;
+  visibility: hidden;
+}
+
+.sk-row-label {
+  position: relative;
+  flex: 1;
+  font-size: clamp(8px, 1.7cqi, 13px);
+  font-weight: 600;
+}
+
+.sk-status {
+  position: relative;
+  display: grid;
+}
+
+.sk-status b {
+  grid-area: 1 / 1;
+  justify-self: end;
+  padding: 0.5cqi 0.9cqi;
+  font: 700 clamp(6px, 1.1cqi, 9px) / 1 var(--font-body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+}
+
+.sk-gap {
+  color: var(--color-terracotta);
+  opacity: 0;
+  visibility: hidden;
+}
+
+.sk-fixed {
+  color: var(--paper-fg);
+}
+
+.sk-row .sc-check {
+  position: relative;
+}
+
+.sk-scan {
+  position: absolute;
+  left: -1.2cqi;
+  right: -1.2cqi;
+  top: 0;
+  height: calc((100% - 4 * 1.2cqi) / 5);
+  border: 1.5px solid var(--color-terracotta);
+  border-radius: 2px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.sk-stamp {
+  right: 5%;
+  bottom: 4%;
+  font-size: clamp(8px, 1.6cqi, 13px);
+  rotate: -8deg;
+}
+
+/* ---------- Préparation à la soumission ---------- */
+
+.sp {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  align-items: center;
+  gap: 4cqi;
+}
+
+.sp-tree {
+  display: grid;
+  gap: 1cqi;
+  min-width: 0;
+  font-size: clamp(7.5px, 1.5cqi, 12px);
+  color: var(--fg);
+}
+
+.sp-group {
+  display: grid;
+  gap: 1cqi;
+  margin-left: 1.1cqi;
+  padding-left: 2.4cqi;
+  border-left: 1px solid var(--line-strong);
+}
+
+.sp-item {
+  display: flex;
+  align-items: center;
+  gap: 1.2cqi;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.sp-root {
+  font-weight: 700;
+}
+
+.sp-dir {
+  font-weight: 600;
+}
+
+.sp-file {
+  padding-left: 2.4cqi;
+  color: var(--fg-muted);
+}
+
+.sp-folder {
+  position: relative;
+  flex: none;
+  width: max(10px, 2.4cqi);
+  height: max(8px, 1.8cqi);
+  background: var(--color-sand);
+  border-radius: 1px;
+}
+
+.sp-folder::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: -0.5cqi;
+  width: 45%;
+  height: 0.6cqi;
+  background: inherit;
+  border-radius: 1px 1px 0 0;
+}
+
+.sp-doc {
+  flex: none;
+  width: max(7px, 1.6cqi);
+  height: max(9px, 2cqi);
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+}
+
+.sp-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sp-badge {
+  flex: none;
+  margin-left: auto;
+  padding: 0.3cqi 0.7cqi;
+  font: 700 clamp(6px, 1cqi, 9px) / 1 var(--font-body);
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  border: 1px solid currentColor;
+}
+
+.sp-pli {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.sp-env {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1.45;
+}
+
+.sp-env-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.sp-env-lines path {
+  fill: none;
+  stroke: rgb(23 23 23 / 0.18);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Rabat : ouvert (pointé vers le haut) au départ, il se replie puis se referme. */
+.sp-flap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 56%;
+  background: color-mix(in srgb, var(--paper) 90%, #8a6a45);
+}
+
+.sp-flap--open {
+  bottom: 100%;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  transform-origin: 50% 100%;
+  transform: scaleY(0);
+}
+
+.sp-flap--closed {
+  top: 0;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  transform-origin: 50% 0;
+}
+
+.sp-seal {
+  left: 50%;
+  top: 56%;
+  translate: -50% -50%;
+  rotate: -6deg;
+}
+
+/* ---------- Suivi ---------- */
+
+.su {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 3cqi;
+}
+
+.su-line {
+  position: relative;
+  align-self: center;
+  height: 32cqi;
+}
+
+.su-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  background: var(--line-strong);
+}
+
+.su-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  transform-origin: 0 50%;
+}
+
+.su-step {
+  position: absolute;
+  top: 50%;
+  left: calc(4% + var(--i) * 23%);
+  display: grid;
+  justify-items: center;
+  translate: -50% 0;
+}
+
+.su-tick {
+  position: relative;
+  width: 2px;
+  height: 4cqi;
+  background: var(--line-strong);
+  translate: 0 -50%;
+}
+
+.su-tick-on {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  transform-origin: 50% 50%;
+}
+
+.su-step-label {
+  position: absolute;
+  top: 2.8cqi;
+  width: max-content;
+  max-width: 17cqi;
+  text-align: center;
+  color: var(--fg);
+}
+
+.su-event {
+  position: absolute;
+  bottom: 3.6cqi;
+  left: 50%;
+  padding: 1cqi 1.4cqi;
+  font-size: clamp(7px, 1.35cqi, 11px);
+  font-weight: 600;
+  white-space: nowrap;
+  translate: -50% 0;
+}
+
+.su-step:nth-child(5) .su-event {
+  bottom: 9.6cqi;
+}
+
+.su-step:last-child .su-event {
+  left: auto;
+  right: -2cqi;
+  translate: none;
+}
+
+.su-history {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.2cqi 3cqi;
+  padding-top: 2.4cqi;
+  border-top: 1px solid var(--line);
+}
+
+.su-history > .sc-label {
+  grid-column: 1 / -1;
+}
+
+.su-row {
+  padding-left: 1.6cqi;
+  font-size: clamp(7.5px, 1.45cqi, 12px);
+  color: var(--fg);
+  border-left: 2px solid var(--accent);
+}
+
+/* ==========================================================================
+   États de départ (mouvement autorisé)
+   ========================================================================== */
+
+@media (prefers-reduced-motion: no-preference) {
+  .sc-check path {
+    stroke-dashoffset: 1;
+  }
+
+  .sc-stamp {
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(1.8);
+  }
+
+  /* Veille */
+  .sv-card:not(.is-match) {
+    opacity: 1;
+  }
+
+  .sv-mark {
+    transform: scaleY(0);
+  }
+
+  .sv-badge {
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.6);
+  }
+
+  .sv-pick {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-12%);
+  }
+
+  /* Analyse */
+  .sa-hl,
+  .sa-fill {
+    transform: scaleX(0);
+  }
+
+  .sa-tag {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(40%);
+  }
+
+  /* Dossier administratif */
+  .sd-card,
+  .sd-card--expired {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-42cqi) rotate(-6deg);
+  }
+
+  .sd-front {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(100%);
+  }
+
+  /* Offre technique */
+  .so-crit {
+    opacity: 0.45;
+  }
+
+  .so-underline,
+  .so-link,
+  .so-fill.sc-lines i {
+    transform: scaleX(0);
+  }
+
+  .so-bars i {
+    transform: scaleY(0);
+  }
+
+  .so-tiles i {
+    transform: scale(0);
+  }
+
+  .so-sec {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-2cqi);
+  }
+
+  /* Coordination */
+  .cd-links path {
+    stroke-dashoffset: 1;
+  }
+
+  .cd-chip {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .cd-progress-fill {
+    transform: scaleX(0);
+  }
+
+  .cd-done,
+  .cd-complete {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .cd-complete {
+    transform: translateY(30%);
+  }
+
+  /* Contrôle */
+  .sk-fixed {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  /* Soumission */
+  .sp-item {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-3cqi);
+  }
+
+  .sp-badge {
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.4);
+  }
+
+  .sp-env {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(6cqi);
+  }
+
+  .sp-flap--open {
+    transform: scaleY(1);
+  }
+
+  .sp-flap--closed {
+    transform: scaleY(0);
+  }
+
+  /* Suivi */
+  .su-fill {
+    transform: scaleX(0);
+  }
+
+  .su-tick-on {
+    transform: scaleY(0);
+  }
+
+  .su-step-label {
+    opacity: 0.5;
+  }
+
+  .su-event {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(30%);
+  }
+
+  .su-row {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-3cqi);
+  }
+}

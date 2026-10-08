@@ -29,8 +29,8 @@ scripts/        outils de production : logo, photos, génération d'images (Open
 public/         images optimisées, logos détourés, polices auto-hébergées, favicons
 ```
 
-Routes : `/`, `/services`, `/methode`, `/expertise`, `/contact` (« Confier un dossier » : contact et demande ne font
-qu’un), `/mentions-legales`, `/politique-confidentialite`, et une page 404.
+Routes : `/`, `/services`, `/methode`, `/expertise`, `/contact` (bouton « Contact » de la barre de navigation ; les appels
+à l’action « Confier un dossier » y mènent aussi), `/mentions-legales`, `/politique-confidentialite`, et une page 404.
 
 ## Jour / nuit
 
@@ -42,6 +42,25 @@ photographie de nuit, éditée à partir de la photo de jour (même cadrage), av
 - Au changement, la nouvelle lumière balaie la page de gauche à droite (View Transitions) ; les photos visibles sont
   chargées avant le balayage. Mouvement réduit : bascule instantanée.
 - Seule la version de la lumière active est téléchargée.
+
+## Motion design par page
+
+- **Accueil** : séquence « Le dossier » (voir ci-dessous), index des services avec aperçu photo au survol.
+- **Services** : chaque service est montré en action dans une scène animée au défilement
+  (`src/components/ServiceScene`) : avis triés par vos critères, règlement surligné, attestation périmée
+  remplacée, critères reliés à l’offre, contributions qui convergent, revue avec écart corrigé, pli scellé, suivi archivé.
+- **Méthode** : calendrier horizontal épinglé (ordinateur), chaque livrable se « remet » au passage ; chronologie
+  verticale sur mobile ; l’échange avec l’entreprise traverse l’arche du logo.
+- **Expertise** : cartes empilées qui se recouvrent, photographies en parallaxe, bandeau des secteurs qui accélère avec
+  le défilement.
+
+Règle commune : le CSS « naturel » décrit l’état final (affiché tel quel avec `prefers-reduced-motion`), le CSS sous
+`no-preference` décrit l’état de départ, et le défilement fait passer de l’un à l’autre.
+
+## Une photo, un seul emplacement
+
+Aucune photographie n’apparaît deux fois sur le site. Avant d’en placer une, vérifier toutes les occurrences de
+`photo("…")`, `photo: "…"` et `image="…"` dans `src/` ; les usages sont listés dans `image-sources.json`.
 
 ## Accueil
 

@@ -1,5 +1,5 @@
 import { useLocation } from "react-router";
-import { CTA, NAV } from "../../data/navigation";
+import { CONTACT, NAV } from "../../data/navigation";
 import { useHeaderState } from "../../hooks/useHeaderState";
 import { useAppState } from "../AppState";
 import { CtaLink } from "../CtaLink/CtaLink";
@@ -43,8 +43,8 @@ export function Header({ menuOpen, onToggleMenu }: HeaderProps) {
         <ThemeToggle className="header__theme" />
         <ThemeToggle compact className="header__theme-icon" />
 
-        <CtaLink to={CTA.to} className="header__cta">
-          {CTA.label}
+        <CtaLink to={CONTACT.to} className="header__cta">
+          {CONTACT.label}
         </CtaLink>
 
         <button type="button" className="header__toggle" aria-expanded={menuOpen} aria-controls="menu-mobile" onClick={onToggleMenu}>

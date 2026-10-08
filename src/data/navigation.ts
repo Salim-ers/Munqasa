@@ -10,8 +10,11 @@ export const NAV: readonly NavItem[] = [
   { to: "/expertise", label: "Expertise" },
 ];
 
-/** Contact et « Confier un dossier » ne font qu'un : une seule entrée, un seul formulaire. */
-export const CTA: NavItem = { to: "/contact", label: "Confier un dossier" };
+/** Bouton de la barre de navigation. */
+export const CONTACT: NavItem = { to: "/contact", label: "Contact" };
+
+/** Appel à l'action (accueil, pied de page) : même destination, formulé comme une action. */
+export const CTA_LABEL = "Confier un dossier";
 
 export const LEGAL_NAV: readonly NavItem[] = [
   { to: "/mentions-legales", label: "Mentions légales" },

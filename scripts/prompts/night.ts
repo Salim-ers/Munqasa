@@ -65,4 +65,7 @@ export const NIGHT_PHOTOS: Record<string, "exterior" | "interior"> = {
   "earth-walls": "exterior",
   "museum-entrance": "exterior",
   "papers-table": "interior",
+  corridor: "interior",
+  "screen-tower": "exterior",
+  "plaster-niche": "exterior",
 };

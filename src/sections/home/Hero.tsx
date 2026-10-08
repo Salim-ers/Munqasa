@@ -3,7 +3,7 @@ import { EASE, gsap, MEDIA } from "../../animations/gsap";
 import { useAppState, type LightMode } from "../../components/AppState";
 import { CtaLink } from "../../components/CtaLink/CtaLink";
 import { Tag } from "../../components/Tag/Tag";
-import { CTA } from "../../data/navigation";
+import { CONTACT, CTA_LABEL } from "../../data/navigation";
 import { HERO } from "../../data/photos";
 import { useGsap } from "../../hooks/useGsap";
 import "./Hero.css";
@@ -102,7 +102,7 @@ export function Hero() {
             d’offres.
           </p>
           <div className="hero__actions hero__fade">
-            <CtaLink to={CTA.to}>{CTA.label}</CtaLink>
+            <CtaLink to={CONTACT.to}>{CTA_LABEL}</CtaLink>
             <CtaLink to="/methode" variant="text" arrow="right">
               Découvrir notre méthode
             </CtaLink>

@@ -2,17 +2,87 @@
   {
     "file": "public/images/photos/arch-niche-*.{avif,webp} (jour et nuit)",
     "source": "Unsplash",
-    "license": "Unsplash License — https://unsplash.com/license",
+    "license": "Unsplash License, https://unsplash.com/license",
     "photographer": "Santiago Boada",
     "photographerUrl": "https://unsplash.com/@santiagoboada",
     "originalUrl": "https://unsplash.com/photos/a-close-up-of-a-wall-with-a-small-arch-77Ps4Ub14tA",
-    "usage": "Services (veille), en-tête de la page Services",
+    "usage": "Accueil, aperçu du service Veille et opportunités",
+    "night": "Version nuit éditée à partir de la photographie originale (OpenAI), même cadrage"
+  },
+  {
+    "file": "public/images/photos/lattice-facade-*.{avif,webp} (jour et nuit)",
+    "source": "Unsplash",
+    "license": "Unsplash License, https://unsplash.com/license",
+    "photographer": "HamZa NOUASRIA",
+    "photographerUrl": "https://unsplash.com/@hamza01nsr",
+    "originalUrl": "https://unsplash.com/photos/a-close-up-of-a-building-SAbSp5NgntU",
+    "usage": "Accueil, aperçu du service Analyse du dossier",
+    "night": "Version nuit éditée à partir de la photographie originale (OpenAI), même cadrage"
+  },
+  {
+    "file": "public/images/photos/archive-shelf-*.{avif,webp} (jour et nuit)",
+    "source": "Unsplash",
+    "license": "Unsplash License, https://unsplash.com/license",
+    "photographer": "Leiada Krözjhen",
+    "photographerUrl": "https://unsplash.com/@leiadakrozjhen",
+    "originalUrl": "https://unsplash.com/photos/a-book-shelf-filled-with-lots-of-books-AxA3YVYdv80",
+    "usage": "Accueil, aperçu du service Dossier administratif",
+    "night": "Version nuit éditée à partir de la photographie originale (OpenAI), même cadrage"
+  },
+  {
+    "file": "public/images/photos/drawing-table-*.{avif,webp} (jour et nuit)",
+    "source": "Unsplash",
+    "license": "Unsplash License, https://unsplash.com/license",
+    "photographer": "Declan Sun",
+    "photographerUrl": "https://unsplash.com/@declansun",
+    "originalUrl": "https://unsplash.com/photos/a-wooden-table-topped-with-a-piece-of-paper-and-a-pair-of-scissors-OspMUpCBeqQ",
+    "usage": "Accueil, aperçu du service Offre technique",
+    "night": "Version nuit éditée à partir de la photographie originale (OpenAI), même cadrage"
+  },
+  {
+    "file": "public/images/photos/arcade-shadow-*.{avif,webp} (jour et nuit)",
+    "source": "Unsplash",
+    "license": "Unsplash License, https://unsplash.com/license",
+    "photographer": "HamZa NOUASRIA",
+    "photographerUrl": "https://unsplash.com/@hamza01nsr",
+    "originalUrl": "https://unsplash.com/photos/white-and-brown-concrete-building-vreNlt4ICMY",
+    "usage": "Accueil, aperçu du service Coordination",
+    "night": "Version nuit éditée à partir de la photographie originale (OpenAI), même cadrage"
+  },
+  {
+    "file": "public/images/photos/rampart-*.{avif,webp} (jour et nuit)",
+    "source": "Unsplash",
+    "license": "Unsplash License, https://unsplash.com/license",
+    "photographer": "Mauro Lima",
+    "photographerUrl": "https://unsplash.com/@limamauro23",
+    "originalUrl": "https://unsplash.com/photos/a-wall-made-of-bricks-with-a-sky-in-the-background-A3N6NC7MYT4",
+    "usage": "Accueil, aperçu du service Contrôle avant dépôt",
+    "night": "Version nuit éditée à partir de la photographie originale (OpenAI), même cadrage"
+  },
+  {
+    "file": "public/images/photos/white-arch-*.{avif,webp} (jour et nuit)",
+    "source": "Unsplash",
+    "license": "Unsplash License, https://unsplash.com/license",
+    "photographer": "Maik Winnecke",
+    "photographerUrl": "https://unsplash.com/@maik_wi",
+    "originalUrl": "https://unsplash.com/photos/a-hallway-with-a-white-arch-and-blue-and-white-tiles-Be20u4KnmMY",
+    "usage": "Accueil, aperçu du service Préparation à la soumission",
+    "night": "Version nuit éditée à partir de la photographie originale (OpenAI), même cadrage"
+  },
+  {
+    "file": "public/images/photos/sand-tower-*.{avif,webp} (jour et nuit)",
+    "source": "Unsplash",
+    "license": "Unsplash License, https://unsplash.com/license",
+    "photographer": "Gunnar Ridderström",
+    "photographerUrl": "https://unsplash.com/@gunnarridder",
+    "originalUrl": "https://unsplash.com/photos/a-tall-building-with-a-clock-on-the-side-of-it-BE8cBDYX2iU",
+    "usage": "Accueil, aperçu du service Suivi",
     "night": "Version nuit éditée à partir de la photographie originale (OpenAI), même cadrage"
   },
   {
     "file": "public/images/photos/terracotta-walls-*.{avif,webp} (jour et nuit)",
     "source": "Unsplash",
-    "license": "Unsplash License — https://unsplash.com/license",
+    "license": "Unsplash License, https://unsplash.com/license",
     "photographer": "Elodie Lvn",
     "photographerUrl": "https://unsplash.com/@elodielv",
     "originalUrl": "https://unsplash.com/photos/a-building-with-a-blue-sky-in-the-background-rc8WJZTABTw",
@@ -20,9 +90,29 @@
     "night": "Version nuit éditée à partir de la photographie originale (OpenAI), même cadrage"
   },
   {
+    "file": "public/images/photos/museum-entrance-*.{avif,webp} (jour et nuit)",
+    "source": "Unsplash",
+    "license": "Unsplash License, https://unsplash.com/license",
+    "photographer": "Liubov Novikova",
+    "photographerUrl": "https://unsplash.com/@lub_angeles",
+    "originalUrl": "https://unsplash.com/photos/a-building-with-a-black-door-and-some-plants-CTLdlgaQYa0",
+    "usage": "En-tête de la page Services",
+    "night": "Version nuit éditée à partir de la photographie originale (OpenAI), même cadrage"
+  },
+  {
+    "file": "public/images/photos/corridor-*.{avif,webp} (jour et nuit)",
+    "source": "Unsplash",
+    "license": "Unsplash License, https://unsplash.com/license",
+    "photographer": "Zoltan Tasi",
+    "photographerUrl": "https://unsplash.com/@zoltantasi",
+    "originalUrl": "https://unsplash.com/photos/brown-concrete-tunnel-with-light-rsWT92_iOiI",
+    "usage": "En-tête de la page Méthode",
+    "night": "Version nuit éditée à partir de la photographie originale (OpenAI), même cadrage"
+  },
+  {
     "file": "public/images/photos/earth-walls-*.{avif,webp} (jour et nuit)",
     "source": "Unsplash",
-    "license": "Unsplash License — https://unsplash.com/license",
+    "license": "Unsplash License, https://unsplash.com/license",
     "photographer": "Alex Plesovskich",
     "photographerUrl": "https://unsplash.com/@aples",
     "originalUrl": "https://unsplash.com/photos/beige-concrete-building-under-blue-sky-during-daytime-OKOqDFzY1tU",
@@ -30,93 +120,33 @@
     "night": "Version nuit éditée à partir de la photographie originale (OpenAI), même cadrage"
   },
   {
-    "file": "public/images/photos/lattice-facade-*.{avif,webp} (jour et nuit)",
+    "file": "public/images/photos/screen-tower-*.{avif,webp} (jour et nuit)",
     "source": "Unsplash",
-    "license": "Unsplash License — https://unsplash.com/license",
-    "photographer": "HamZa NOUASRIA",
-    "photographerUrl": "https://unsplash.com/@hamza01nsr",
-    "originalUrl": "https://unsplash.com/photos/a-close-up-of-a-building-SAbSp5NgntU",
-    "usage": "Services (analyse), page Expertise",
+    "license": "Unsplash License, https://unsplash.com/license",
+    "photographer": "Yusuf Hammouch",
+    "photographerUrl": "https://unsplash.com/@yoseph1499",
+    "originalUrl": "https://unsplash.com/photos/a-tall-building-with-a-cloudy-sky-CD0pHrRE-5Q",
+    "usage": "Page Expertise, la géométrie",
     "night": "Version nuit éditée à partir de la photographie originale (OpenAI), même cadrage"
   },
   {
-    "file": "public/images/photos/arcade-shadow-*.{avif,webp} (jour et nuit)",
+    "file": "public/images/photos/plaster-niche-*.{avif,webp} (jour et nuit)",
     "source": "Unsplash",
-    "license": "Unsplash License — https://unsplash.com/license",
-    "photographer": "HamZa NOUASRIA",
-    "photographerUrl": "https://unsplash.com/@hamza01nsr",
-    "originalUrl": "https://unsplash.com/photos/white-and-brown-concrete-building-vreNlt4ICMY",
-    "usage": "Services (coordination), en-tête de la page Méthode",
-    "night": "Version nuit éditée à partir de la photographie originale (OpenAI), même cadrage"
-  },
-  {
-    "file": "public/images/photos/white-arch-*.{avif,webp} (jour et nuit)",
-    "source": "Unsplash",
-    "license": "Unsplash License — https://unsplash.com/license",
-    "photographer": "Maik Winnecke",
-    "photographerUrl": "https://unsplash.com/@maik_wi",
-    "originalUrl": "https://unsplash.com/photos/a-hallway-with-a-white-arch-and-blue-and-white-tiles-Be20u4KnmMY",
-    "usage": "Services (préparation à la soumission)",
-    "night": "Version nuit éditée à partir de la photographie originale (OpenAI), même cadrage"
-  },
-  {
-    "file": "public/images/photos/sand-tower-*.{avif,webp} (jour et nuit)",
-    "source": "Unsplash",
-    "license": "Unsplash License — https://unsplash.com/license",
-    "photographer": "Gunnar Ridderström",
-    "photographerUrl": "https://unsplash.com/@gunnarridder",
-    "originalUrl": "https://unsplash.com/photos/a-tall-building-with-a-clock-on-the-side-of-it-BE8cBDYX2iU",
-    "usage": "Services (suivi)",
-    "night": "Version nuit éditée à partir de la photographie originale (OpenAI), même cadrage"
-  },
-  {
-    "file": "public/images/photos/museum-entrance-*.{avif,webp} (jour et nuit)",
-    "source": "Unsplash",
-    "license": "Unsplash License — https://unsplash.com/license",
-    "photographer": "Liubov Novikova",
-    "photographerUrl": "https://unsplash.com/@lub_angeles",
-    "originalUrl": "https://unsplash.com/photos/a-building-with-a-black-door-and-some-plants-CTLdlgaQYa0",
-    "usage": "Page Expertise",
-    "night": "Version nuit éditée à partir de la photographie originale (OpenAI), même cadrage"
-  },
-  {
-    "file": "public/images/photos/rampart-*.{avif,webp} (jour et nuit)",
-    "source": "Unsplash",
-    "license": "Unsplash License — https://unsplash.com/license",
-    "photographer": "Mauro Lima",
-    "photographerUrl": "https://unsplash.com/@limamauro23",
-    "originalUrl": "https://unsplash.com/photos/a-wall-made-of-bricks-with-a-sky-in-the-background-A3N6NC7MYT4",
-    "usage": "Services (contrôle avant dépôt)",
-    "night": "Version nuit éditée à partir de la photographie originale (OpenAI), même cadrage"
-  },
-  {
-    "file": "public/images/photos/archive-shelf-*.{avif,webp} (jour et nuit)",
-    "source": "Unsplash",
-    "license": "Unsplash License — https://unsplash.com/license",
-    "photographer": "Leiada Krözjhen",
-    "photographerUrl": "https://unsplash.com/@leiadakrozjhen",
-    "originalUrl": "https://unsplash.com/photos/a-book-shelf-filled-with-lots-of-books-AxA3YVYdv80",
-    "usage": "Services (dossier administratif)",
+    "license": "Unsplash License, https://unsplash.com/license",
+    "photographer": "Mu mumu",
+    "photographerUrl": "https://unsplash.com/@muismu",
+    "originalUrl": "https://unsplash.com/photos/the-shadow-of-a-building-on-a-wall-_kLp8xMDkb8",
+    "usage": "Page Expertise, la matière",
     "night": "Version nuit éditée à partir de la photographie originale (OpenAI), même cadrage"
   },
   {
     "file": "public/images/photos/papers-table-*.{avif,webp} (jour et nuit)",
     "source": "Unsplash",
-    "license": "Unsplash License — https://unsplash.com/license",
+    "license": "Unsplash License, https://unsplash.com/license",
     "photographer": "Yazid N",
     "photographerUrl": "https://unsplash.com/@mzynasx",
     "originalUrl": "https://unsplash.com/photos/a-stack-of-books-sitting-on-top-of-a-black-table-qUpdelkd30U",
-    "usage": "En-tête de la page Confier un dossier",
-    "night": "Version nuit éditée à partir de la photographie originale (OpenAI), même cadrage"
-  },
-  {
-    "file": "public/images/photos/drawing-table-*.{avif,webp} (jour et nuit)",
-    "source": "Unsplash",
-    "license": "Unsplash License — https://unsplash.com/license",
-    "photographer": "Declan Sun",
-    "photographerUrl": "https://unsplash.com/@declansun",
-    "originalUrl": "https://unsplash.com/photos/a-wooden-table-topped-with-a-piece-of-paper-and-a-pair-of-scissors-OspMUpCBeqQ",
-    "usage": "Services (offre technique)",
+    "usage": "En-tête de la page Contact",
     "night": "Version nuit éditée à partir de la photographie originale (OpenAI), même cadrage"
   }
 ]

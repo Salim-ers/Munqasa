@@ -1,7 +1,17 @@
 import type { PhotoName } from "./photos";
 
+export type ServiceSlug =
+  | "veille"
+  | "analyse"
+  | "dossier-administratif"
+  | "offre-technique"
+  | "coordination"
+  | "controle"
+  | "soumission"
+  | "suivi";
+
 export interface Service {
-  slug: string;
+  slug: ServiceSlug;
   title: string;
   /** Une ligne : accueil. */
   short: string;
@@ -9,6 +19,7 @@ export interface Service {
   intro: string;
   tasks: readonly string[];
   deliverable: string;
+  /** Aperçu au survol, sur l’accueil uniquement. */
   photo: PhotoName;
 }
 

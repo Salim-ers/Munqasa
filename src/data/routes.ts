@@ -52,8 +52,8 @@ export const ROUTES: readonly RouteMeta[] = [
   },
   {
     path: "/contact",
-    label: "Confier un dossier",
-    title: "Confier un dossier d’appel d’offres | MUNAQASA",
+    label: "Contact",
+    title: "Contact : confier un dossier d’appel d’offres | MUNAQASA",
     description:
       "Présentez votre consultation, son échéance et vos besoins : veille, analyse, dossier administratif, offre technique, audit avant dépôt ou cellule appels d’offres externalisée.",
     priority: 0.9,

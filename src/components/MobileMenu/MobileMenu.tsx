@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import { EASE, gsap } from "../../animations/gsap";
-import { CTA, NAV } from "../../data/navigation";
+import { CONTACT, NAV } from "../../data/navigation";
 import { useReducedMotion } from "../../hooks/useMediaQuery";
 import { lockScroll, unlockScroll } from "../../lib/scroll";
 import { CtaLink } from "../CtaLink/CtaLink";
@@ -117,7 +117,7 @@ export function MobileMenu({ open, onClose }: MobileMenuProps) {
       </nav>
       <div className="menu__foot-wrap">
         <div className="menu__foot">
-          <CtaLink to={CTA.to}>{CTA.label}</CtaLink>
+          <CtaLink to={CONTACT.to}>{CONTACT.label}</CtaLink>
           <ThemeToggle />
         </div>
       </div>

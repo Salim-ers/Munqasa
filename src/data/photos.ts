@@ -19,14 +19,17 @@ export interface Photo {
 const ALT: Record<PhotoName, string> = {
   "arcade-shadow": "Galerie à arcs et moucharabiehs, emmarchement découpé par la lumière",
   "arch-niche": "Niche en arc outrepassé dans un mur enduit couleur sable",
+  corridor: "Long couloir aux murs ocre et au sol de zellige, menant à une porte en arc",
   "archive-shelf": "Chemises d’archives alignées sur une étagère",
   "drawing-table": "Dessin technique, règle métallique et crayon sur une table en bois sombre",
   "earth-walls": "Murs en pisé aux arêtes vives se découpant sur le ciel",
   "lattice-facade": "Façade contemporaine à résille géométrique, vue en contre-plongée",
   "museum-entrance": "Entrée contemporaine en brique terracotta et pierre claire, porte en métal noir",
   "papers-table": "Liasses de documents sur un guéridon noir devant un mur en béton brut",
+  "plaster-niche": "Mur enduit creusé de niches géométriques, découpé par l’ombre",
   rampart: "Rempart crénelé en terre ocre",
   "sand-tower": "Volume enduit couleur sable sur un ciel profond",
+  "screen-tower": "Tour contemporaine habillée d’une résille géométrique, vue en contre-plongée",
   "terracotta-walls": "Murs en terre ocre et terracotta, ombres architecturales",
   "white-arch": "Enfilade d’arches blanches ouvrant sur un sol en zellige",
 };

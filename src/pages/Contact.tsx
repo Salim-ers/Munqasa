@@ -169,7 +169,7 @@ export default function Contact() {
   return (
     <div ref={ref}>
       <PageHero
-        tag="Confier un dossier"
+        tag="Contact"
         lines={["Votre prochaine", "soumission", <em key="c">commence ici.</em>]}
         intro="Présentez la consultation, son échéance et ce dont vous avez besoin. Quelques informations suffisent pour un premier échange."
         image="papers-table"
@@ -193,7 +193,7 @@ export default function Contact() {
                 </TransitionLink>
               </div>
             ) : (
-              <form ref={formRef} className="contact__form" noValidate onSubmit={onSubmit} aria-labelledby="demande-title">
+              <form ref={formRef} className="contact__form" noValidate onSubmit={onSubmit} aria-labelledby="demande-title" data-reveal="fade">
                 <header className="contact__form-head">
                   <span className="label">Demande d’accompagnement</span>
                 </header>
@@ -421,7 +421,7 @@ export default function Contact() {
           </div>
 
           <aside className="contact__aside" aria-label="Informations">
-            <div className="contact__block">
+            <div className="contact__block" data-reveal="fade" data-reveal-delay="0.15">
               <h2 className="label contact__aside-title">Après votre demande</h2>
               <ol className="contact__steps">
                 {NEXT_STEPS.map((s) => (
@@ -435,7 +435,7 @@ export default function Contact() {
               </ol>
             </div>
 
-            <div className="contact__block contact__confidential">
+            <div className="contact__block contact__confidential" data-reveal="fade" data-reveal-delay="0.3">
               <h2 className="label contact__aside-title">Confidentialité</h2>
               <p>
                 Ne joignez aucun document confidentiel à ce stade. Les pièces du dossier sont échangées ensuite, par un canal

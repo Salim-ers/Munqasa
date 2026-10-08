@@ -9,24 +9,31 @@
  */
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { NIGHT_PHOTOS } from "./prompts/night.ts";
 
 const ROOT = process.cwd();
 const OUT = resolve(ROOT, "assets-src/photos");
 
-/** Sélection vérifiée à l'œil : aucun humain, aucun logo, aucun texte lisible. */
+/**
+ * Sélection vérifiée à l'œil : aucun humain, aucun logo, aucun texte lisible.
+ * Chaque photographie n'a qu'un seul emplacement sur tout le site.
+ */
 const SELECTION: { file: string; id: string; usage: string }[] = [
-  { file: "arch-niche", id: "77Ps4Ub14tA", usage: "Services (veille), en-tête de la page Services" },
+  { file: "arch-niche", id: "77Ps4Ub14tA", usage: "Accueil, aperçu du service Veille et opportunités" },
+  { file: "lattice-facade", id: "SAbSp5NgntU", usage: "Accueil, aperçu du service Analyse du dossier" },
+  { file: "archive-shelf", id: "AxA3YVYdv80", usage: "Accueil, aperçu du service Dossier administratif" },
+  { file: "drawing-table", id: "OspMUpCBeqQ", usage: "Accueil, aperçu du service Offre technique" },
+  { file: "arcade-shadow", id: "vreNlt4ICMY", usage: "Accueil, aperçu du service Coordination" },
+  { file: "rampart", id: "A3N6NC7MYT4", usage: "Accueil, aperçu du service Contrôle avant dépôt" },
+  { file: "white-arch", id: "Be20u4KnmMY", usage: "Accueil, aperçu du service Préparation à la soumission" },
+  { file: "sand-tower", id: "BE8cBDYX2iU", usage: "Accueil, aperçu du service Suivi" },
   { file: "terracotta-walls", id: "rc8WJZTABTw", usage: "Accueil, grande photographie" },
+  { file: "museum-entrance", id: "CTLdlgaQYa0", usage: "En-tête de la page Services" },
+  { file: "corridor", id: "rsWT92_iOiI", usage: "En-tête de la page Méthode" },
   { file: "earth-walls", id: "OKOqDFzY1tU", usage: "En-tête de la page Expertise" },
-  { file: "lattice-facade", id: "SAbSp5NgntU", usage: "Services (analyse), page Expertise" },
-  { file: "arcade-shadow", id: "vreNlt4ICMY", usage: "Services (coordination), en-tête de la page Méthode" },
-  { file: "white-arch", id: "Be20u4KnmMY", usage: "Services (préparation à la soumission)" },
-  { file: "sand-tower", id: "BE8cBDYX2iU", usage: "Services (suivi)" },
-  { file: "museum-entrance", id: "CTLdlgaQYa0", usage: "Page Expertise" },
-  { file: "rampart", id: "A3N6NC7MYT4", usage: "Services (contrôle avant dépôt)" },
-  { file: "archive-shelf", id: "AxA3YVYdv80", usage: "Services (dossier administratif)" },
-  { file: "papers-table", id: "qUpdelkd30U", usage: "En-tête de la page Confier un dossier" },
-  { file: "drawing-table", id: "OspMUpCBeqQ", usage: "Services (offre technique)" },
+  { file: "screen-tower", id: "CD0pHrRE-5Q", usage: "Page Expertise, la géométrie" },
+  { file: "plaster-niche", id: "_kLp8xMDkb8", usage: "Page Expertise, la matière" },
+  { file: "papers-table", id: "qUpdelkd30U", usage: "En-tête de la page Contact" },
 ];
 
 interface UnsplashPhoto {
@@ -61,19 +68,21 @@ async function main() {
       const res = await get(`${meta.urls.raw}&w=${width}&q=90&fm=jpg`);
       writeFileSync(file, Buffer.from(await res.arrayBuffer()));
     }
-    console.log(`  ✓ ${item.file}.jpg — ${meta.user.name}`);
+    console.log(`  ✓ ${item.file}.jpg, ${meta.user.name}`);
+    const night = item.file in NIGHT_PHOTOS;
     sources.push({
-      file: `public/images/photos/${item.file}-*.{avif,webp}`,
+      file: `public/images/photos/${item.file}-*.{avif,webp}${night ? " (jour et nuit)" : ""}`,
       source: "Unsplash",
-      license: "Unsplash License — https://unsplash.com/license",
+      license: "Unsplash License, https://unsplash.com/license",
       photographer: meta.user.name,
       photographerUrl: meta.user.links.html,
       originalUrl: meta.links.html,
       usage: item.usage,
+      ...(night ? { night: "Version nuit éditée à partir de la photographie originale (OpenAI), même cadrage" } : {}),
     });
   }
   writeFileSync(resolve(ROOT, "image-sources.json"), `${JSON.stringify(sources, null, 2)}\n`);
-  console.log(`\n  image-sources.json — ${sources.length} entrées`);
+  console.log(`\n  image-sources.json, ${sources.length} entrées`);
 }
 
 main().catch((err: Error) => {
