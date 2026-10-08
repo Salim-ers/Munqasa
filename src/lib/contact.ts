@@ -120,7 +120,7 @@ export function validateContact(input: Record<string, unknown>): ValidationResul
   };
 }
 
-/** Corps texte de l'e-mail transmis à MUNAQASA (aucun HTML : pas d'injection). */
+/** Corps texte de l'e-mail transmis à Talab Solutions (aucun HTML : pas d'injection). */
 export function formatContactEmail(d: ContactRequest): { subject: string; text: string } {
   const subject = cleanLine(`Demande de ${d.company}, ${CONSULTATION_TYPES[d.consultationType]}`, 140);
   const lines = [

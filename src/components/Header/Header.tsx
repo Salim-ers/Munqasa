@@ -21,7 +21,7 @@ export function Header({ menuOpen, onToggleMenu }: HeaderProps) {
   return (
     <header className={["header", compact && !menuOpen ? "is-compact" : ""].filter(Boolean).join(" ")}>
       <div className="header__inner">
-        <TransitionLink to="/" className="header__brand" aria-label="MUNAQASA, accueil">
+        <TransitionLink to="/" className="header__brand" aria-label="Talab Solutions, accueil">
           <Logo tone={mode === "night" ? "dark" : "light"} />
         </TransitionLink>
 
@@ -41,7 +41,6 @@ export function Header({ menuOpen, onToggleMenu }: HeaderProps) {
         </nav>
 
         <ThemeToggle className="header__theme" />
-        <ThemeToggle compact className="header__theme-icon" />
 
         <CtaLink to={CONTACT.to} className="header__cta">
           {CONTACT.label}

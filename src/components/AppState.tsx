@@ -16,8 +16,8 @@ interface AppState {
 
 const Ctx = createContext<AppState | null>(null);
 
-export const LOADER_SEEN_KEY = "munaqasa:intro";
-export const LIGHT_KEY = "munaqasa:light";
+export const LOADER_SEEN_KEY = "talab:intro";
+export const LIGHT_KEY = "talab:light";
 
 /** Photos de la lumière demandée visibles à l'écran : chargées avant le balayage. */
 async function preloadVisible(mode: LightMode) {

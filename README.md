@@ -1,4 +1,4 @@
-# MUNAQASA, site vitrine
+# Talab Solutions, site vitrine
 
 Gestion et accompagnement des appels d'offres au Maroc. *De l'avis à la soumission.*
 
@@ -143,9 +143,9 @@ vérification (humains, texte, logos, géométrie).
 
 ### Logo
 
-`npm run logo` décline le fichier fourni (`assets-src/brand/munaqasa-logo-source.png`) : détourage par projection sur les
-trois encres du logo (aucun redessin), version négative pour les fonds sombres, symbole et mot-symbole séparés,
-favicons et image Open Graph.
+`npm run logo` décline le fichier fourni (`assets-src/brand/talab-logo-source.png`, déjà détouré) : aucun redessin, version négative pour les fonds sombres
+(le noir passe en ivoire, le bronze et la végétation gardent leurs couleurs), symbole et mot-symbole séparés, favicons
+(le bâtiment seul) et image Open Graph.
 
 ## Formulaire de contact
 

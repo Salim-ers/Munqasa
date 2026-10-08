@@ -29,7 +29,7 @@ export function LegalLayout({ tag, title, children }: LegalLayoutProps) {
   );
 }
 
-/** Information à fournir par MUNAQASA avant la mise en ligne, jamais inventée. */
+/** Information à fournir par Talab Solutions avant la mise en ligne, jamais inventée. */
 export function ToComplete({ children }: { children: ReactNode }) {
   return <span className="to-complete">{children} (à compléter)</span>;
 }

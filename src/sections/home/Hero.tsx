@@ -50,7 +50,6 @@ export function Hero() {
       gsap
         .timeline()
         .fromTo(q(".hero__media"), { scale: 1.08 }, { scale: 1, duration: 2.2, ease: EASE.premium }, 0)
-        .fromTo(q(".blueprint-grid > span"), { scaleY: 0 }, { scaleY: 1, duration: 1.4, ease: EASE.architect, stagger: 0.04, transformOrigin: "50% 0%" }, 0)
         .fromTo(q(".hero__line-inner"), { yPercent: 125 }, { yPercent: 0, duration: 1.3, ease: EASE.premium, stagger: 0.12 }, 0.15)
         .fromTo(q(".hero__fade"), { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 1, ease: EASE.premium, stagger: 0.08 }, 0.55);
 
@@ -78,12 +77,6 @@ export function Hero() {
         <div className="hero__scrim" />
       </div>
 
-      <div className="blueprint-grid hero__grid" aria-hidden="true">
-        {Array.from({ length: 12 }, (_, i) => (
-          <span key={i} />
-        ))}
-      </div>
-
       <div className="hero__frame">
         <div className="hero__content">
           <Tag className="hero__fade">Appels d’offres au Maroc</Tag>
@@ -98,7 +91,7 @@ export function Hero() {
             </span>
           </h1>
           <p className="hero__lead hero__fade">
-            MUNAQASA accompagne les entreprises dans l’identification, l’analyse, la préparation et le suivi de leurs appels
+            Talab Solutions accompagne les entreprises dans l’identification, l’analyse, la préparation et le suivi de leurs appels
             d’offres.
           </p>
           <div className="hero__actions hero__fade">

@@ -1,5 +1,5 @@
 /**
- * Prompts du hero MUNAQASA.
+ * Prompts du hero Talab Solutions.
  *
  * Composition pensée pour la mise en page : le bâtiment occupe les deux tiers
  * droits, le tiers gauche (ciel + parvis calme) reçoit le H1 et les CTA.

@@ -134,7 +134,7 @@ function Sectors() {
             Les entreprises qui <em>répondent aux consultations.</em>
           </h2>
           <p className="body-text" data-reveal="fade">
-            Marchés publics ou appels d’offres privés, ponctuels ou réguliers : MUNAQASA intervient auprès des structures qui
+            Marchés publics ou appels d’offres privés, ponctuels ou réguliers : Talab Solutions intervient auprès des structures qui
             doivent produire des dossiers complets, dans les délais, sans mobiliser toute leur équipe.
           </p>
         </header>

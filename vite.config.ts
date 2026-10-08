@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
-      seoPlugin(env.VITE_SITE_URL || "https://munaqasa.ma"),
+      seoPlugin(env.VITE_SITE_URL || "https://talabsolutions.ma"),
       devApiPlugin({ RESEND_API_KEY: env.RESEND_API_KEY, CONTACT_TO: env.CONTACT_TO, CONTACT_FROM: env.CONTACT_FROM }),
     ],
     build: {

@@ -4,7 +4,7 @@
 (function () {
   var mode = "day";
   try {
-    if (window.localStorage.getItem("munaqasa:light") === "night") mode = "night";
+    if (window.localStorage.getItem("talab:light") === "night") mode = "night";
   } catch (e) {
     /* stockage indisponible : jour par défaut */
   }
@@ -20,8 +20,8 @@
   }
   var firstVisit = true;
   try {
-    firstVisit = !window.sessionStorage.getItem("munaqasa:fonts");
-    window.sessionStorage.setItem("munaqasa:fonts", "1");
+    firstVisit = !window.sessionStorage.getItem("talab:fonts");
+    window.sessionStorage.setItem("talab:fonts", "1");
   } catch (e) {
     /* stockage indisponible : préchargement à chaque fois */
   }

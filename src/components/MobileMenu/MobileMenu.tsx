@@ -5,7 +5,6 @@ import { CONTACT, NAV } from "../../data/navigation";
 import { useReducedMotion } from "../../hooks/useMediaQuery";
 import { lockScroll, unlockScroll } from "../../lib/scroll";
 import { CtaLink } from "../CtaLink/CtaLink";
-import { ThemeToggle } from "../ThemeToggle/ThemeToggle";
 import { TransitionLink } from "../TransitionLink/TransitionLink";
 import "./MobileMenu.css";
 
@@ -96,7 +95,7 @@ export function MobileMenu({ open, onClose }: MobileMenuProps) {
       aria-label="Menu"
       data-lenis-prevent
     >
-      <img className="menu__arch" src="/logos/munaqasa-symbol-reversed.webp" width={639} height={682} alt="" />
+      <img className="menu__arch" src="/logos/talab-symbol-reversed.webp" width={662} height={391} alt="" />
       <nav className="menu__nav" aria-label="Navigation mobile">
         <ol>
           {NAV.map((item) => (
@@ -118,7 +117,6 @@ export function MobileMenu({ open, onClose }: MobileMenuProps) {
       <div className="menu__foot-wrap">
         <div className="menu__foot">
           <CtaLink to={CONTACT.to}>{CONTACT.label}</CtaLink>
-          <ThemeToggle />
         </div>
       </div>
       <button type="button" className="skip-link" onClick={onClose}>

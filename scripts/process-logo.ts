@@ -1,104 +1,83 @@
 /**
- * Prépare les déclinaisons du logo MUNAQASA à partir du fichier fourni.
+ * Prépare les déclinaisons du logo Talab Solutions à partir du fichier fourni.
  *
  *   npm run logo
  *
- * Aucune géométrie n'est redessinée : le fond blanc est converti en
- * transparence (color-to-alpha, bords anti-crénelés préservés), puis le
- * fichier est simplement recadré. La version « négative » remplace le noir
- * par l'ivoire pour les fonds sombres — sable et terracotta restent intacts.
+ * Aucune géométrie n'est redessinée. Le fichier fourni a déjà un fond
+ * transparent : ses aplats (opacité 99 %) sont simplement ramenés à 100 %,
+ * puis le logo est recadré. La version « négative » remplace uniquement le
+ * noir par l'ivoire pour les fonds sombres — bronze, palmier et olivier
+ * gardent leurs couleurs.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import sharp from "sharp";
 
 const ROOT = process.cwd();
-const SRC = resolve(ROOT, "assets-src/brand/munaqasa-logo-source.png");
+const SRC = resolve(ROOT, "assets-src/brand/talab-logo-source.png");
 const LOGOS = resolve(ROOT, "public/logos");
 const PUBLIC = resolve(ROOT, "public");
 
 const IVORY = [245, 241, 233] as const;
-const NIGHT = "#080A0B";
+const NIGHT = "#0B0C0D";
 
-/** Bandes verticales mesurées sur le fichier source (1254 × 1254). */
-const SYMBOL_ROWS = [100, 820] as const;
-const WORDMARK_ROWS = [835, 1030] as const;
+/** Zones mesurées sur le fichier source (887 × 887). */
+const SYMBOL = { top: 110, bottom: 530 }; // bâtiment, palmier, olivier
+const WORDMARK = { top: 528, bottom: 786 }; // TALAB, SOLUTIONS et le filet
+const BUILDING = { left: 318, right: 672, top: 120, bottom: 520 }; // favicon : le bâtiment seul
+/** Palmier et olivier : leurs ombres sombres ne sont pas de l'encre, elles ne s'inversent pas. */
+const VEGETATION = { left: 666, bottom: 530 };
+/** Opacité des aplats dans le fichier fourni (252–253 / 255). */
+const SOLID_ALPHA = 253;
 
-/** Les trois encres du logo, mesurées sur le fichier source. */
-const INKS = {
-  sand: [184, 141, 94],
-  terracotta: [160, 65, 30],
-  ink: [36, 36, 36],
-} as const;
-type InkName = keyof typeof INKS;
-const WHITE = [255, 255, 255] as const;
-
-interface Rgba { data: Buffer; width: number; height: number; inks: (InkName | null)[] }
-
-/**
- * Détourage par projection : chaque pixel est lu comme un mélange entre le
- * blanc du fond et l'encre la plus proche. Les aplats restent opaques (couleur
- * d'origine conservée) ; seuls les bords anti-crénelés deviennent
- * partiellement transparents, avec la couleur pure de leur encre.
- */
-async function extract(): Promise<Rgba> {
-  const { data, info } = await sharp(SRC).removeAlpha().raw().toBuffer({ resolveWithObject: true });
-  const out = Buffer.alloc(info.width * info.height * 4);
-  const inks: (InkName | null)[] = new Array(info.width * info.height).fill(null);
-  const FLOOR = 0.04; // bruit de compression autour du blanc
-  const OPAQUE = 0.94;
-
-  for (let p = 0, q = 0, i = 0; p < data.length; p += 3, q += 4, i++) {
-    const c = [data[p], data[p + 1], data[p + 2]];
-    let best: { name: InkName; t: number; err: number } | null = null;
-    for (const name of Object.keys(INKS) as InkName[]) {
-      const f = INKS[name];
-      const d = [WHITE[0] - f[0], WHITE[1] - f[1], WHITE[2] - f[2]];
-      const v = [WHITE[0] - c[0], WHITE[1] - c[1], WHITE[2] - c[2]];
-      const t = Math.max(0, Math.min(1.2, (v[0] * d[0] + v[1] * d[1] + v[2] * d[2]) / (d[0] ** 2 + d[1] ** 2 + d[2] ** 2)));
-      const err = Math.hypot(v[0] - t * d[0], v[1] - t * d[1], v[2] - t * d[2]);
-      if (!best || err < best.err) best = { name, t, err };
-    }
-    if (!best) continue;
-    const a = Math.max(0, Math.min(1, (best.t - FLOOR) / (OPAQUE - FLOOR)));
-    if (a === 0) continue;
-    const f = INKS[best.name];
-    const solid = a >= 1;
-    out[q] = solid ? c[0] : f[0];
-    out[q + 1] = solid ? c[1] : f[1];
-    out[q + 2] = solid ? c[2] : f[2];
-    out[q + 3] = Math.round(a * 255);
-    inks[i] = best.name;
-  }
-  return { data: out, width: info.width, height: info.height, inks };
+interface Rgba {
+  data: Buffer;
+  width: number;
+  height: number;
 }
 
-/** Version négative : le noir du logo devient ivoire, le reste est intact. */
+async function load(): Promise<Rgba> {
+  const { data, info } = await sharp(SRC).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  for (let q = 3; q < data.length; q += 4) data[q] = Math.min(255, Math.round((data[q]! * 255) / SOLID_ALPHA));
+  return { data, width: info.width, height: info.height };
+}
+
+/** Noir du logo (sombre et neutre) remplacé par l'ivoire ; tout le reste est intact. */
 function reverse(img: Rgba): Rgba {
   const out = Buffer.from(img.data);
-  img.inks.forEach((ink, i) => {
-    if (ink !== "ink") return;
-    out[i * 4] = IVORY[0];
-    out[i * 4 + 1] = IVORY[1];
-    out[i * 4 + 2] = IVORY[2];
-  });
+  for (let q = 0; q < out.length; q += 4) {
+    if (out[q + 3] === 0) continue;
+    const p = q / 4;
+    if (p % img.width >= VEGETATION.left && Math.floor(p / img.width) < VEGETATION.bottom) continue;
+    const r = out[q]!, g = out[q + 1]!, b = out[q + 2]!;
+    const chroma = Math.max(r, g, b) - Math.min(r, g, b);
+    const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+    if (chroma < 26 && luma < 96) {
+      out[q] = IVORY[0];
+      out[q + 1] = IVORY[1];
+      out[q + 2] = IVORY[2];
+    }
+  }
   return { ...img, data: out };
 }
 
 const raw = (img: Rgba) => sharp(img.data, { raw: { width: img.width, height: img.height, channels: 4 } });
 
-async function band(img: Rgba, [top, bottom]: readonly [number, number]): Promise<Buffer> {
-  return raw(img)
-    .extract({ left: 0, top, width: img.width, height: bottom - top })
+async function crop(img: Rgba, box: { left?: number; right?: number; top: number; bottom: number }): Promise<Buffer> {
+  const left = box.left ?? 0;
+  const right = box.right ?? img.width;
+  const cut = await raw(img)
+    .extract({ left, top: box.top, width: right - left, height: box.bottom - box.top })
     .png()
-    .toBuffer()
-    .then((b) => sharp(b).trim({ threshold: 1 }).png().toBuffer());
+    .toBuffer();
+  return sharp(cut).trim({ threshold: 1 }).png().toBuffer();
 }
 
 async function save(buf: Buffer, name: string, width: number) {
   const base = resolve(LOGOS, name);
-  await sharp(buf).resize({ width, withoutEnlargement: true }).png({ compressionLevel: 9 }).toFile(`${base}.png`);
-  await sharp(buf).resize({ width, withoutEnlargement: true }).webp({ quality: 92, alphaQuality: 100 }).toFile(`${base}.webp`);
+  const img = sharp(buf).resize({ width, withoutEnlargement: true });
+  await img.clone().png({ compressionLevel: 9 }).toFile(`${base}.png`);
+  await img.clone().webp({ quality: 92, alphaQuality: 100 }).toFile(`${base}.webp`);
   const meta = await sharp(`${base}.png`).metadata();
   console.log(`  ✓ public/logos/${name}.{png,webp}  ${meta.width}×${meta.height}`);
 }
@@ -123,10 +102,12 @@ function packIco(pngs: { size: number; data: Buffer }[]): Buffer {
   return Buffer.concat([header, ...pngs.map((p) => p.data)]);
 }
 
-/** Symbole centré dans un carré, avec marge, sur fond optionnel. */
-async function square(symbol: Buffer, size: number, pad: number, background?: string) {
+/** Image centrée dans un carré, avec marge, sur fond optionnel. */
+async function square(image: Buffer, size: number, pad: number, background?: string) {
   const inner = Math.round(size * (1 - pad * 2));
-  const icon = await sharp(symbol).resize(inner, inner, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } }).toBuffer();
+  const icon = await sharp(image)
+    .resize(inner, inner, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .toBuffer();
   return sharp({
     create: { width: size, height: size, channels: 4, background: background ?? { r: 0, g: 0, b: 0, alpha: 0 } },
   })
@@ -137,52 +118,49 @@ async function square(symbol: Buffer, size: number, pad: number, background?: st
 
 async function main() {
   mkdirSync(LOGOS, { recursive: true });
-  const positive = await extract();
+  const positive = await load();
   const negative = reverse(positive);
 
-  console.log("→ Logo MUNAQASA");
-  const lockup = await raw(positive).png().toBuffer().then((b) => sharp(b).trim({ threshold: 1 }).png().toBuffer());
-  const lockupNeg = await raw(negative).png().toBuffer().then((b) => sharp(b).trim({ threshold: 1 }).png().toBuffer());
-  await save(lockup, "munaqasa-logo", 1200);
-  await save(lockupNeg, "munaqasa-logo-reversed", 1200);
+  console.log("→ Logo Talab Solutions");
+  await save(await crop(positive, { top: 0, bottom: positive.height }), "talab-logo", 1200);
+  await save(await crop(negative, { top: 0, bottom: negative.height }), "talab-logo-reversed", 1200);
 
-  const symbol = await band(positive, SYMBOL_ROWS);
-  const symbolNeg = await band(negative, SYMBOL_ROWS);
-  await save(symbol, "munaqasa-symbol", 640);
-  await save(symbolNeg, "munaqasa-symbol-reversed", 640);
+  const symbol = await crop(positive, SYMBOL);
+  const symbolNeg = await crop(negative, SYMBOL);
+  await save(symbol, "talab-symbol", 900);
+  await save(symbolNeg, "talab-symbol-reversed", 900);
 
-  const wordmark = await band(positive, WORDMARK_ROWS);
-  const wordmarkNeg = await band(negative, WORDMARK_ROWS);
-  await save(wordmark, "munaqasa-wordmark", 1200);
-  await save(wordmarkNeg, "munaqasa-wordmark-reversed", 1200);
+  const wordmark = await crop(positive, WORDMARK);
+  const wordmarkNeg = await crop(negative, WORDMARK);
+  await save(wordmark, "talab-wordmark", 1200);
+  await save(wordmarkNeg, "talab-wordmark-reversed", 1200);
 
-  // Déclinaisons légères pour l'en-tête et le loader (affichage ≤ 120 px).
-  await save(symbol, "munaqasa-symbol-sm", 160);
-  await save(symbolNeg, "munaqasa-symbol-reversed-sm", 160);
-  await save(wordmark, "munaqasa-wordmark-sm", 480);
-  await save(wordmarkNeg, "munaqasa-wordmark-reversed-sm", 480);
+  // Déclinaisons légères pour l'en-tête et le loader (affichage ≤ 160 px de haut).
+  await save(symbol, "talab-symbol-sm", 320);
+  await save(symbolNeg, "talab-symbol-reversed-sm", 320);
+  await save(wordmark, "talab-wordmark-sm", 560);
+  await save(wordmarkNeg, "talab-wordmark-reversed-sm", 560);
 
-  console.log("→ Favicons");
-  const icoParts = await Promise.all(
-    [16, 32, 48].map(async (size) => ({ size, data: await square(symbol, size, 0.04) })),
-  );
+  console.log("→ Favicons (le bâtiment seul, lisible en petit)");
+  const building = await crop(positive, BUILDING);
+  const icoParts = await Promise.all([16, 32, 48].map(async (size) => ({ size, data: await square(building, size, 0.02) })));
   writeFileSync(resolve(PUBLIC, "favicon.ico"), packIco(icoParts));
-  writeFileSync(resolve(PUBLIC, "favicon-32.png"), await square(symbol, 32, 0.04));
-  writeFileSync(resolve(PUBLIC, "apple-touch-icon.png"), await square(symbol, 180, 0.14, "#F5F1E9"));
-  writeFileSync(resolve(PUBLIC, "icon-192.png"), await square(symbol, 192, 0.14, "#F5F1E9"));
-  writeFileSync(resolve(PUBLIC, "icon-512.png"), await square(symbol, 512, 0.14, "#F5F1E9"));
+  writeFileSync(resolve(PUBLIC, "favicon-32.png"), await square(building, 32, 0.02));
+  writeFileSync(resolve(PUBLIC, "apple-touch-icon.png"), await square(symbol, 180, 0.12, "#F5F1E9"));
+  writeFileSync(resolve(PUBLIC, "icon-192.png"), await square(symbol, 192, 0.12, "#F5F1E9"));
+  writeFileSync(resolve(PUBLIC, "icon-512.png"), await square(symbol, 512, 0.12, "#F5F1E9"));
   console.log("  ✓ favicon.ico, favicon-32.png, apple-touch-icon.png, icon-192.png, icon-512.png");
 
   console.log("→ Image Open Graph");
   const W = 1200, H = 630;
-  const og = await sharp(lockupNeg).resize({ height: 430 }).toBuffer();
-  const rule = Buffer.from(
+  const lockup = await sharp(await crop(negative, { top: 0, bottom: negative.height })).resize({ height: 440 }).toBuffer();
+  const frame = Buffer.from(
     `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">` +
       `<rect x="48" y="48" width="${W - 96}" height="${H - 96}" fill="none" stroke="#B88D5E" stroke-opacity=".35"/>` +
       `</svg>`,
   );
   await sharp({ create: { width: W, height: H, channels: 3, background: NIGHT } })
-    .composite([{ input: rule }, { input: og, gravity: "center" }])
+    .composite([{ input: frame }, { input: lockup, gravity: "center" }])
     .jpeg({ quality: 88, mozjpeg: true })
     .toFile(resolve(PUBLIC, "og-image.jpg"));
   console.log("  ✓ og-image.jpg 1200×630");

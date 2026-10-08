@@ -76,7 +76,7 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
       {children}
       <div ref={panel} className="page-transition" aria-hidden="true">
         <div className="page-transition__label">
-          <span className="label">[ MUNAQASA ]</span>
+          <span className="label">Talab Solutions</span>
           <span className="page-transition__title">{label}</span>
         </div>
       </div>

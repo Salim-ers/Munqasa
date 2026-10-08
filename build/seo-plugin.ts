@@ -43,9 +43,9 @@ function jsonLd(site: string, page: HeadInput): string {
   const org = {
     "@type": "Organization",
     "@id": `${site}/#organization`,
-    name: "MUNAQASA",
+    name: "Talab Solutions",
     url: `${site}/`,
-    logo: `${site}/logos/munaqasa-logo.png`,
+    logo: `${site}/logos/talab-logo.png`,
     image: `${site}/og-image.jpg`,
     slogan: "De l'avis à la soumission.",
     description:
@@ -57,7 +57,7 @@ function jsonLd(site: string, page: HeadInput): string {
     "@type": "WebSite",
     "@id": `${site}/#website`,
     url: `${site}/`,
-    name: "MUNAQASA",
+    name: "Talab Solutions",
     inLanguage: "fr-MA",
     publisher: { "@id": `${site}/#organization` },
   };
@@ -74,7 +74,7 @@ function jsonLd(site: string, page: HeadInput): string {
   if (page.path === "/services") {
     graph.push({
       "@type": "ItemList",
-      name: "Services MUNAQASA",
+      name: "Services Talab Solutions",
       itemListElement: SERVICES.map((name, i) => ({
         "@type": "ListItem",
         position: i + 1,
@@ -93,7 +93,7 @@ function renderHead(site: string, page: HeadInput): string {
     `<meta name="robots" content="${page.indexable ? "index, follow" : "noindex, follow"}" />`,
     url ? `<link rel="canonical" href="${url}" />` : "",
     `<meta property="og:type" content="website" />`,
-    `<meta property="og:site_name" content="MUNAQASA" />`,
+    `<meta property="og:site_name" content="Talab Solutions" />`,
     `<meta property="og:locale" content="fr_MA" />`,
     `<meta property="og:title" content="${esc(page.title)}" />`,
     `<meta property="og:description" content="${esc(page.description)}" />`,
@@ -101,7 +101,7 @@ function renderHead(site: string, page: HeadInput): string {
     `<meta property="og:image" content="${site}/og-image.jpg" />`,
     `<meta property="og:image:width" content="1200" />`,
     `<meta property="og:image:height" content="630" />`,
-    `<meta property="og:image:alt" content="MUNAQASA, appels d’offres au Maroc" />`,
+    `<meta property="og:image:alt" content="Talab Solutions, appels d’offres au Maroc" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:title" content="${esc(page.title)}" />`,
     `<meta name="twitter:description" content="${esc(page.description)}" />`,
@@ -120,7 +120,7 @@ export function seoPlugin(siteUrl: string): Plugin {
   if (!home) throw new Error("La route / est requise.");
 
   return {
-    name: "munaqasa-seo",
+    name: "talab-seo",
     configResolved(c) {
       config = c;
     },

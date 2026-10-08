@@ -5,7 +5,7 @@
 import type Lenis from "lenis";
 
 /** Clé de stockage des positions de défilement (React Router). */
-export const SCROLL_POSITIONS_KEY = "munaqasa:scroll";
+export const SCROLL_POSITIONS_KEY = "talab:scroll";
 
 let lenis: Lenis | null = null;
 

@@ -1,5 +1,5 @@
 /**
- * Outil de production — paire HERO JOUR / NUIT de MUNAQASA.
+ * Outil de production — paire HERO JOUR / NUIT de Talab Solutions.
  *
  *   npm run hero                       # jour → nuit → finalisation (tout)
  *   npm run hero:day -- --count 3      # 3 propositions jour (la 1re est sélectionnée)

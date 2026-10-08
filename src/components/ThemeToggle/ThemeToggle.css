@@ -1,42 +1,65 @@
+/* Rectangle encadré de terracotta, lisible sur une photographie comme sur un aplat. */
 .theme-toggle {
+  --tt-pad: 3px;
   position: relative;
-  display: inline-flex;
-  align-items: center;
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  flex: none;
+  padding: var(--tt-pad);
+  background: var(--header-glass);
+  border: 1.5px solid var(--color-terracotta);
+  border-radius: var(--radius-xs);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
 }
 
-.theme-toggle__btn {
-  min-width: 3.75rem;
-  min-height: 44px;
-  text-align: center;
-  color: var(--fg-faint);
-  transition: color var(--dur-base) var(--ease-premium);
-}
-
-.theme-toggle__btn:hover,
-.theme-toggle__btn[aria-pressed="true"] {
-  color: var(--fg);
-}
-
-/* Le trait souligne la lumière active et glisse de l'une à l'autre. */
-.theme-toggle__rule {
+/* Position active : un aplat terracotta qui glisse d'une lumière à l'autre. */
+.theme-toggle__thumb {
   position: absolute;
-  left: 0;
-  bottom: 0.6rem;
-  width: 3.75rem;
-  height: 1px;
-  background: linear-gradient(var(--accent), var(--accent)) center / 56% 1px no-repeat;
+  top: var(--tt-pad);
+  bottom: var(--tt-pad);
+  left: var(--tt-pad);
+  width: calc(50% - var(--tt-pad));
+  background: var(--color-terracotta);
+  border-radius: 1px;
   transition: transform 0.7s var(--ease-architect);
-  pointer-events: none;
 }
 
-.theme-toggle--night .theme-toggle__rule {
+.theme-toggle--night .theme-toggle__thumb {
   transform: translateX(100%);
 }
 
-.theme-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
+.theme-toggle__btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-width: 44px;
+  min-height: 38px;
+  padding-inline: 0.95rem;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  white-space: nowrap;
   color: var(--fg);
+  transition: color 0.5s var(--ease-premium);
+}
+
+.theme-toggle__btn[aria-pressed="true"] {
+  color: var(--color-ivory);
+}
+
+.theme-toggle__btn:not([aria-pressed="true"]):hover {
+  color: var(--color-terracotta);
+}
+
+[data-theme="night"] .theme-toggle__btn:not([aria-pressed="true"]):hover {
+  color: var(--accent);
+}
+
+.theme-toggle__btn:focus-visible {
+  outline-offset: 2px;
 }

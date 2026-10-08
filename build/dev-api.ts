@@ -24,7 +24,7 @@ async function toRequest(req: IncomingMessage): Promise<Request> {
 
 export function devApiPlugin(env: ContactEnv): Plugin {
   return {
-    name: "munaqasa-dev-api",
+    name: "talab-dev-api",
     apply: "serve",
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {

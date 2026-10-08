@@ -5,13 +5,13 @@ export default function PolitiqueConfidentialite() {
   return (
     <LegalLayout tag="Légal" title="Politique de confidentialité">
       <p>
-        Cette politique décrit l’usage des informations transmises via le site MUNAQASA, conformément à la loi n° 09-08
+        Cette politique décrit l’usage des informations transmises via le site Talab Solutions, conformément à la loi n° 09-08
         relative à la protection des personnes physiques à l’égard du traitement des données à caractère personnel.
       </p>
 
       <h2>Responsable du traitement</h2>
       <p>
-        MUNAQASA, <ToComplete>raison sociale et adresse</ToComplete>. Numéro de déclaration ou d’autorisation auprès de la
+        Talab Solutions, <ToComplete>raison sociale et adresse</ToComplete>. Numéro de déclaration ou d’autorisation auprès de la
         CNDP : <ToComplete>numéro</ToComplete>.
       </p>
 
@@ -36,7 +36,7 @@ export default function PolitiqueConfidentialite() {
 
       <h2>Destinataires</h2>
       <p>
-        Les demandes sont transmises à MUNAQASA par e-mail, via un prestataire technique d’envoi agissant pour son compte.
+        Les demandes sont transmises à Talab Solutions par e-mail, via un prestataire technique d’envoi agissant pour son compte.
         Aucune autre transmission n’a lieu.
       </p>
 

@@ -13,7 +13,7 @@ export function Footer() {
 
   return (
     <footer className="footer tone-1 has-grain">
-      <img className="footer__arch" src="/logos/munaqasa-symbol-reversed.webp" width={639} height={682} alt="" loading="lazy" />
+      <img className="footer__arch" src="/logos/talab-symbol-reversed.webp" width={662} height={391} alt="" loading="lazy" />
 
       <div className="footer__cta container">
         <p className="footer__question display-lg">
@@ -55,11 +55,11 @@ export function Footer() {
       </div>
 
       <div className="footer__giant" aria-hidden="true">
-        <span>MUNAQASA</span>
+        <span>Talab Solutions</span>
       </div>
 
       <div className="footer__bar container">
-        <p className="label">© {year} MUNAQASA, appels d’offres au Maroc</p>
+        <p className="label">© {year} Talab Solutions, appels d’offres au Maroc</p>
         <button type="button" className="footer__top-btn label" onClick={() => scrollToTop({ smooth: !reduced })}>
           Haut de page <ArrowUp size={14} strokeWidth={1.5} aria-hidden="true" />
         </button>

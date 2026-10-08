@@ -3,33 +3,6 @@
   margin-inline: auto;
 }
 
-/* Lignes de construction : colonnes très discrètes, comme un calque. */
-.blueprint-grid {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  column-gap: var(--grid-gap);
-  width: var(--container);
-  margin-inline: auto;
-}
-
-.blueprint-grid > span {
-  border-inline: 1px solid var(--line);
-  opacity: 0.45;
-}
-
-@media (max-width: 767px) {
-  .blueprint-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .blueprint-grid > span:nth-child(n + 5) {
-    display: none;
-  }
-}
-
 .visually-hidden {
   position: absolute;
   width: 1px;

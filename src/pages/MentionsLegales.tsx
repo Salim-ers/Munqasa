@@ -8,7 +8,7 @@ export default function MentionsLegales() {
       <h2>Éditeur du site</h2>
       <dl>
         <dt>Nom commercial</dt>
-        <dd>MUNAQASA</dd>
+        <dd>Talab Solutions</dd>
         <dt>Raison sociale</dt>
         <dd>
           <ToComplete>Raison sociale et forme juridique</ToComplete>
@@ -38,7 +38,7 @@ export default function MentionsLegales() {
 
       <h2>Propriété intellectuelle</h2>
       <p>
-        Le nom MUNAQASA, son logo, les textes et la mise en page de ce site sont protégés. Toute reproduction, totale ou
+        Le nom Talab Solutions, son logo, les textes et la mise en page de ce site sont protégés. Toute reproduction, totale ou
         partielle, sans autorisation écrite préalable est interdite.
       </p>
       <p>

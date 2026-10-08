@@ -26,7 +26,7 @@ export function Immersive() {
         <Picture photo={photo("terracotta-walls")} sizes="100vw" position="50% 45%" />
       </div>
       <div className="immersive__panel tone-1">
-        <Tag>MUNAQASA, appels d’offres au Maroc</Tag>
+        <Tag>Talab Solutions, appels d’offres au Maroc</Tag>
         <h2 id="immersive-title" className="display-lg">
           La rigueur <em>avant l’échéance.</em>
         </h2>

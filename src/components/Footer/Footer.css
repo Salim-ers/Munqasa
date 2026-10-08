@@ -73,27 +73,25 @@
   color: var(--fg);
 }
 
-/* Nom de marque monumental. */
+/* Nom de marque en terracotta, sur une ligne. */
 .footer__giant {
   position: relative;
   margin-top: var(--space-md);
+  padding-bottom: var(--space-sm);
   font-family: var(--font-display);
-  font-size: clamp(5rem, 21.5vw, 26rem);
+  font-size: clamp(2.25rem, 10.5vw, 10.5rem);
   line-height: 1;
   letter-spacing: -0.01em;
   text-align: center;
+  text-transform: uppercase;
   white-space: nowrap;
+  color: var(--color-terracotta);
   user-select: none;
 }
 
 .footer__giant span {
   display: block;
-  padding-bottom: 0.12em;
-  background: linear-gradient(180deg, var(--fg) 25%, transparent 96%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  opacity: 0.9;
+  padding-bottom: 0.08em;
 }
 
 .footer__bar {

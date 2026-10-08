@@ -4,9 +4,9 @@
  * les composants n'affichent que ce qui est renseigné.
  */
 export const site = {
-  name: "MUNAQASA",
+  name: "Talab Solutions",
   signature: "Appels d’offres au Maroc",
-  url: (import.meta.env.VITE_SITE_URL || "https://munaqasa.ma").replace(/\/+$/, ""),
+  url: (import.meta.env.VITE_SITE_URL || "https://talabsolutions.ma").replace(/\/+$/, ""),
   contact: {
     email: null as string | null,
     phone: null as string | null,
