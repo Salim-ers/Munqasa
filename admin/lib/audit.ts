@@ -30,6 +30,8 @@ export const ACTION_LABELS: Record<string, string> = {
   "compte.cree_en_ligne_de_commande": "Compte créé en ligne de commande",
   "compte.mot_de_passe_reinitialise_en_ligne_de_commande": "Mot de passe réinitialisé en ligne de commande",
   "compte.2fa_reinitialisee_en_ligne_de_commande": "Double authentification réinitialisée en ligne de commande",
+  "compte.cree_au_deploiement": "Compte créé au déploiement",
+  "compte.mot_de_passe_initial_au_deploiement": "Mot de passe initial mis à jour au déploiement",
   // Affaires
   "affaire.creation": "Affaire créée",
   "affaire.modification": "Affaire modifiée",

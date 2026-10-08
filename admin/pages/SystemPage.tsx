@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
-import { CircleCheck, CircleDashed, CircleX, Clock, Cpu, Database, Download, HardDrive, PlugZap, ScrollText } from "lucide-react";
+import { CircleCheck, CircleDashed, CircleX, Clock, Cpu, Database, Download, HardDrive, KeyRound, PlugZap, ScrollText } from "lucide-react";
 import type { ReactNode } from "react";
 import { useSearchParams } from "react-router";
 import { Badge } from "../components/ui/Badge";
@@ -78,6 +78,15 @@ function ConnectionsTab() {
   const prod = s?.environment === "production";
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
+      {s?.adminPassword ? (
+        <div role="alert" className="flex gap-3 rounded-card border border-warning/25 bg-warning-soft p-4 text-xs leading-relaxed text-ink-2 lg:col-span-2">
+          <KeyRound className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
+          <p>
+            La variable <code className="rounded bg-surface px-1 py-0.5 text-2xs">ADMIN_PASSWORD</code> est encore définie sur Vercel. Elle ne sert qu’à créer le compte : supprimez-la
+            dans <em>Settings</em> &gt; <em>Environment Variables</em>, votre mot de passe reste inchangé.
+          </p>
+        </div>
+      ) : null}
       <Card className="overflow-hidden">
         <div className="p-5 pb-3">
           <CardHeader

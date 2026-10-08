@@ -238,6 +238,7 @@ l'adresse de l'administrateur (`ADMIN_EMAIL`) et la double authentification.
 ```bash
 npm run db:migrate                  # applique les migrations (Neon si DATABASE_URL, sinon base locale .data/)
 npm run admin -- create             # crée le compte ADMIN_EMAIL (mot de passe saisi masqué)
+npm run admin:bootstrap             # crée le compte à partir de ADMIN_PASSWORD (lancé à chaque déploiement)
 npm run admin -- status             # état : double authentification, passkeys, sessions
 npm run admin -- reset-password     # récupération : nouveau mot de passe, sessions fermées
 npm run admin -- reset-2fa          # récupération : double authentification à réactiver
@@ -250,6 +251,10 @@ npm run db:generate                 # nouvelle migration après une modification
 - **Production** : `DATABASE_URL`, `BETTER_AUTH_SECRET` et `ADMIN_EMAIL` sont obligatoires ; sans elles, l'API
   refuse de démarrer. Les migrations s'appliquent au déploiement.
 - **Compte unique** : aucune inscription ; la création de tout autre compte est refusée en base.
+- **Création du compte sans terminal** : définir `ADMIN_PASSWORD` sur Vercel (12 caractères au moins). Au
+  déploiement suivant, le compte `ADMIN_EMAIL` est créé avec ce mot de passe (seule son empreinte est stockée).
+  Tant que la double authentification n'est pas activée, corriger la variable et redéployer corrige le mot de
+  passe ; ensuite, la variable est ignorée. La supprimer une fois connecté : la page Système le rappelle.
 - **Connexion** : mot de passe puis code TOTP (ou code de secours), ou passkey. Double authentification obligatoire.
   Sessions de 12 h, limitation des tentatives, journal des connexions (page Sécurité).
 - **Modules** : tableau de bord, affaires (lots, échéances, documents, historique), clients, prospects, agenda,

@@ -70,6 +70,8 @@ export const systemRoutes = new Hono<AdminEnv>()
       openai: Boolean(env.OPENAI_API_KEY),
       storage: storageConfigured() ? "s3" : env.isProduction ? "absent" : "local",
       cron: Boolean(env.CRON_SECRET),
+      // Mot de passe initial encore présent sur Vercel : à supprimer une fois le compte créé.
+      adminPassword: Boolean(env.ADMIN_PASSWORD),
     });
   })
   .post("/connections/test", async (c) => {

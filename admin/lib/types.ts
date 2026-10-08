@@ -182,4 +182,5 @@ export interface SystemStatus {
   openai: boolean;
   storage: "s3" | "local" | "absent";
   cron: boolean;
+  adminPassword: boolean;
 }

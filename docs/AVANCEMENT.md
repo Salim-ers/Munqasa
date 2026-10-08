@@ -67,8 +67,11 @@ Voir `docs/ARCHITECTURE.md`, section « Phases ».
 1. **Base Neon** : sur Vercel, *Storage* > *Create Database* > *Neon*, reliée au projet (ajoute `DATABASE_URL`).
 2. **Variables Vercel** (*Settings* > *Environment Variables*) : `BETTER_AUTH_SECRET` (32 caractères au moins),
    `ADMIN_EMAIL` (votre adresse), et `APP_URL` si le site a un domaine personnalisé.
-3. **Créer votre compte**, une fois la base en place : en local, avec la `DATABASE_URL` de production dans
-   `.env.local` (ou `vercel env pull`), lancer `npm run admin -- create` et saisir le mot de passe (masqué).
+3. **Créer votre compte**, une fois la base en place, au choix :
+   - sur Vercel, définir `ADMIN_PASSWORD` (12 caractères au moins) puis redéployer : le compte est créé au
+     déploiement ; une fois connecté, supprimer la variable ;
+   - ou en local, avec la `DATABASE_URL` de production dans la session du terminal, lancer
+     `npm run admin -- create` et saisir le mot de passe (masqué).
 4. **Première connexion** : activer la double authentification et conserver les codes de secours.
 5. **Clé OpenAI** : la régénérer par précaution (elle a été collée un jour dans un fichier suivi par Git, jamais
    publiée), puis la déclarer dans les variables Vercel (`OPENAI_API_KEY`). Choisir ensuite les modèles et saisir

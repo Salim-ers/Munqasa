@@ -20,6 +20,11 @@ const schema = z.object({
   APP_URL: optionalString,
   /** Adresse de l'unique compte administrateur. */
   ADMIN_EMAIL: optionalString,
+  /**
+   * Mot de passe initial (facultatif), lu uniquement au déploiement : crée le compte s'il n'existe pas.
+   * À supprimer une fois connecté (server/services/admin-bootstrap.ts).
+   */
+  ADMIN_PASSWORD: optionalString,
   /** Clé de l'API OpenAI (fonctions IA uniquement). */
   OPENAI_API_KEY: optionalString,
   /** Secret des appels planifiés Vercel (traitements longs). */
