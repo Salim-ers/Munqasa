@@ -8,9 +8,9 @@ import { Checkbox, Field, PasswordField } from "../components/ui/Field";
 import { InlineError } from "../components/ui/Feedback";
 import { OtpInput } from "../components/ui/OtpInput";
 import { AuthLayout } from "../layout/AuthLayout";
-import { api } from "../lib/api";
 import { authClient, authErrorMessage } from "../lib/auth-client";
-import { FullScreenLoader, ME_KEY, type Me, useMe } from "../lib/session";
+import { api, ApiError } from "../lib/api";
+import { FullScreenLoader, ME_KEY, type Me, SetupRequired, useMe } from "../lib/session";
 
 type Step = "password" | "totp" | "backup";
 
@@ -38,6 +38,7 @@ export function LoginPage() {
 
   if (me.isPending) return <FullScreenLoader label="Vérification de la session" />;
   if (me.data) return <Navigate to={me.data.secondFactorRequired ? "/administration/securite/double-authentification" : target} replace />;
+  if (me.error instanceof ApiError && me.error.code === "configuration_incomplete") return <SetupRequired />;
 
   async function enterApp() {
     await queryClient.invalidateQueries({ queryKey: ME_KEY });

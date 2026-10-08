@@ -42,6 +42,14 @@ export type ServerEnv = z.infer<typeof schema> & {
   authSecret: string;
 };
 
+/** Configuration serveur incomplète ou invalide (variables d'environnement). */
+export class ConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ConfigError";
+  }
+}
+
 let cached: ServerEnv | null = null;
 
 /** Production réelle (déploiement Vercel de production ou serveur lancé en production). */
@@ -56,7 +64,7 @@ function resolveAppUrl(raw: string | undefined, isProduction: boolean): string {
     return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
   }
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  if (isProduction) throw new Error("Variable d'environnement manquante : APP_URL");
+  if (isProduction) throw new ConfigError("Variable d'environnement manquante : APP_URL");
   return "http://localhost:5173";
 }
 
@@ -65,17 +73,17 @@ export function getEnv(): ServerEnv {
   const parsed = schema.safeParse(process.env);
   if (!parsed.success) {
     const names = parsed.error.issues.map((i) => i.path.join(".")).join(", ");
-    throw new Error(`Variables d'environnement invalides : ${names}`);
+    throw new ConfigError(`Variables d'environnement invalides : ${names}`);
   }
   const env = parsed.data;
   const isProduction = detectProduction();
 
   if (isProduction) {
     const missing = (["DATABASE_URL", "BETTER_AUTH_SECRET", "ADMIN_EMAIL"] as const).filter((k) => !env[k]);
-    if (missing.length) throw new Error(`Variables d'environnement manquantes : ${missing.join(", ")}`);
+    if (missing.length) throw new ConfigError(`Variables d'environnement manquantes : ${missing.join(", ")}`);
   }
   if (env.BETTER_AUTH_SECRET && env.BETTER_AUTH_SECRET.length < 32) {
-    throw new Error("BETTER_AUTH_SECRET doit compter au moins 32 caractères");
+    throw new ConfigError("BETTER_AUTH_SECRET doit compter au moins 32 caractères");
   }
 
   cached = {

@@ -176,7 +176,12 @@ export type Auth = ReturnType<typeof build>;
 let pending: Promise<Auth> | null = null;
 
 export function getAuth(): Promise<Auth> {
-  pending ??= getDb().then((db) => build(db, getEnv()));
+  pending ??= getDb()
+    .then((db) => build(db, getEnv()))
+    .catch((error: unknown) => {
+      pending = null;
+      throw error;
+    });
   return pending;
 }
 

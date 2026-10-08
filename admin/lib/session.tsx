@@ -54,6 +54,22 @@ export function FullScreenLoader({ label = "Chargement" }: { label?: string }) {
   );
 }
 
+/** Serveur pas encore configuré (base de données, secret de session, compte administrateur). */
+export function SetupRequired() {
+  return (
+    <div className="grid min-h-screen place-items-center bg-canvas p-6">
+      <div className="max-w-md rounded-card border border-line bg-surface p-6 shadow-card">
+        <p className="text-2xs font-semibold tracking-[0.18em] text-accent uppercase">Talab Intelligence</p>
+        <h1 className="mt-2 text-lg font-semibold text-ink">Espace d’administration à configurer</h1>
+        <p className="mt-2 text-xs leading-relaxed text-ink-2">
+          Le serveur attend sa configuration : base de données Neon (DATABASE_URL), secret de session (BETTER_AUTH_SECRET) et adresse de
+          l’administrateur (ADMIN_EMAIL), dans les variables d’environnement Vercel. La marche à suivre figure dans docs/AVANCEMENT.md.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function RequireAdmin({ children, allowWithoutSecondFactor = false }: { children: ReactNode; allowWithoutSecondFactor?: boolean }) {
   const me = useMe();
   const location = useLocation();
@@ -62,6 +78,7 @@ export function RequireAdmin({ children, allowWithoutSecondFactor = false }: { c
     if (me.error instanceof ApiError && (me.error.status === 401 || me.error.status === 403)) {
       return <Navigate to={`/administration/connexion?retour=${encodeURIComponent(location.pathname)}`} replace />;
     }
+    if (me.error instanceof ApiError && me.error.code === "configuration_incomplete") return <SetupRequired />;
     return (
       <div className="grid min-h-screen place-items-center bg-canvas p-6 text-center">
         <div className="max-w-sm">

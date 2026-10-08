@@ -5,7 +5,7 @@
 import { Hono } from "hono";
 import { getAuth } from "../auth/auth.js";
 import { type AdminEnv, requireAdmin, sameOriginOnly } from "../auth/guard.js";
-import { getEnv } from "../env.js";
+import { ConfigError } from "../env.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
 import { systemRoutes } from "./routes/system.js";
 
@@ -48,8 +48,12 @@ export function createApp() {
   app.onError((error, c) => {
     // Le détail reste dans les journaux serveur ; le client reçoit un message neutre.
     console.error("[api]", c.req.method, c.req.path, error);
-    const env = getEnv();
-    return c.json({ error: "erreur_interne", message: "Une erreur est survenue.", ...(env.isProduction ? {} : { detail: String(error) }) }, 500);
+    if (error instanceof ConfigError) {
+      return c.json({ error: "configuration_incomplete", message: "La configuration du serveur est incomplète." }, 503);
+    }
+    // Ne relit pas la configuration ici : elle peut être la cause de l'erreur.
+    const production = Boolean(process.env.VERCEL_ENV) || process.env.NODE_ENV === "production";
+    return c.json({ error: "erreur_interne", message: "Une erreur est survenue.", ...(production ? {} : { detail: String(error) }) }, 500);
   });
   return app;
 }

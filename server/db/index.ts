@@ -21,7 +21,11 @@ let override: Database | null = null;
 
 export function getDb(): Promise<Database> {
   if (override) return Promise.resolve(override);
-  pending ??= connect();
+  // Un échec (configuration, réseau) n'est pas mis en cache : la prochaine requête réessaie.
+  pending ??= connect().catch((error: unknown) => {
+    pending = null;
+    throw error;
+  });
   return pending;
 }
 
