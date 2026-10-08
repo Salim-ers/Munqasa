@@ -2,7 +2,7 @@
   position: relative;
   display: grid;
   align-items: end;
-  min-height: 100svh;
+  min-height: var(--screen-h);
   overflow: hidden;
   isolation: isolate;
 }
@@ -22,8 +22,8 @@
 .immersive__panel {
   display: grid;
   gap: var(--space-md);
-  width: min(100%, 760px);
-  margin-left: max(var(--gutter), (100vw - 1520px) / 2);
+  width: min(100%, 47.5rem);
+  margin-left: max(var(--gutter), (100vw - 95rem) / 2);
   padding: clamp(1.75rem, 3.5vw, 3.25rem);
 }
 
@@ -33,7 +33,7 @@
 
 @media (max-width: 767px) {
   .immersive {
-    min-height: 92svh;
+    min-height: calc(var(--screen-h) * 0.92);
   }
 
   .immersive__panel {

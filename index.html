@@ -11,15 +11,25 @@
     <link rel="icon" href="/favicon-dark-32.png" type="image/png" sizes="32x32" media="(prefers-color-scheme: dark)" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
     <link rel="manifest" href="/site.webmanifest" />
+    <noscript><style>#root > .boot-fallback { visibility: visible; animation: none; }</style></noscript>
     <!--app-head-->
   </head>
   <body>
-    <div id="root"></div>
-    <noscript>
-      <p style="padding: 2rem; font-family: system-ui, sans-serif">
-        Talab Solutions, gestion et accompagnement des appels d'offres au Maroc. Activez JavaScript pour consulter le site.
-      </p>
-    </noscript>
+    <div id="root">
+      <!-- Contenu de secours : visible seulement si le site ne démarre pas (JavaScript désactivé ou bloqué,
+           navigateur trop ancien, réseau coupé). React le remplace dès le démarrage. -->
+      <div class="boot-fallback">
+        <p class="boot-fallback__brand">Talab Solutions</p>
+        <p class="boot-fallback__tag">Appels d’offres au Maroc</p>
+        <p class="boot-fallback__text">
+          Talab Solutions accompagne les entreprises dans l’identification, l’analyse, la préparation et le suivi de leurs
+          appels d’offres.
+        </p>
+        <p class="boot-fallback__note">
+          Si le site ne s’affiche pas, rechargez la page, activez JavaScript ou ouvrez-la dans un navigateur à jour.
+        </p>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

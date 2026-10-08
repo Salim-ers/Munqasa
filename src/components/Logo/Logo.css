@@ -9,7 +9,7 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  --logo-h: 46px;
+  --logo-h: 2.875rem;
 }
 
 .logo__set {

@@ -44,7 +44,7 @@
 .to-complete {
   padding: 0.05rem 0.4rem;
   color: var(--error);
-  background: color-mix(in srgb, var(--error) 10%, transparent);
+  background: rgb(var(--error-rgb) / 0.1);
   font-style: italic;
 }
 

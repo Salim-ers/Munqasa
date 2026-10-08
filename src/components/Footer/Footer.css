@@ -10,7 +10,7 @@
   position: absolute;
   right: -8%;
   top: 4%;
-  width: min(62vw, 820px);
+  width: min(62vw, 51.25rem);
   height: auto;
   opacity: 0.05;
   pointer-events: none;
@@ -68,7 +68,10 @@
   transition: color var(--dur-fast) var(--ease-out);
 }
 
-.footer__nav a:hover,
+.footer__nav a:hover {
+  color: var(--fg);
+}
+
 .footer__nav a:focus-visible {
   color: var(--fg);
 }
@@ -104,7 +107,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  min-height: 44px;
+  min-height: 2.75rem;
   color: var(--fg);
 }
 

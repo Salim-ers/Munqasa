@@ -1,6 +1,6 @@
 import { createContext, use, useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
-import { isTouchDevice } from "../lib/device";
+import { hasNoHover } from "../lib/device";
 import { readStorage, writeStorage } from "../lib/storage";
 
 export type LightMode = "day" | "night";
@@ -62,7 +62,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       try {
         // Le sélecteur a déjà répondu au geste (ThemeToggle) : on attend la fin de son glissement et,
         // brièvement, les photos de la nouvelle lumière (moins longtemps sur écran tactile).
-        await Promise.all([preloadVisible(next, isTouchDevice() ? 800 : 1500), reduced ? undefined : wait(TOGGLE_MS)]);
+        await Promise.all([preloadVisible(next, hasNoHover() ? 800 : 1500), reduced ? undefined : wait(TOGGLE_MS)]);
         if (reduced || typeof document.startViewTransition !== "function") {
           apply();
         } else {

@@ -92,7 +92,7 @@
   display: flex;
   gap: clamp(2rem, 4vw, 4.5rem);
   height: 100%;
-  padding-inline: max(var(--gutter), (100vw - 1520px) / 2) 30vw;
+  padding-inline: max(var(--gutter), (100vw - 95rem) / 2) 30vw;
   will-change: transform;
 }
 
@@ -102,7 +102,7 @@
   grid-template-rows: auto auto 1fr;
   align-content: start;
   gap: var(--space-md);
-  width: min(30vw, 470px);
+  width: min(30vw, 29.375rem);
   padding-left: var(--space-lg);
   border-left: 1px solid var(--line);
   transition: border-color 0.6s var(--ease-premium);
@@ -140,7 +140,7 @@
   align-content: start;
   gap: 0.7rem;
   align-self: end;
-  width: min(100%, 300px);
+  width: min(100%, 18.75rem);
   aspect-ratio: 1 / 0.8;
   padding: 1.25rem 1.4rem;
   color: var(--paper-fg);
@@ -156,7 +156,7 @@
 }
 
 .cal-doc__kicker {
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -203,7 +203,7 @@
   right: 1rem;
   bottom: 1rem;
   padding: 0.35rem 0.6rem;
-  font: 700 10px / 1 var(--font-body);
+  font: 700 0.625rem / 1 var(--font-body);
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--accent-ink);
@@ -216,16 +216,19 @@
     transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 0.35s;
 }
 
-:is(.is-active, .is-reached) .cal-doc {
+.is-active .cal-doc,
+.is-reached .cal-doc {
   opacity: 1;
   transform: none;
 }
 
-:is(.is-active, .is-reached) .cal-doc__lines i {
+.is-active .cal-doc__lines i,
+.is-reached .cal-doc__lines i {
   transform: scaleX(1);
 }
 
-:is(.is-active, .is-reached) .cal-doc__stamp {
+.is-active .cal-doc__stamp,
+.is-reached .cal-doc__stamp {
   opacity: 1;
   transform: scale(1);
 }
@@ -237,7 +240,7 @@
 .timeline__head {
   display: grid;
   gap: var(--space-md);
-  max-width: 900px;
+  max-width: 56.25rem;
   margin-bottom: var(--space-2xl);
 }
 
@@ -318,7 +321,7 @@
 }
 
 .timeline__body .cal-doc {
-  width: min(100%, 280px);
+  width: min(100%, 17.5rem);
 }
 
 /* ==========================================================================
@@ -374,7 +377,7 @@
 
 .exchange__arch {
   width: 100%;
-  max-width: 190px;
+  max-width: 11.875rem;
   overflow: visible;
 }
 
@@ -389,7 +392,7 @@
 .exchange__glow {
   position: absolute;
   inset: 25% 30%;
-  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 50%, transparent), transparent);
+  background: radial-gradient(closest-side, rgb(var(--accent-rgb) / 0.5), transparent);
   filter: blur(10px);
   opacity: 0;
   pointer-events: none;
@@ -437,7 +440,7 @@
 
   .exchange__core {
     justify-self: center;
-    width: 120px;
+    width: 7.5rem;
   }
 }
 

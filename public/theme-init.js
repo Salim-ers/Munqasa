@@ -1,6 +1,5 @@
-/* Applique la lumière mémorisée (jour / nuit) avant le premier rendu, sans flash,
-   précharge la bonne photographie du hero sur l'accueil, et les polices à la
-   première visite de la session (ensuite, elles sont déjà en cache). */
+/* Applique la lumière mémorisée (jour / nuit) avant le premier rendu, sans flash, et précharge
+   les polices et la bonne photographie du hero sur l'accueil. */
 (function () {
   var mode = "day";
   try {
@@ -18,17 +17,11 @@
     if (extra) for (var key in extra) link.setAttribute(key, extra[key]);
     document.head.appendChild(link);
   }
-  var firstVisit = true;
-  try {
-    firstVisit = !window.sessionStorage.getItem("talab:fonts");
-    window.sessionStorage.setItem("talab:fonts", "1");
-  } catch (e) {
-    /* stockage indisponible : préchargement à chaque fois */
-  }
-  if (firstVisit) {
-    preload("/fonts/instrument-serif-regular.woff2", "font", "font/woff2", { crossorigin: "" });
-    preload("/fonts/manrope-variable.woff2", "font", "font/woff2", { crossorigin: "" });
-  }
+  // Polices : Chrome et Firefox ne réutilisent un préchargement de police qu'avec l'attribut
+  // crossorigin, Safari et les navigateurs iOS (WebKit) seulement sans. Sinon, double téléchargement.
+  var webkit = navigator.vendor === "Apple Computer, Inc.";
+  preload("/fonts/manrope-variable.woff2", "font", "font/woff2", webkit ? null : { crossorigin: "" });
+  preload("/fonts/instrument-serif-regular.woff2", "font", "font/woff2", webkit ? null : { crossorigin: "" });
   root.setAttribute("data-theme", mode);
   // Barre du navigateur (mobile) à la couleur de la lumière du site.
   var themeColor = document.querySelector('meta[name="theme-color"]');

@@ -36,14 +36,15 @@ html {
 
 body {
   margin: 0;
-  min-height: 100svh;
+  min-height: var(--screen-h);
   font-family: var(--font-body);
   font-size: var(--text-base);
   font-weight: 400;
   line-height: 1.65;
   color: var(--fg);
   background-color: var(--bg-1);
-  overflow-x: clip;
+  /* hidden partout ; clip là où il existe (ne casse pas position: sticky). */
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -103,7 +104,7 @@ button {
   padding: 0;
 }
 
-:focus {
+:focus:not(:focus-visible) {
   outline: none;
 }
 
@@ -119,6 +120,56 @@ button {
 
 [hidden] {
   display: none;
+}
+
+@supports (overflow-x: clip) {
+  body {
+    overflow-x: clip;
+  }
+}
+
+/* Contenu de secours (index.html) : apparaît seulement si l'application n'a pas démarré au bout de
+   quelques secondes, ou tout de suite sans JavaScript (règle dans <noscript>). */
+.boot-fallback {
+  display: grid;
+  align-content: center;
+  gap: 1rem;
+  max-width: 40rem;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  visibility: hidden;
+  animation: boot-fallback-reveal 0s linear 8s forwards;
+}
+
+@keyframes boot-fallback-reveal {
+  to {
+    visibility: visible;
+  }
+}
+
+.boot-fallback__brand {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.boot-fallback__tag {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.boot-fallback__text {
+  font-size: var(--text-lg);
+  line-height: 1.55;
+}
+
+.boot-fallback__note {
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
 }
 
 /* Images jour / nuit (photos, logo) : une seule lumière à la fois, l'autre n'est pas téléchargée. */
@@ -193,9 +244,9 @@ html.is-switching-light *::after {
   }
 }
 
-/* Écran tactile : fondu enchaîné, animé par le processeur graphique (fluide même quand l'appareil
+/* Sans survol (tactile, télécommande) : fondu enchaîné, animé par le processeur graphique (fluide même quand l'appareil
    peint la nouvelle lumière), plutôt que le balayage, animé image par image. */
-@media (hover: none) and (pointer: coarse) {
+@media (hover: none) {
   ::view-transition-new(root) {
     animation: light-fade 0.5s var(--ease-out) both;
   }

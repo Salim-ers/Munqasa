@@ -5,7 +5,7 @@
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText } from "gsap/SplitText";
-import { isTouchDevice } from "../lib/device";
+import { hasNoHover } from "../lib/device";
 
 gsap.registerPlugin(ScrollTrigger, SplitText);
 
@@ -21,10 +21,10 @@ gsap.defaults({ ease: EASE.out, duration: 0.9 });
 ScrollTrigger.config({ ignoreMobileResize: true });
 
 /**
- * Effets liés 1:1 au défilement (parallaxe, cartes empilées). Sur écran tactile, la page défile
+ * Effets liés 1:1 au défilement (parallaxe, cartes empilées). Sans survol (tactile, télécommande), la page défile
  * hors du fil JavaScript : un lissage court évite que l'effet tremble d'une image derrière elle.
  */
-export const SCRUB: true | number = isTouchDevice() ? 0.45 : true;
+export const SCRUB: true | number = hasNoHover() ? 0.45 : true;
 
 /** Requête gsap.matchMedia commune : desktop / mobile, mouvement réduit ou non. */
 export const MEDIA = {

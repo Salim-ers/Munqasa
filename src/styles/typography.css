@@ -31,7 +31,10 @@
   line-height: 1.04;
 }
 
-:is(.display-xl, .display-lg, .display-md, .display-sm) em {
+.display-xl em,
+.display-lg em,
+.display-md em,
+.display-sm em {
   font-style: italic;
   color: var(--accent, var(--color-terracotta));
 }

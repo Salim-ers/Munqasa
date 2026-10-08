@@ -5,8 +5,13 @@ export function useMediaQuery(query: string): boolean {
   return useSyncExternalStore(
     (onChange) => {
       const mql = window.matchMedia(query);
-      mql.addEventListener("change", onChange);
-      return () => mql.removeEventListener("change", onChange);
+      // Safari antérieur à 14 ne connaît que addListener.
+      if (typeof mql.addEventListener === "function") {
+        mql.addEventListener("change", onChange);
+        return () => mql.removeEventListener("change", onChange);
+      }
+      mql.addListener(onChange);
+      return () => mql.removeListener(onChange);
     },
     () => window.matchMedia(query).matches,
     () => false,

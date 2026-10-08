@@ -1,5 +1,5 @@
 .cta {
-  --cta-h: 56px;
+  --cta-h: 3.5rem;
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -79,7 +79,7 @@
 }
 
 .cta--text {
-  --cta-h: 44px;
+  --cta-h: 2.75rem;
   color: var(--fg);
   background-image: linear-gradient(var(--accent), var(--accent));
   background-size: 100% 1px;

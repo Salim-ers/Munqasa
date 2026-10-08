@@ -5,7 +5,7 @@
 .formulas__head {
   display: grid;
   gap: var(--space-md);
-  max-width: 980px;
+  max-width: 61.25rem;
   margin-bottom: var(--space-xl);
 }
 
@@ -16,28 +16,136 @@
   gap: var(--grid-gap);
 }
 
+/* Élément de liste : porte la révélation au défilement. La carte visible est à l'intérieur. */
 .formula {
+  --lift: 1.04;
   position: relative;
+  z-index: 0;
+  display: flex;
+}
+
+.formula--featured {
+  margin-top: calc(var(--space-lg) * -1);
+}
+
+.formula__card {
+  position: relative;
+  isolation: isolate;
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
   padding: clamp(1.5rem, 2.6vw, 2.5rem);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-xs);
+  transform-origin: 50% 100%;
+  transition:
+    transform 0.6s var(--ease-premium),
+    background-color 0.4s var(--ease-out),
+    border-color 0.4s var(--ease-out);
 }
 
-.formula--featured {
-  margin-top: calc(var(--space-lg) * -1);
-  background: var(--bg-1);
+/* Filet d'accent en tête de carte. */
+.formula__card::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  height: 3px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform 0.6s var(--ease-premium);
+}
+
+/* Ombre portée, révélée par son opacité : rien n'est repeint pendant l'animation. */
+.formula__card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: -1;
+  border-radius: inherit;
+  box-shadow: 0 2.5rem 4rem -2.25rem var(--shadow);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s var(--ease-premium);
+}
+
+/* ---------- Carte éclairée ----------
+   La formule mise en avant l'est toujours. Les autres s'éclairent au survol de la souris,
+   au focus du clavier ou de la télécommande, et au défilement sur écran sans survol (.is-active). */
+
+.formula--featured .formula__card,
+.formula.is-active .formula__card,
+.formula:focus-within .formula__card {
+  background-color: var(--bg-1);
   border-color: var(--accent);
 }
 
-.formula--featured::before {
-  content: "";
-  position: absolute;
-  inset: -1px -1px auto;
-  height: 3px;
-  background: var(--accent);
+.formula--featured .formula__card::before,
+.formula.is-active .formula__card::before,
+.formula:focus-within .formula__card::before {
+  transform: scaleX(1);
+}
+
+.formula.is-active .cta--outline,
+.formula:focus-within .cta--outline {
+  color: var(--on-accent);
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+.formula.is-active,
+.formula:focus-within {
+  z-index: 1;
+}
+
+.formula.is-active .formula__card::after,
+.formula:focus-within .formula__card::after {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .formula:hover {
+    z-index: 1;
+  }
+
+  .formula:hover .formula__card {
+    background-color: var(--bg-1);
+    border-color: var(--accent);
+  }
+
+  .formula:hover .formula__card::before {
+    transform: scaleX(1);
+  }
+
+  .formula:hover .formula__card::after {
+    opacity: 1;
+  }
+
+  .formula:hover .cta--outline {
+    color: var(--on-accent);
+    background-color: var(--accent);
+    border-color: var(--accent);
+  }
+}
+
+/* La carte s'agrandit vers le haut, son pied reste aligné sur les autres. */
+@media (prefers-reduced-motion: no-preference) {
+  .formula.is-active .formula__card,
+  .formula:focus-within .formula__card {
+    transform: scale(var(--lift));
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  .formula:hover .formula__card {
+    transform: scale(var(--lift));
+  }
 }
 
 .formula__flag {
@@ -87,6 +195,11 @@
 
   .formula--featured {
     grid-column: 1 / -1;
+  }
+
+  /* Deux cartes côte à côte peuvent s'éclairer ensemble : elles grandissent moins pour ne pas se toucher. */
+  .formula {
+    --lift: 1.025;
   }
 }
 

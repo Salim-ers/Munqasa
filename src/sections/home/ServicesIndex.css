@@ -83,12 +83,20 @@
     color 0.4s var(--ease-premium);
 }
 
-.sidx__row.is-active::after,
+.sidx__row.is-active::after {
+  transform: scaleX(1);
+}
+
 .sidx__row:focus-visible::after {
   transform: scaleX(1);
 }
 
-.sidx__row.is-active .sidx__title,
+.sidx__row.is-active .sidx__title {
+  font-style: italic;
+  color: var(--accent);
+  transform: translateX(0.6rem);
+}
+
 .sidx__row:focus-visible .sidx__title {
   font-style: italic;
   color: var(--accent);

@@ -19,7 +19,7 @@
 
 .loader__door--left {
   left: 0;
-  border-right: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-right: 1px solid rgb(var(--accent-rgb) / 0.25);
 }
 
 .loader__door--right {
@@ -30,7 +30,7 @@
   position: relative;
   display: grid;
   justify-items: center;
-  width: min(66vw, 320px);
+  width: min(66vw, 20rem);
 }
 
 /* L'arche tracée et le symbole occupent la même place : l'un succède à l'autre. */

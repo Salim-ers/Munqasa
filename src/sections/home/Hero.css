@@ -1,8 +1,8 @@
 .hero {
   position: relative;
-  height: 100svh;
-  min-height: 620px;
-  max-height: 1400px;
+  height: var(--screen-h);
+  min-height: 38.75rem;
+  max-height: 87.5rem;
   overflow: hidden;
   color: var(--fg);
   background: var(--bg-2);
@@ -61,14 +61,22 @@
   display: grid;
   justify-items: start;
   gap: var(--space-md);
-  max-width: min(62%, 900px);
+  max-width: min(62%, 56.25rem);
   padding-bottom: clamp(5rem, 12vh, 9rem);
 }
 
 .hero__title {
   font-size: clamp(3.25rem, 8vw, 10.5rem);
   line-height: 0.92;
-  text-wrap: nowrap;
+}
+
+/* Ordinateur et grands écrans : toujours deux vers. Le titre suit la largeur de l'écran, il y tient
+   toujours ; la règle commune des grands titres (lignes équilibrées) est donc écartée ici. */
+@media (min-width: 1024px) {
+  .hero__title.display-xl {
+    white-space: nowrap;
+    text-wrap: nowrap;
+  }
 }
 
 /* Masque de ligne : la marge basse laisse respirer les jambages (g, p, q). */
@@ -113,7 +121,7 @@
 .hero__scroll i {
   position: relative;
   width: 1px;
-  height: 28px;
+  height: 1.75rem;
   overflow: hidden;
   background: var(--line-strong);
 }
@@ -182,7 +190,7 @@
 
 @media (max-width: 767px) {
   .hero {
-    min-height: 600px;
+    min-height: 37.5rem;
   }
 
   .hero__img {

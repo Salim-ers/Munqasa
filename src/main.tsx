@@ -18,6 +18,29 @@ if (navigation?.type === "navigate") {
   }
 }
 
+// Après une mise à jour du site, une page chargée à la demande peut pointer vers un fichier
+// remplacé : on charge une fois la page demandée en entier, avec la nouvelle version (pas de boucle).
+const RELOAD_KEY = "talab:reloaded";
+window.addEventListener("vite:preloadError", (event) => {
+  try {
+    if (sessionStorage.getItem(RELOAD_KEY)) return;
+    sessionStorage.setItem(RELOAD_KEY, "1");
+  } catch {
+    return;
+  }
+  event.preventDefault();
+  const next = router.state.navigation.location;
+  window.location.assign(next ? `${next.pathname}${next.search}${next.hash}` : window.location.href);
+});
+// Le site tourne normalement : une prochaine mise à jour pourra de nouveau être récupérée ainsi.
+window.setTimeout(() => {
+  try {
+    sessionStorage.removeItem(RELOAD_KEY);
+  } catch {
+    /* stockage indisponible */
+  }
+}, 5000);
+
 const container = document.getElementById("root");
 if (!container) throw new Error("#root introuvable");
 

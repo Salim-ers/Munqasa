@@ -24,7 +24,7 @@ interface PictureProps {
 export function Picture({ photo, sizes, className, position, priority = false, alt }: PictureProps) {
   const { mode } = useAppState();
   const style: CSSProperties | undefined = position ? { objectPosition: position } : undefined;
-  const fallback = photo.widths.find((w) => w >= 1024) ?? photo.widths.at(-1);
+  const fallback = photo.widths.find((w) => w >= 1024) ?? photo.widths[photo.widths.length - 1];
   const label = alt ?? photo.alt;
 
   const variant = (light: LightMode) => {

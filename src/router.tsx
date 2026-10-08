@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import { createBrowserRouter } from "react-router";
 import { RootLayout } from "./components/RootLayout";
+import ErrorPage from "./pages/ErrorPage";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 
@@ -12,6 +13,7 @@ export const router = createBrowserRouter([
     path: "/",
     element: <RootLayout />,
     hydrateFallbackElement: <div className="boot" />,
+    errorElement: <ErrorPage />,
     children: [
       { index: true, element: <Home /> },
       { path: "services", lazy: page(() => import("./pages/Services")) },

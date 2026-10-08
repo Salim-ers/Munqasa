@@ -27,7 +27,7 @@
   transition: transform var(--dur-fast) var(--ease-out);
 }
 
-.skip-link:focus-visible {
+.skip-link:focus {
   transform: translateY(0);
 }
 
@@ -42,7 +42,7 @@ main:focus {
 }
 
 .boot {
-  min-height: 100svh;
+  min-height: var(--screen-h);
   background: var(--color-night);
 }
 

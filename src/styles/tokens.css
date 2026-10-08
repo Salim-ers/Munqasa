@@ -47,10 +47,10 @@
   --space-3xl: clamp(6.5rem, 13vw, 13rem);
 
   /* Grille */
-  --gutter: clamp(16px, 4vw, 64px);
-  --container: min(100% - 2 * var(--gutter), 1520px);
-  --container-narrow: min(100% - 2 * var(--gutter), 1080px);
-  --grid-gap: clamp(12px, 1.6vw, 24px);
+  --gutter: clamp(1rem, 4vw, 4rem);
+  --container: min(100% - 2 * var(--gutter), 95rem);
+  --container-narrow: min(100% - 2 * var(--gutter), 67.5rem);
+  --grid-gap: clamp(0.75rem, 1.6vw, 1.5rem);
 
   /* Formes */
   --radius-xs: 2px;
@@ -64,8 +64,8 @@
   --dur-base: 480ms;
 
   /* Chrome */
-  --header-h: 88px;
-  --header-h-compact: 64px;
+  --header-h: 5.5rem;
+  --header-h-compact: 4rem;
   --z-header: 50;
   --z-menu: 40;
   --z-transition: 80;
@@ -73,20 +73,38 @@
   --z-cursor: 100;
 
   --grain: url("/textures/grain.webp");
+
+  /* Hauteur d'écran stable sur mobile (hors barre d'adresse), vh sur les navigateurs antérieurs à 2022. */
+  --screen-h: 100vh;
+}
+
+@supports (height: 100svh) {
+  :root {
+    --screen-h: 100svh;
+  }
 }
 
 @media (max-width: 767px) {
   :root {
-    --header-h: 68px;
-    --header-h-compact: 60px;
+    --header-h: 4.25rem;
+    --header-h-compact: 3.75rem;
   }
 }
 
 /* Téléphone à l'horizontale : la hauteur d'écran est rare, l'en-tête se resserre. */
 @media (orientation: landscape) and (max-height: 500px) {
   :root {
-    --header-h: 64px;
-    --header-h-compact: 56px;
+    --header-h: 4rem;
+    --header-h-compact: 3.5rem;
+  }
+}
+
+/* Très grands écrans (au-delà de 1920 × 1080 : moniteurs 2K, 4K, téléviseurs) : tout le site grandit
+   proportionnellement, d'après la dimension la plus contraignante. Les tailles d'interface sont en rem
+   et suivent cette taille de base ; un texte plus grand choisi par l'utilisateur reste prioritaire. */
+@media (min-width: 1921px) and (min-height: 1081px) {
+  html {
+    font-size: max(100%, min(calc(100vw / 120), calc(100vh / 67.5)));
   }
 }
 
@@ -109,12 +127,21 @@
   /* Accent posé sur papier clair (feuilles, pièces, tampons). */
   --accent-ink: #a0411e;
   --on-accent: #f5f1e9;
+  /* Mêmes couleurs en composantes RVB, pour les transparences : rgb(var(--accent-rgb) / 0.25).
+     À garder en accord avec les valeurs ci-dessus. */
+  --accent-rgb: 160 65 30;
+  --accent-ink-rgb: 160 65 30;
+  --on-accent-rgb: 245 241 233;
+  --fg-rgb: 23 23 23;
+  --error-rgb: 134 53 26;
+  /* Papier légèrement ombré (rabat d'enveloppe). */
+  --paper-shade: #f3eee6;
   --paper: #fffdf8;
   --paper-fg: #171717;
   --paper-line: rgb(23 23 23 / 0.1);
   --shadow: rgb(23 23 23 / 0.32);
   --header-glass: rgb(245 241 233 / 0.82);
-  /* Écran tactile : fond opaque, sans flou. */
+  /* Sans survol (tactile, télécommande) : fond opaque, sans flou. */
   --header-solid: #f5f1e9;
   --focus: #a0411e;
   --error: #86351a;
@@ -134,6 +161,12 @@
   /* Or bruni : lisible sur le papier ivoire des scènes. */
   --accent-ink: #8f6532;
   --on-accent: #171717;
+  --accent-rgb: 201 160 106;
+  --accent-ink-rgb: 143 101 50;
+  --on-accent-rgb: 23 23 23;
+  --fg-rgb: 245 241 233;
+  --error-rgb: 232 145 109;
+  --paper-shade: #e5dbcd;
   --paper: #efe8dc;
   --paper-fg: #171717;
   --paper-line: rgb(23 23 23 / 0.12);

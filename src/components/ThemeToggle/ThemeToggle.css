@@ -25,6 +25,12 @@
   transition: transform 0.4s var(--ease-architect);
 }
 
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .theme-toggle {
+    background: var(--header-solid);
+  }
+}
+
 .theme-toggle--night .theme-toggle__thumb {
   transform: translateX(100%);
 }
@@ -35,8 +41,8 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  min-width: 44px;
-  min-height: 38px;
+  min-width: 2.75rem;
+  min-height: 2.375rem;
   padding-inline: 0.95rem;
   font-size: var(--text-2xs);
   font-weight: 700;
@@ -60,8 +66,8 @@
   outline-offset: 2px;
 }
 
-/* Écran tactile : pas de flou d'arrière-plan, fond opaque. */
-@media (hover: none) and (pointer: coarse) {
+/* Sans survol (tactile, télécommande) : pas de flou d'arrière-plan, fond opaque. */
+@media (hover: none) {
   .theme-toggle {
     background: var(--header-solid);
     -webkit-backdrop-filter: none;

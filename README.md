@@ -49,15 +49,47 @@ photographie de nuit, éditée à partir de la photo de jour (même cadrage), av
 ## Mobile et tablette
 
 - **Téléphone** : cibles tactiles de 44 px (logo, sélecteur jour / nuit, liens du pied de page) ; en-tête sur une
-  ligne dès 320 px ; à l’horizontale, en-tête resserré et séquence « Le dossier » en deux colonnes.
+  ligne dès 280 px (téléphone pliant fermé) ; à l’horizontale, en-tête resserré et séquence « Le dossier » en deux
+  colonnes.
 - **Tablette portrait** (600 à 1023 px) : hero lisible (voile depuis le bas, titre agrandi), arche des Services à côté
   du texte, chronologie de la Méthode avec action et livrable côte à côte, formules sur deux colonnes.
 - **Tablette paysage** (1024 à 1279 px) : voile du hero élargi sous le texte.
 - Séquence « Le dossier » sur écran étroit : frise du temps sur toute la largeur, documents de référence rangés
   dessous, onglets des dossiers à la largeur de chaque dossier.
-- **Fluidité sur écran tactile** (`(hover: none) and (pointer: coarse)`, `src/lib/device.ts`) : défilement natif
-  seul (pas de Lenis), en-tête et sélecteur opaques sans flou d’arrière-plan, effets de parallaxe légèrement lissés
-  (`SCRUB` dans `src/animations/gsap.ts`), fondu au lieu du balayage pour le changement de lumière.
+- **Fluidité sans survol** (écran tactile ou télécommande : `(hover: none)`, `src/lib/device.ts`) : défilement
+  natif seul (pas de Lenis), en-tête et sélecteur opaques sans flou d’arrière-plan, effets de parallaxe légèrement
+  lissés (`SCRUB` dans `src/animations/gsap.ts`), fondu au lieu du balayage pour le changement de lumière.
+- **Formules** (accueil) : une carte s’éclaire comme la formule mise en avant (fond clair, filet et bouton d’accent,
+  légère montée) au survol de la souris, au focus du clavier ou de la télécommande, et, sans survol, quand elle
+  traverse le milieu de l’écran au défilement.
+
+## Navigateurs, appareils et résolutions
+
+- **Navigateurs pris en charge** : depuis 2020, soit Chrome et Edge 79, Firefox 78 ESR, Safari et iOS 14, ainsi que
+  les téléviseurs connectés récents. `build.target` réécrit la syntaxe plus récente. Le code du site n’utilise que
+  les fonctions ES2020 : `tsconfig.app.json` refuse les plus récentes à la compilation.
+- **Replis CSS** pour les navigateurs antérieurs à 2022 :
+  - unités de conteneur des scènes (`--cq`, estimée en vw sans requêtes de conteneur) ;
+  - proportions sans `aspect-ratio` ;
+  - `translate` / `rotate` séparés ;
+  - hauteur d’écran `--screen-h` (svh ou vh) ;
+  - `overflow-x: clip` ;
+  - transparences en `rgb(var(--…-rgb) / a)` à la place de `color-mix()` ;
+  - focus visible sans `:focus-visible` ;
+  - fond opaque sans flou d’arrière-plan.
+
+  Ces replis passent par des variables et `@supports` : le minifieur CSS ne peut pas les supprimer.
+- **Très grands écrans** (au-delà de 1920 × 1080 : moniteurs 2K, 4K, ultra-larges, téléviseurs) : tout le site
+  grandit proportionnellement, d’après la dimension la plus contraignante. Les tailles d’interface sont en rem.
+- **Filets de sécurité** :
+  - contenu de secours dans `index.html` si l’application ne démarre pas (JavaScript désactivé ou bloqué,
+    navigateur trop ancien) ;
+  - page d’incident à la place du message technique du routeur ;
+  - rechargement automatique, une fois, si une page chargée à la demande a été remplacée par une mise à jour.
+- **Polices** : préchargées par `public/theme-init.js`, avec `crossorigin` sauf sous WebKit (Safari, iOS). Chaque
+  moteur ne réutilise le préchargement que sous cette forme, sinon la police est téléchargée deux fois.
+- **Contrôle** : parcours complet sous Chromium, WebKit (moteur de Safari) et Firefox, du téléphone pliant (280 px)
+  à la 4K, en jour et en nuit.
 
 ## Motion design par page
 

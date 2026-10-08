@@ -16,7 +16,7 @@
   position: absolute;
   right: -18%;
   bottom: -6%;
-  width: min(92vw, 560px);
+  width: min(92vw, 35rem);
   height: auto;
   opacity: 0.05;
   pointer-events: none;
@@ -58,7 +58,11 @@
     color var(--dur-base) var(--ease-premium);
 }
 
-.menu__link:hover .menu__label,
+.menu__link:hover .menu__label {
+  transform: translateX(0.4rem);
+  color: var(--accent);
+}
+
 .menu__link:focus-visible .menu__label {
   transform: translateX(0.4rem);
   color: var(--accent);

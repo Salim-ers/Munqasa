@@ -18,8 +18,12 @@ export default defineConfig(({ mode }) => {
       devApiPlugin({ RESEND_API_KEY: env.RESEND_API_KEY, CONTACT_TO: env.CONTACT_TO, CONTACT_FROM: env.CONTACT_FROM }),
     ],
     build: {
-      target: "es2022",
-      cssMinify: true,
+      // Navigateurs pris en charge : depuis 2020 (Chrome / Edge 79, Firefox 78 ESR, Safari et iOS 14),
+      // ce qui couvre aussi les téléviseurs connectés récents. La syntaxe plus récente est réécrite,
+      // les fonctions manquantes sont complétées par public/compat.js.
+      target: ["chrome79", "edge79", "firefox78", "safari14", "ios14"],
+      cssTarget: ["chrome79", "edge79", "firefox78", "safari14", "ios14"],
+      cssMinify: "lightningcss",
       assetsInlineLimit: 2048,
       rolldownOptions: {
         output: {

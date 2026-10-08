@@ -22,8 +22,14 @@
   opacity: 1;
 }
 
-/* Écran tactile : pas de flou d'arrière-plan (recalculé à chaque image du défilement), fond opaque et grain du site. */
-@media (hover: none) and (pointer: coarse) {
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .header::before {
+    background: var(--header-solid);
+  }
+}
+
+/* Sans survol (tactile, télécommande) : pas de flou d'arrière-plan (recalculé à chaque image du défilement), fond opaque et grain du site. */
+@media (hover: none) {
   .header::before {
     background: var(--header-solid) var(--grain);
     background-size: 128px 128px;
@@ -51,7 +57,7 @@
 .header__brand {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
+  min-height: 2.75rem;
   margin-right: auto;
 }
 
@@ -60,7 +66,7 @@
 }
 
 .header.is-compact .header__brand .logo {
-  --logo-h: 34px;
+  --logo-h: 2.125rem;
 }
 
 .header__nav ul {
@@ -103,7 +109,7 @@
 }
 
 .header__cta.cta {
-  --cta-h: 44px;
+  --cta-h: 2.75rem;
   padding-inline: 1.25rem 1rem;
 }
 
@@ -111,14 +117,14 @@
   display: none;
   align-items: center;
   gap: 0.75rem;
-  min-height: 44px;
-  min-width: 44px;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
   padding-inline: 0.25rem;
 }
 
 .header__toggle-lines {
   position: relative;
-  width: 26px;
+  width: 1.625rem;
   height: 10px;
 }
 
@@ -181,7 +187,7 @@
 
   .header__brand .logo,
   .header.is-compact .header__brand .logo {
-    --logo-h: 28px;
+    --logo-h: 1.75rem;
   }
 
   .header__inner {
@@ -193,15 +199,15 @@
   }
 
   .header__theme .theme-toggle__btn {
-    min-width: 44px;
-    min-height: 40px;
+    min-width: 2.75rem;
+    min-height: 2.5rem;
   }
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
   .header__brand .logo,
   .header.is-compact .header__brand .logo {
-    --logo-h: 32px;
+    --logo-h: 2rem;
   }
 }
 
@@ -209,11 +215,11 @@
 @media (max-width: 359px) {
   .header__brand .logo,
   .header.is-compact .header__brand .logo {
-    --logo-h: 24px;
+    --logo-h: 1.5rem;
   }
 
   .header__theme .theme-toggle__btn {
-    min-width: 40px;
+    min-width: 2.5rem;
   }
 }
 
@@ -227,5 +233,29 @@
     overflow: hidden;
     clip-path: inset(50%);
     white-space: nowrap;
+  }
+}
+
+/* Écrans de moins de 300 px (téléphone pliant fermé) : tout se resserre pour tenir sur une ligne. */
+@media (max-width: 299px) {
+  .header__inner {
+    gap: 0.375rem;
+  }
+
+  .header__brand .logo,
+  .header.is-compact .header__brand .logo {
+    --logo-h: 1.25rem;
+  }
+
+  .header__brand .logo__set {
+    gap: 0.375rem;
+  }
+
+  .header__theme .theme-toggle__btn {
+    min-width: 2.25rem;
+  }
+
+  .header__toggle {
+    min-width: 2.5rem;
   }
 }
