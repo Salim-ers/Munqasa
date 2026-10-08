@@ -16,3 +16,10 @@ assets-src/photos/
 assets-src/generated/**/*-0[0-9].png
 assets-src/generated/hero/hero-night-restrained.png
 assets-src/generated/night/*-day.png
+
+# Base et fichiers locaux de développement (PGlite, stockage local)
+.data/
+
+# Rapports de tests
+test-results/
+playwright-report/

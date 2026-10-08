@@ -1,14 +1,17 @@
-# Talab Solutions, site vitrine
+# Talab Solutions : site vitrine et espace d'administration
 
 Gestion et accompagnement des appels d'offres au Maroc. *De l'avis à la soumission.*
 
-React 19, TypeScript, Vite 8, React Router 8, GSAP (ScrollTrigger, SplitText), Lenis, Lucide.
+- **Vitrine** : React 19, TypeScript, Vite 8, React Router 8, GSAP (ScrollTrigger, SplitText), Lenis, Lucide.
+- **Administration (Talab Intelligence)** : application privée sous `/administration`, API Hono, Neon PostgreSQL
+  (Drizzle), Better Auth, Tailwind CSS 4, Motion. Architecture : `docs/ARCHITECTURE.md` ; avancement : `docs/AVANCEMENT.md`.
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173 (le formulaire fonctionne : les demandes s'affichent dans le terminal)
-npm run build      # vérification TypeScript + build de production dans dist/
-npm run preview    # sert dist/ en local
+npm run dev        # http://localhost:5173 : vitrine, administration (/administration) et API
+npm run build      # vérification TypeScript (5 projets) + build de production dans dist/
+npm run preview    # sert dist/ en local (API comprise)
+npm test           # tests serveur (authentification, protections) sur PostgreSQL embarqué
 ```
 
 ## Structure
@@ -23,8 +26,12 @@ src/
   lib/          validation du formulaire (partagée avec le serveur), défilement, arche, stockage
   data/         contenus : routes et SEO, services, méthode, formules, photos
   styles/       design tokens, base, typographie, grille
-api/            fonction serveur Vercel : POST /api/contact
-build/          plugins Vite : SEO statique par route, API de développement
+api/            fonctions Vercel : POST /api/contact, et /api/* (API de l'administration)
+admin/          application d'administration (entrée administration/index.html)
+server/         API Hono, authentification, base de données (schéma, migrations), services
+build/          plugins Vite : SEO statique par route, API et administration en local
+docs/           architecture et avancement de l'administration
+tests/          tests serveur (Vitest)
 scripts/        outils de production : logo, photos, génération d'images (OpenAI)
 public/         images optimisées, logos détourés, polices auto-hébergées, favicons
 ```
@@ -221,13 +228,40 @@ délai minimal de saisie, contrôle d'origine, limitation de débit (5 envois / 
 e-mail en texte brut via Resend. Aucun envoi de fichier : les dossiers d'appel d'offres peuvent contenir des
 informations sensibles. Sans configuration Resend, l'API répond 503 en production.
 
+## Espace d'administration
+
+Point d'entrée : le lien « Administration » en bas du pied de page, qui mène à `/administration/connexion`.
+La sécurité ne repose pas sur ce lien : chaque route de l'API (`/api/admin/*`) vérifie côté serveur la session,
+l'adresse de l'administrateur (`ADMIN_EMAIL`) et la double authentification.
+
+```bash
+npm run db:migrate                  # applique les migrations (Neon si DATABASE_URL, sinon base locale .data/)
+npm run admin -- create             # crée le compte ADMIN_EMAIL (mot de passe saisi masqué)
+npm run admin -- status             # état : double authentification, passkeys, sessions
+npm run admin -- reset-password     # récupération : nouveau mot de passe, sessions fermées
+npm run admin -- reset-2fa          # récupération : double authentification à réactiver
+npm run admin -- revoke-sessions    # ferme toutes les sessions
+npm run db:generate                 # nouvelle migration après une modification du schéma (server/db/schema)
+```
+
+- **Développement local** : sans `DATABASE_URL`, une base PostgreSQL embarquée (PGlite) est créée dans `.data/`
+  avec les mêmes migrations ; aucune base Neon n'est nécessaire pour travailler.
+- **Production** : `DATABASE_URL`, `BETTER_AUTH_SECRET` et `ADMIN_EMAIL` sont obligatoires ; sans elles, l'API
+  refuse de démarrer. Les migrations s'appliquent au déploiement.
+- **Compte unique** : aucune inscription ; la création de tout autre compte est refusée en base.
+- **Connexion** : mot de passe puis code TOTP (ou code de secours), ou passkey. Double authentification obligatoire.
+  Sessions de 12 h, limitation des tentatives, journal des connexions (page Sécurité).
+
 ## Déploiement (Vercel)
 
 `vercel.json` définit le build, les URL propres, les en-têtes de sécurité (CSP stricte, HSTS, nosniff, frame-ancestors,
 Permissions-Policy) et le cache des assets. Le build écrit un HTML par route avec ses propres balises (title,
 description, canonical, Open Graph, JSON-LD), ainsi que `sitemap.xml`, `robots.txt` et `404.html`.
 
-Renseigner dans Vercel : `VITE_SITE_URL`, `RESEND_API_KEY`, `CONTACT_TO`, `CONTACT_FROM`.
+Renseigner dans Vercel : `VITE_SITE_URL`, `RESEND_API_KEY`, `CONTACT_TO`, `CONTACT_FROM`, et pour l'administration
+`DATABASE_URL` (intégration Neon), `BETTER_AUTH_SECRET`, `ADMIN_EMAIL`, `APP_URL` (domaine personnalisé),
+`OPENAI_API_KEY`. Les routes `/administration/*` sont réécrites vers l'application d'administration, servie
+en `noindex`.
 
 ## Accessibilité et mouvement
 

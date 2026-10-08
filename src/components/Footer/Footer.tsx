@@ -61,7 +61,13 @@ export function Footer() {
       </div>
 
       <div className="footer__bar container">
-        <p className="label">© {year} Talab Solutions, appels d’offres au Maroc</p>
+        <div className="footer__bar-start">
+          <p className="label">© {year} Talab Solutions, appels d’offres au Maroc</p>
+          {/* Simple point d'entrée : l'accès est contrôlé côté serveur. Chargement complet de l'application d'administration. */}
+          <a className="footer__admin label" href="/administration/connexion">
+            Administration
+          </a>
+        </div>
         <button type="button" className="footer__top-btn label" onClick={() => scrollToTop({ smooth: !reduced })}>
           Haut de page <ArrowUp size={14} strokeWidth={1.5} aria-hidden="true" />
         </button>

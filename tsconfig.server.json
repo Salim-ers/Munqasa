@@ -1,0 +1,20 @@
+{
+  // Serveur (API Hono, Better Auth, Drizzle) et code partagé : modules Node ESM.
+  // NodeNext impose l'extension .js dans les imports relatifs, comme l'exige Node sur Vercel.
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": ["server", "shared", "api/[...path].ts", "scripts/admin.ts", "tests/server", "drizzle.config.ts"]
+}

@@ -103,6 +103,30 @@
   color: var(--fg-muted);
 }
 
+.footer__bar-start {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-md);
+}
+
+/* Lien discret vers l'espace d'administration. */
+.footer__admin {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  color: var(--fg-faint);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.footer__admin:hover {
+  color: var(--accent);
+}
+
+.footer__admin:focus-visible {
+  color: var(--accent);
+}
+
 .footer__top-btn {
   display: inline-flex;
   align-items: center;

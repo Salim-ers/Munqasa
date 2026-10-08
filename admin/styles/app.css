@@ -1,0 +1,172 @@
+/*
+ * Administration Talab Solutions : Tailwind CSS 4, limité aux fichiers de admin/.
+ * Fond blanc cassé, cartes blanches, terracotta le jour ; nuit harmonisée avec la vitrine (or).
+ * Les couleurs sont des variables : chaque utilitaire (bg-surface, text-ink-2…) suit la lumière.
+ */
+@import "tailwindcss" source(none);
+@source "../";
+
+@custom-variant dark (&:where([data-theme="night"], [data-theme="night"] *));
+
+@font-face {
+  font-family: "Manrope";
+  src: url("/fonts/manrope-variable.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("/fonts/instrument-serif-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("/fonts/instrument-serif-italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+:root,
+[data-theme="day"] {
+  color-scheme: light;
+  --canvas: #f4f1ec;
+  --surface: #ffffff;
+  --surface-2: #f8f6f2;
+  --surface-3: #efebe4;
+  --line: rgb(23 23 23 / 0.07);
+  --line-strong: rgb(23 23 23 / 0.14);
+  --ink: #171717;
+  --ink-2: rgb(23 23 23 / 0.64);
+  --ink-3: rgb(23 23 23 / 0.44);
+  --accent: #a0411e;
+  --accent-2: #c8653b;
+  --accent-soft: rgb(160 65 30 / 0.08);
+  --on-accent: #fffaf4;
+  --success: #2e7d52;
+  --success-soft: rgb(46 125 82 / 0.1);
+  --warning: #a86a12;
+  --warning-soft: rgb(168 106 18 / 0.12);
+  --danger: #b42318;
+  --danger-soft: rgb(180 35 24 / 0.09);
+  --premium: #161514;
+  --premium-2: #24211e;
+  --premium-ink: #f5f1e9;
+  --premium-accent: #e2a679;
+  --focus: #a0411e;
+  --shadow: 0 1px 2px rgb(23 23 23 / 0.04), 0 10px 30px -18px rgb(23 23 23 / 0.16);
+  --shadow-lift: 0 2px 6px rgb(23 23 23 / 0.05), 0 22px 44px -22px rgb(23 23 23 / 0.28);
+}
+
+[data-theme="night"] {
+  color-scheme: dark;
+  --canvas: #0b0c0d;
+  --surface: #141414;
+  --surface-2: #1a1918;
+  --surface-3: #22201d;
+  --line: rgb(245 241 233 / 0.07);
+  --line-strong: rgb(245 241 233 / 0.15);
+  --ink: #f5f1e9;
+  --ink-2: rgb(245 241 233 / 0.68);
+  --ink-3: rgb(245 241 233 / 0.44);
+  --accent: #c9a06a;
+  --accent-2: #e2c08f;
+  --accent-soft: rgb(201 160 106 / 0.12);
+  --on-accent: #171717;
+  --success: #6cc191;
+  --success-soft: rgb(108 193 145 / 0.12);
+  --warning: #e0b15f;
+  --warning-soft: rgb(224 177 95 / 0.13);
+  --danger: #f08a7e;
+  --danger-soft: rgb(240 138 126 / 0.12);
+  --premium: #1f1a15;
+  --premium-2: #2c241c;
+  --premium-ink: #f5f1e9;
+  --premium-accent: #c9a06a;
+  --focus: #c9a06a;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 14px 36px -20px rgb(0 0 0 / 0.7);
+  --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.5), 0 26px 50px -24px rgb(0 0 0 / 0.85);
+}
+
+@theme inline {
+  --font-sans: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-premium: var(--premium);
+  --color-premium-2: var(--premium-2);
+  --color-premium-ink: var(--premium-ink);
+  --color-premium-accent: var(--premium-accent);
+
+  --radius-card: 1.125rem;
+  --radius-field: 0.75rem;
+  --shadow-card: var(--shadow);
+  --shadow-lift: var(--shadow-lift);
+
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+}
+
+@layer base {
+  html {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    min-height: 100vh;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+
+  /* Chiffres alignés dans les tableaux et indicateurs. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}

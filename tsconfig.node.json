@@ -14,5 +14,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["vite.config.ts", "build", "api"]
+  "include": ["vite.config.ts", "build", "api/contact.ts", "api/_lib"]
 }
