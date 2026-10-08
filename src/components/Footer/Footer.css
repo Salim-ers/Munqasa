@@ -73,7 +73,7 @@
   color: var(--fg);
 }
 
-/* Nom de marque en terracotta, sur une ligne. */
+/* Nom de marque sur une ligne, couleur d'accent : terracotta le jour, or la nuit. */
 .footer__giant {
   position: relative;
   margin-top: var(--space-md);
@@ -85,7 +85,8 @@
   text-align: center;
   text-transform: uppercase;
   white-space: nowrap;
-  color: var(--color-terracotta);
+  color: var(--accent);
+  transition: color var(--dur-base) var(--ease-premium);
   user-select: none;
 }
 

@@ -147,6 +147,9 @@ vérification (humains, texte, logos, géométrie).
 (le noir passe en ivoire, le bronze et la végétation gardent leurs couleurs), symbole et mot-symbole séparés, favicons
 (le bâtiment seul) et image Open Graph.
 
+Dans l’en-tête, le logo est le nom TALAB en capitales serif, comme le nom du pied de page, dans la couleur
+d’accent (terracotta le jour, or la nuit). Le logo complet sert au loader, aux icônes et à l’image de partage.
+
 ## Formulaire de contact
 
 `POST /api/contact` : validation serveur (schéma partagé `src/lib/contact.ts`), nettoyage des entrées, champ piège,

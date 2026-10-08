@@ -135,10 +135,7 @@ async function main() {
   await save(wordmark, "talab-wordmark", 1200);
   await save(wordmarkNeg, "talab-wordmark-reversed", 1200);
 
-  // Déclinaisons légères pour l'en-tête et le loader (affichage ≤ 160 px de haut).
-  await save(symbol, "talab-symbol-sm", 320);
-  await save(symbolNeg, "talab-symbol-reversed-sm", 320);
-  await save(wordmark, "talab-wordmark-sm", 560);
+  // Déclinaison légère du nom pour le loader.
   await save(wordmarkNeg, "talab-wordmark-reversed-sm", 560);
 
   console.log("→ Favicons (le bâtiment seul, lisible en petit)");
