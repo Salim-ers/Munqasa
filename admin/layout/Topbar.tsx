@@ -7,6 +7,7 @@ import { authClient } from "../lib/auth-client";
 import { setLight, useLight } from "../lib/theme";
 import { ME_KEY, useMe } from "../lib/session";
 import { findNavItem } from "./nav";
+import { NotificationBell } from "./NotificationBell";
 
 export function Topbar({ onOpenPalette, onOpenMobileNav }: { onOpenPalette: () => void; onOpenMobileNav: () => void }) {
   const { pathname } = useLocation();
@@ -55,6 +56,7 @@ export function Topbar({ onOpenPalette, onOpenMobileNav }: { onOpenPalette: () =
         <button type="button" onClick={onOpenPalette} className="grid size-9 place-items-center rounded-xl text-ink-2 hover:bg-surface lg:hidden" aria-label="Rechercher">
           <Search className="size-[1.125rem]" aria-hidden="true" />
         </button>
+        <NotificationBell />
         <button
           type="button"
           onClick={() => setLight(light === "night" ? "day" : "night")}

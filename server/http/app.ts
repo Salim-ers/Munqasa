@@ -1,13 +1,22 @@
 /**
- * API Hono : /api/auth/* (Better Auth) et /api/admin/* (métier, protégée).
+ * API Hono : /api/auth/* (Better Auth), /api/admin/* (métier, protégée), /api/jobs/* (tâche planifiée).
  * Même application sur Vercel (api/index.ts) et en local (middleware Vite).
  */
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { getAuth } from "../auth/auth.js";
 import { type AdminEnv, requireAdmin, sameOriginOnly } from "../auth/guard.js";
 import { ConfigError } from "../env.js";
+import { AiBudgetError } from "../services/openai.js";
+import { StorageNotConfiguredError } from "../services/storage.js";
+import { clientRoutes, prospectRoutes } from "./routes/crm.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
+import { fileRoutes } from "./routes/files.js";
+import { jobRoutes } from "./routes/jobs.js";
+import { deadlineRoutes, projectRoutes } from "./routes/projects.js";
+import { aiRoutes, companyRoutes, notificationRoutes, settingRoutes } from "./routes/settings.js";
 import { systemRoutes } from "./routes/system.js";
+import { ValidationError } from "./validate.js";
 
 function adminApi() {
   const admin = new Hono<AdminEnv>();
@@ -27,6 +36,15 @@ function adminApi() {
   admin.use("*", requireAdmin());
   admin.route("/dashboard", dashboardRoutes);
   admin.route("/system", systemRoutes);
+  admin.route("/clients", clientRoutes);
+  admin.route("/prospects", prospectRoutes);
+  admin.route("/projects", projectRoutes);
+  admin.route("/deadlines", deadlineRoutes);
+  admin.route("/files", fileRoutes);
+  admin.route("/company", companyRoutes);
+  admin.route("/settings", settingRoutes);
+  admin.route("/notifications", notificationRoutes);
+  admin.route("/ai", aiRoutes);
   return admin;
 }
 
@@ -43,13 +61,26 @@ export function createApp() {
   // Connexion, double authentification, passkeys : uniquement depuis le site lui-même.
   app.on(["GET", "POST"], "/auth/*", sameOriginOnly, async (c) => (await getAuth()).handler(c.req.raw));
   app.route("/admin", adminApi());
+  // Appelée par Vercel Cron, authentifiée par CRON_SECRET (hors session).
+  app.route("/jobs", jobRoutes);
 
   app.notFound((c) => c.json({ error: "introuvable", message: "Ressource introuvable." }, 404));
   app.onError((error, c) => {
+    if (error instanceof ValidationError) {
+      return c.json({ error: "validation", message: error.message, fields: error.fields }, 400);
+    }
+    if (error instanceof HTTPException) {
+      const code = error.status === 404 ? "introuvable" : error.status === 409 ? "conflit" : "requete_invalide";
+      return c.json({ error: code, message: error.message }, error.status);
+    }
+    if (error instanceof AiBudgetError) return c.json({ error: "plafond_ia", message: error.message }, 429);
     // Le détail reste dans les journaux serveur ; le client reçoit un message neutre.
     console.error("[api]", c.req.method, c.req.path, error);
     if (error instanceof ConfigError) {
       return c.json({ error: "configuration_incomplete", message: "La configuration du serveur est incomplète." }, 503);
+    }
+    if (error instanceof StorageNotConfiguredError) {
+      return c.json({ error: "stockage_non_configure", message: "Le stockage des fichiers n’est pas encore configuré." }, 503);
     }
     // Ne relit pas la configuration ici : elle peut être la cause de l'erreur.
     const production = Boolean(process.env.VERCEL_ENV) || process.env.NODE_ENV === "production";

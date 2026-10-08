@@ -162,6 +162,46 @@
   }
 }
 
+/* Fenêtres : apparition centrée sur grand écran, feuille montante sur téléphone. */
+@keyframes talab-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes talab-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Le centrage passe par la propriété « translate » (Tailwind 4) : ici, seul « transform » s'anime. */
+@keyframes talab-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.97);
+  }
+}
+
+@keyframes talab-pop-out {
+  to {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.97);
+  }
+}
+
+@keyframes talab-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes talab-sheet-out {
+  to {
+    transform: translateY(100%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

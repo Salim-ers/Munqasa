@@ -3,7 +3,7 @@
  * un module apparaît ici quand ses écrans et son API fonctionnent (aucun lien décoratif).
  */
 import type { LucideIcon } from "lucide-react";
-import { LayoutDashboard, ShieldCheck } from "lucide-react";
+import { Bell, Building2, CalendarDays, FolderKanban, LayoutDashboard, Server, Settings, ShieldCheck, UserRoundSearch } from "lucide-react";
 
 export interface NavItem {
   to: string;
@@ -21,11 +21,27 @@ export interface NavGroup {
 export const NAV: NavGroup[] = [
   {
     label: "Vue générale",
-    items: [{ to: "/administration/dashboard", label: "Tableau de bord", icon: LayoutDashboard, keywords: ["accueil", "pilotage", "indicateurs"] }],
+    items: [
+      { to: "/administration/dashboard", label: "Tableau de bord", icon: LayoutDashboard, keywords: ["accueil", "pilotage", "indicateurs"] },
+      { to: "/administration/agenda", label: "Agenda", icon: CalendarDays, keywords: ["échéances", "remise", "visite", "calendrier", "dates"] },
+      { to: "/administration/notifications", label: "Notifications", icon: Bell, keywords: ["rappels", "alertes"] },
+    ],
+  },
+  {
+    label: "Affaires",
+    items: [
+      { to: "/administration/affaires", label: "Mes affaires", icon: FolderKanban, keywords: ["projets", "appels d’offres", "dossiers", "lots", "plans", "documents"] },
+      { to: "/administration/clients", label: "Clients", icon: Building2, keywords: ["maîtres d’ouvrage", "contacts"] },
+      { to: "/administration/prospects", label: "Prospects", icon: UserRoundSearch, keywords: ["commercial", "contacts", "conversion"] },
+    ],
   },
   {
     label: "Administration",
-    items: [{ to: "/administration/securite", label: "Sécurité", icon: ShieldCheck, keywords: ["sessions", "passkey", "double authentification", "mot de passe", "journal"] }],
+    items: [
+      { to: "/administration/parametres", label: "Paramètres", icon: Settings, keywords: ["entreprise", "entité", "tva", "identité", "couleurs", "intelligence artificielle", "openai", "modèles", "alertes"] },
+      { to: "/administration/systeme", label: "Système", icon: Server, keywords: ["connexions", "sauvegarde", "export", "journal", "audit"] },
+      { to: "/administration/securite", label: "Sécurité", icon: ShieldCheck, keywords: ["sessions", "passkey", "double authentification", "mot de passe"] },
+    ],
   },
 ];
 

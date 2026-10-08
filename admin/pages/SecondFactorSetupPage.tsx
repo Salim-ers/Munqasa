@@ -59,7 +59,7 @@ export function SecondFactorSetupPage() {
   }
 
   function downloadCodes() {
-    const content = `Talab Solutions — codes de secours de la double authentification\nChaque code ne sert qu'une fois. Conservez ce fichier hors ligne.\n\n${backupCodes.join("\n")}\n`;
+    const content = `Talab Solutions, codes de secours de la double authentification\nChaque code ne sert qu'une fois. Conservez ce fichier hors ligne.\n\n${backupCodes.join("\n")}\n`;
     const url = URL.createObjectURL(new Blob([content], { type: "text/plain;charset=utf-8" }));
     const a = Object.assign(document.createElement("a"), { href: url, download: "talab-codes-de-secours.txt" });
     a.click();

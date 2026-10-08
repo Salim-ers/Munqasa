@@ -4,6 +4,7 @@
  * - /administration/* → administration/index.html (application monopage de l'administration).
  * En production, Vercel fait la même chose avec api/index.ts et la réécriture de vercel.json.
  */
+import { readFileSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Readable } from "node:stream";
 import { createServer, type Connect, type Plugin, type ViteDevServer } from "vite";
@@ -60,6 +61,27 @@ const adminFallback: Connect.NextHandleFunction = (req, _res, next) => {
   next();
 };
 
+/**
+ * Prévisualisation : mêmes en-têtes que Vercel (vercel.json), dont la politique de sécurité du contenu,
+ * pour vérifier localement que tout fonctionne sous ces règles.
+ */
+function vercelHeaders(root: string): Connect.NextHandleFunction {
+  const config = JSON.parse(readFileSync(`${root}/vercel.json`, "utf8")) as { headers?: Array<{ source: string; headers: Array<{ key: string; value: string }> }> };
+  const rules = (config.headers ?? []).map((rule) => ({ pattern: new RegExp(`^${rule.source}$`), headers: rule.headers }));
+  return (req, res, next) => {
+    const path = (req.url ?? "/").split("?")[0] ?? "/";
+    for (const rule of rules) {
+      if (!rule.pattern.test(path)) continue;
+      for (const h of rule.headers) {
+        // En local (HTTP), les règles propres à HTTPS sont omises.
+        if (h.key === "Strict-Transport-Security") continue;
+        res.setHeader(h.key, h.key === "Content-Security-Policy" ? h.value.replace(/;\s*upgrade-insecure-requests/, "") : h.value);
+      }
+    }
+    next();
+  };
+}
+
 export function adminDevPlugin(): Plugin {
   let ssr: ViteDevServer | null = null;
   return {
@@ -78,6 +100,7 @@ export function adminDevPlugin(): Plugin {
         const address = server.httpServer?.address();
         if (!process.env.APP_URL && address && typeof address === "object") process.env.APP_URL = `http://localhost:${address.port}`;
       });
+      server.middlewares.use(vercelHeaders(server.config.root));
       // Prévisualisation du build : le code serveur (TypeScript) est chargé par un serveur Vite interne.
       server.middlewares.use(
         apiMiddleware(async () => {

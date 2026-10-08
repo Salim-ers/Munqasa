@@ -10,6 +10,7 @@ import { api } from "../lib/api";
 import { authClient, authErrorMessage } from "../lib/auth-client";
 import { formatDateTime, formatIp, formatRelative } from "../lib/format";
 import { useMe } from "../lib/session";
+import { actionLabel } from "../lib/audit";
 
 interface AuditEntry {
   id: string;
@@ -25,34 +26,9 @@ function describeDevice(ua: string | null | undefined): { label: string; icon: R
   const browser = /Edg\//.test(s) ? "Edge" : /Firefox\//.test(s) ? "Firefox" : /Chrome\//.test(s) ? "Chrome" : /Safari\//.test(s) ? "Safari" : "Navigateur";
   const os = /iPhone/.test(s) ? "iPhone" : /iPad/.test(s) ? "iPad" : /Android/.test(s) ? "Android" : /Mac OS X/.test(s) ? "macOS" : /Windows/.test(s) ? "Windows" : /Linux/.test(s) ? "Linux" : "";
   const icon = /iPhone|Android.*Mobile/.test(s) ? <Smartphone /> : /iPad|Tablet/.test(s) ? <Tablet /> : /Mac OS X|Windows|Linux/.test(s) ? <Laptop /> : <Monitor />;
-  return { label: os ? `${browser} · ${os}` : browser, icon };
+  return { label: os ? `${browser}, ${os}` : browser, icon };
 }
 
-const ACTION_LABELS: Record<string, string> = {
-  "connexion.mot_de_passe.reussite": "Connexion par mot de passe",
-  "connexion.mot_de_passe.second_facteur_requis": "Mot de passe correct, second facteur demandé",
-  "connexion.mot_de_passe.echec": "Échec de connexion (mot de passe)",
-  "connexion.second_facteur.reussite": "Second facteur validé",
-  "connexion.second_facteur.echec": "Second facteur refusé",
-  "connexion.code_de_secours.reussite": "Connexion par code de secours",
-  "connexion.code_de_secours.echec": "Code de secours refusé",
-  "connexion.passkey.reussite": "Connexion par passkey",
-  "connexion.passkey.echec": "Passkey refusée",
-  "deconnexion.reussite": "Déconnexion",
-  "sessions.revocation_toutes.reussite": "Toutes les sessions fermées",
-  "sessions.revocation_autres.reussite": "Autres sessions fermées",
-  "sessions.revocation.reussite": "Session fermée",
-  "securite.2fa_activation_demandee.reussite": "Activation de la double authentification",
-  "securite.2fa_desactivation.reussite": "Double authentification désactivée",
-  "securite.codes_de_secours_regeneres.reussite": "Codes de secours régénérés",
-  "securite.passkey_ajoutee.reussite": "Passkey ajoutée",
-  "securite.passkey_supprimee.reussite": "Passkey supprimée",
-  "securite.mot_de_passe_modifie.reussite": "Mot de passe modifié",
-  "securite.mot_de_passe_modifie.echec": "Échec de modification du mot de passe",
-  "acces.refuse": "Accès refusé",
-  "compte.creation_refusee": "Création de compte refusée",
-  "compte.cree_en_ligne_de_commande": "Compte créé (ligne de commande)",
-};
 
 export function SecurityPage() {
   return (
@@ -133,7 +109,7 @@ function SessionsCard() {
                       {current ? <Badge tone="success">Cet appareil</Badge> : null}
                     </p>
                     <p className="mt-0.5 truncate text-2xs text-ink-3">
-                      {formatIp(s.ipAddress)} · ouverte {formatRelative(s.createdAt)} · expire {formatRelative(s.expiresAt)}
+                      {formatIp(s.ipAddress)}, ouverte {formatRelative(s.createdAt)}, expire {formatRelative(s.expiresAt)}
                     </p>
                   </div>
                   {current ? null : (
@@ -347,9 +323,9 @@ function AuditCard() {
                 <li key={e.id} className="flex items-start gap-3 border-b border-line py-2.5 last:border-0">
                   <span className={failed ? "mt-1.5 size-1.5 shrink-0 rounded-full bg-danger" : "mt-1.5 size-1.5 shrink-0 rounded-full bg-success"} aria-hidden="true" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium text-ink">{ACTION_LABELS[e.action] ?? e.action}</p>
+                    <p className="text-xs font-medium text-ink">{actionLabel(e.action)}</p>
                     <p className="mt-0.5 truncate text-2xs text-ink-3">
-                      {formatDateTime(e.occurredAt)} · {formatIp(e.ipAddress)} · {describeDevice(e.userAgent).label}
+                      {formatDateTime(e.occurredAt)}, {formatIp(e.ipAddress)}, {describeDevice(e.userAgent).label}
                     </p>
                   </div>
                 </li>

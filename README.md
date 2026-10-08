@@ -9,9 +9,10 @@ Gestion et accompagnement des appels d'offres au Maroc. *De l'avis à la soumiss
 ```bash
 npm install
 npm run dev        # http://localhost:5173 : vitrine, administration (/administration) et API
-npm run build      # vérification TypeScript (5 projets) + build de production dans dist/
-npm run preview    # sert dist/ en local (API comprise)
-npm test           # tests serveur (authentification, protections) sur PostgreSQL embarqué
+npm run build      # vérification TypeScript (6 projets) + build de production dans dist/
+npm run preview    # sert dist/ en local (API comprise ; TALAB_LOCAL=1 pour utiliser la base locale)
+npm test           # tests serveur et schémas partagés, sur PostgreSQL embarqué
+npm run test:e2e   # parcours complets de l'administration dans Chrome (base et stockage jetables)
 ```
 
 ## Structure
@@ -31,7 +32,7 @@ admin/          application d'administration (entrée administration/index.html)
 server/         API Hono, authentification, base de données (schéma, migrations), services
 build/          plugins Vite : SEO statique par route, API et administration en local
 docs/           architecture et avancement de l'administration
-tests/          tests serveur (Vitest)
+tests/          tests serveur et schémas (Vitest), parcours de bout en bout (Playwright)
 scripts/        outils de production : logo, photos, génération d'images (OpenAI)
 public/         images optimisées, logos détourés, polices auto-hébergées, favicons
 ```
@@ -251,6 +252,15 @@ npm run db:generate                 # nouvelle migration après une modification
 - **Compte unique** : aucune inscription ; la création de tout autre compte est refusée en base.
 - **Connexion** : mot de passe puis code TOTP (ou code de secours), ou passkey. Double authentification obligatoire.
   Sessions de 12 h, limitation des tentatives, journal des connexions (page Sécurité).
+- **Modules** : tableau de bord, affaires (lots, échéances, documents, historique), clients, prospects, agenda,
+  notifications, paramètres (entités émettrices, identité documentaire, IA, alertes), système (connexions,
+  sauvegarde, journal).
+- **Fichiers** : stockés dans un compartiment privé compatible S3 (Cloudflare R2), envoyés et téléchargés par URL
+  signée de courte durée ; en développement, dans `.data/storage`. Le type réel est vérifié à la réception.
+- **Tâche planifiée** : chaque matin (Vercel Cron, `CRON_SECRET`), rappels d'échéance et nettoyage des envois
+  abandonnés.
+- **Prévisualisation locale du build** : `npm run preview` applique les en-têtes de `vercel.json` (CSP comprise).
+  Comme `NODE_ENV` vaut alors `production`, ajouter `TALAB_LOCAL=1` pour utiliser la base et le stockage locaux.
 
 ## Déploiement (Vercel)
 
@@ -260,7 +270,7 @@ description, canonical, Open Graph, JSON-LD), ainsi que `sitemap.xml`, `robots.t
 
 Renseigner dans Vercel : `VITE_SITE_URL`, `RESEND_API_KEY`, `CONTACT_TO`, `CONTACT_FROM`, et pour l'administration
 `DATABASE_URL` (intégration Neon), `BETTER_AUTH_SECRET`, `ADMIN_EMAIL`, `APP_URL` (domaine personnalisé),
-`OPENAI_API_KEY`. Les routes `/administration/*` sont réécrites vers l'application d'administration, servie
+`OPENAI_API_KEY`, `CRON_SECRET` et les variables `S3_*` du compartiment R2 (voir `docs/AVANCEMENT.md`). Les routes `/administration/*` sont réécrites vers l'application d'administration, servie
 en `noindex`.
 
 ## Accessibilité et mouvement

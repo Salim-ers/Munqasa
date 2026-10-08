@@ -26,11 +26,37 @@ sans fonctionner n'est jamais comptée comme faite.
 
 Tests : `npm test` (13 tests d'authentification et de protection, base PostgreSQL réelle en mémoire).
 
-## Étape B : socle fonctionnel (à venir)
+## Étape B : socle fonctionnel (terminée)
 
-Affaires (création, référence automatique, lots, échéances, onglets), clients, prospects, agenda, notifications,
-téléversement sécurisé (stockage privé, URL signées, vérification du type réel), paramètres de l'entreprise,
-identité documentaire, paramètres IA (modèles disponibles via l'API), journal général.
+| Élément | État | Vérification |
+| --- | --- | --- |
+| API métier protégée : clients, prospects, affaires, lots, échéances, fichiers, entités émettrices, réglages, notifications, IA, système | fait | tests d'intégration : 401 sans session, 403 sans double authentification, 403 depuis un autre site |
+| Références automatiques `TAL-AAAA-NNNN` (compteur atomique en base) | fait | test : 20 références demandées en même temps, toutes distinctes |
+| Modifications partielles : seuls les champs envoyés changent | fait | tests (Zod 4 réinjectait les valeurs par défaut des champs absents ; corrigé) |
+| Affaires : liste (recherche, filtres, tri, pagination, archives), fiche à onglets (synthèse, lots, échéances, documents, historique), changement de statut, estimation en décimal exact | fait | tests + parcours navigateur |
+| Clients (identifiants légaux selon le pays, archivage, affaires rattachées) et prospects (qualification, conversion définitive en client) | fait | tests + parcours navigateur |
+| Agenda : dates de remise lues sur les affaires, échéances libres, retards, regroupement par semaine | fait | tests + parcours navigateur |
+| Téléversement : URL signée vers le compartiment privé (ou envoi local en développement), type réel vérifié sur la signature binaire, taille contrôlée, empreinte SHA-256, doublons signalés, fichier refusé effacé, téléchargement temporaire, suppression définitive tracée | fait en local, R2 développé | tests + navigateur en local ; l'envoi vers R2 sera vérifié dès le compartiment configuré |
+| Notifications : rappels J-7, J-3, J-1 et jour même, comptés en jours calendaires à l'heure du pays de l'affaire, jamais en double (index unique) ; cloche et page | fait | tests + parcours navigateur |
+| Tâche planifiée quotidienne (Vercel Cron, 6 h UTC, protégée par `CRON_SECRET`) : rappels, nettoyage des envois abandonnés | fait | tests ; première exécution réelle après ajout du secret |
+| Paramètres : entités émettrices (TVA et mentions saisies, jamais supposées), identité documentaire avec aperçu, IA (modèles listés par l'API OpenAI, barème saisi, plafond mensuel, essai), alertes | fait | tests + navigateur ; l'essai OpenAI réel attend la clé côté serveur |
+| Système : état des services, essai des connexions, sauvegarde JSON (sans aucune donnée d'authentification), volumétrie, journal filtrable | fait | tests + navigateur |
+| Tableau de bord relié aux modules (création d'affaire, liens), seuil d'ancienneté des prix lu dans les réglages | fait | navigateur |
+| Interface jour et nuit, téléphone (fenêtres en feuille montante, listes en cartes), tablette ; chargement par page (code initial ramené de 807 à 272 Ko) | fait | captures à 1440, 820 et 390 px, jour et nuit, aucun débordement |
+| CSP propre à l'administration (seul le stockage R2 s'ajoute au site) | fait | build de production vérifié sous la CSP réelle : aucune violation |
+| Tests de bout en bout versionnés (`npm run test:e2e`, Chrome) | fait | 12 parcours, aucune erreur dans le navigateur |
+
+Tests : `npm test` (55 tests : 13 d'authentification, 38 métier, 4 sur les schémas partagés) et `npm run test:e2e`
+(12 parcours complets, base et stockage jetables, aucune clé externe).
+
+Limites connues de cette étape, à traiter plus tard :
+
+- **Antivirus** : les fichiers sont vérifiés (type réel, taille), pas analysés par un antivirus ; cela demande un
+  service externe, à décider.
+- **Gros fichiers** : l'empreinte SHA-256 n'est calculée qu'en dessous de 100 Mo ; au-delà, un traitement de fond
+  s'en chargera (étape C). En production, tout envoi passe par R2 (les fonctions Vercel limitent les requêtes à 4,5 Mo).
+- **Bibliothèque de documents sans affaire** : prête côté API et testée, son écran arrive avec la bibliothèque de prix.
+- **Notifications par e-mail** : non prévues à ce stade (notifications dans l'application uniquement).
 
 ## Étapes C à E
 
@@ -45,5 +71,19 @@ Voir `docs/ARCHITECTURE.md`, section « Phases ».
    `.env.local` (ou `vercel env pull`), lancer `npm run admin -- create` et saisir le mot de passe (masqué).
 4. **Première connexion** : activer la double authentification et conserver les codes de secours.
 5. **Clé OpenAI** : la régénérer par précaution (elle a été collée un jour dans un fichier suivi par Git, jamais
-   publiée), puis la déclarer dans les variables Vercel (`OPENAI_API_KEY`).
-6. **Stockage des fichiers** (étape B) : un compartiment Cloudflare R2 privé et ses clés (`S3_*`).
+   publiée), puis la déclarer dans les variables Vercel (`OPENAI_API_KEY`). Choisir ensuite les modèles et saisir
+   leur barème dans *Paramètres* > *Intelligence artificielle*.
+6. **Stockage des fichiers** : sur Cloudflare, créer un compartiment R2 **privé** et un jeton d'API limité à ce
+   compartiment (lecture et écriture d'objets). Variables Vercel : `S3_ENDPOINT`
+   (`https://<identifiant du compte>.r2.cloudflarestorage.com`), `S3_REGION` (`auto`), `S3_BUCKET`,
+   `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`. Dans les réglages du compartiment, règle CORS :
+
+   ```json
+   [{ "AllowedOrigins": ["https://munqasa.vercel.app"], "AllowedMethods": ["PUT"], "AllowedHeaders": ["content-type"], "MaxAgeSeconds": 3600 }]
+   ```
+
+   (ajouter le domaine définitif dans `AllowedOrigins` le moment venu). Sans ces variables, l'envoi de fichiers
+   répond « stockage non configuré » en production.
+7. **Tâche planifiée** : générer un secret long (`openssl rand -hex 32`) et le déclarer dans Vercel sous
+   `CRON_SECRET`. Vercel l'envoie automatiquement à chaque exécution quotidienne ; la page *Système* indique
+   s'il est présent.

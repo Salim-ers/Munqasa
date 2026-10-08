@@ -6,22 +6,23 @@ import { and, count, desc, eq, gte, inArray, isNull, lt, lte, ne, sql, sum } fro
 import { Hono } from "hono";
 import type { AdminEnv } from "../../auth/guard.js";
 import { getDb, schema } from "../../db/index.js";
+import { readSetting } from "../../services/settings.js";
 
 const OPEN_STATUSES = ["brouillon", "analyse", "etude_technique", "chiffrage", "controle_qualite", "pret_a_remettre"] as const;
 const PREPARATION_STATUSES = ["etude_technique", "chiffrage", "controle_qualite"] as const;
 const ACTIVE_TENDER_STATUSES = ["analyse", "etude_technique", "chiffrage", "controle_qualite", "pret_a_remettre"] as const;
 const PENDING_QUOTE_STATUSES = ["a_verifier", "valide", "envoye"] as const;
-/** Un prix est signalé comme ancien au-delà de 12 mois. */
-const STALE_PRICE_MONTHS = 12;
 
 export const dashboardRoutes = new Hono<AdminEnv>().get("/", async (c) => {
   const db = await getDb();
   const p = schema.project;
+  // Un prix est signalé comme ancien au-delà du seuil des réglages d'alerte (12 mois par défaut).
+  const { stalePriceMonths } = await readSetting("alertes");
   const now = new Date();
   const in14days = new Date(now.getTime() + 14 * 24 * 3600 * 1000);
   const days30ago = new Date(now.getTime() - 30 * 24 * 3600 * 1000);
   const staleDate = new Date(now);
-  staleDate.setMonth(staleDate.getMonth() - STALE_PRICE_MONTHS);
+  staleDate.setMonth(staleDate.getMonth() - stalePriceMonths);
 
   const [
     byStatus,
@@ -151,13 +152,13 @@ export const dashboardRoutes = new Hono<AdminEnv>().get("/", async (c) => {
       quotesByMonth: quotesByMonth.map((r) => ({ month: r.month, currency: r.currency, count: Number(r.n) })),
     },
     deadlines: [
-      ...upcomingProjects.map((r) => ({ kind: "remise" as const, id: r.id, title: `${r.reference} · ${r.name}`, dueAt: r.dueAt })),
+      ...upcomingProjects.map((r) => ({ kind: "remise" as const, id: r.id, title: `${r.reference}, ${r.name}`, dueAt: r.dueAt })),
       ...upcomingDeadlines.map((r) => ({ kind: "jalon" as const, id: r.id, title: r.title, dueAt: r.dueAt, projectId: r.projectId })),
     ].sort((a, b) => String(a.dueAt).localeCompare(String(b.dueAt))),
     alerts: {
       stalePrices: Number(staleprices[0]?.n ?? 0),
       unverifiedPrices: Number(unverifiedPrices[0]?.n ?? 0),
-      stalePriceMonths: STALE_PRICE_MONTHS,
+      stalePriceMonths,
     },
     ai: {
       jobsRunning: Number(jobsRunning[0]?.n ?? 0),

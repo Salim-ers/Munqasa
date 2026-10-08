@@ -1,5 +1,5 @@
 /** Contrôle qualité, journal d'audit, notifications. */
-import { index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { index, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { createdAt, id, updatedAt } from "./columns.js";
 import { documentTypeEnum, issueCategoryEnum, issueSeverityEnum, issueStatusEnum, notificationKindEnum } from "./enums.js";
 import { project } from "./projects.js";
@@ -54,8 +54,10 @@ export const notification = pgTable(
     body: text("body"),
     projectId: uuid("project_id").references(() => project.id, { onDelete: "cascade" }),
     link: text("link"),
+    /** Clé d'unicité des notifications automatiques (ex. « remise:<id>:J-3 ») : jamais deux fois le même rappel. */
+    dedupeKey: text("dedupe_key"),
     readAt: timestamp("read_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
-  (t) => [index("notification_unread_idx").on(t.readAt, t.createdAt)],
+  (t) => [index("notification_unread_idx").on(t.readAt, t.createdAt), uniqueIndex("notification_dedupe_idx").on(t.dedupeKey)],
 );

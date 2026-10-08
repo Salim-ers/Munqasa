@@ -2,7 +2,7 @@ import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { Dialog } from "radix-ui";
 import { useEffect, useState } from "react";
-import { NavLink, useLocation, useOutlet } from "react-router";
+import { NavLink, useLocation, useNavigation, useOutlet } from "react-router";
 import { TalabSymbol, TalabWordmark } from "../components/brand/TalabMark";
 import { cn } from "../lib/cn";
 import { CommandPalette } from "./CommandPalette";
@@ -27,15 +27,24 @@ export function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const outlet = useOutlet();
+  const navigation = useNavigation();
   const current = findNavItem(location.pathname);
 
   useEffect(() => {
-    document.title = `${current?.label ?? "Administration"} · Talab Solutions`;
+    document.title = `${current?.label ?? "Administration"} | Talab Solutions`;
     setMobileOpen(false);
   }, [current?.label, location.pathname]);
 
   return (
     <div className="flex min-h-screen bg-canvas">
+      {/* Chargement d'une page (module téléchargé à la demande). */}
+      <div
+        className={cn(
+          "pointer-events-none fixed inset-x-0 top-0 z-[60] h-0.5 origin-left bg-accent transition-[transform,opacity] ease-out",
+          navigation.state === "loading" ? "scale-x-75 opacity-100 duration-[1500ms]" : "scale-x-100 opacity-0 duration-300",
+        )}
+        aria-hidden="true"
+      />
       <Sidebar
         expanded={expanded}
         onToggle={() =>

@@ -37,3 +37,21 @@ export function requestOrigin(headers: Headers): { ipAddress: string | null; use
     userAgent: headers.get("user-agent"),
   };
 }
+
+/** Journalise une action de l'administrateur depuis une route Hono (session + origine de la requête). */
+export async function auditAction(
+  c: { req: { raw: Request }; get(key: "session"): { user: { id: string } } },
+  action: string,
+  entityType: string,
+  entityId: string | null,
+  details: Record<string, unknown> = {},
+): Promise<void> {
+  await writeAudit({
+    action,
+    actorUserId: c.get("session").user.id,
+    entityType,
+    entityId: entityId ?? undefined,
+    details,
+    ...requestOrigin(c.req.raw.headers),
+  });
+}
