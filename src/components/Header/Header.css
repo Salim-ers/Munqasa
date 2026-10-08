@@ -42,8 +42,12 @@
   margin-right: auto;
 }
 
+.header__brand .logo {
+  transition: --logo-h var(--dur-base) var(--ease-premium);
+}
+
 .header.is-compact .header__brand .logo {
-  font-size: 2.15rem;
+  --logo-h: 34px;
 }
 
 .header__nav ul {
@@ -164,7 +168,7 @@
 
   .header__brand .logo,
   .header.is-compact .header__brand .logo {
-    font-size: 2rem;
+    --logo-h: 28px;
   }
 
   .header__inner {

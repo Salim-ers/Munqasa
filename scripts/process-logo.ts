@@ -1,34 +1,51 @@
 /**
- * Prépare les déclinaisons du logo Talab Solutions à partir du fichier fourni.
+ * Prépare les déclinaisons du logo Talab Solutions à partir des fichiers fournis.
  *
  *   npm run logo
  *
- * Aucune géométrie n'est redessinée. Le fichier fourni a déjà un fond
- * transparent : ses aplats (opacité 99 %) sont simplement ramenés à 100 %,
- * puis le logo est recadré. La version « négative » remplace uniquement le
- * noir par l'ivoire pour les fonds sombres — bronze, palmier et olivier
- * gardent leurs couleurs.
+ * Deux sources, jamais redessinées, déjà détourées (fond transparent) :
+ *  - JOUR : le logo terracotta (assets-src/brand/talab-logo-terracotta-source.png),
+ *    utilisé tel quel ;
+ *  - NUIT : le logo bronze (assets-src/brand/talab-logo-source.png), en version
+ *    « blanche » : seul le noir passe en ivoire, le bronze (or) et la végétation
+ *    gardent leurs couleurs.
+ * Les aplats des fichiers fournis sont à 99 % d'opacité : ils sont ramenés à 100 %.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import sharp from "sharp";
 
 const ROOT = process.cwd();
-const SRC = resolve(ROOT, "assets-src/brand/talab-logo-source.png");
 const LOGOS = resolve(ROOT, "public/logos");
 const PUBLIC = resolve(ROOT, "public");
 
 const IVORY = [245, 241, 233] as const;
 const NIGHT = "#0B0C0D";
-
-/** Zones mesurées sur le fichier source (887 × 887). */
-const SYMBOL = { top: 110, bottom: 530 }; // bâtiment, palmier, olivier
-const WORDMARK = { top: 528, bottom: 786 }; // TALAB, SOLUTIONS et le filet
-const BUILDING = { left: 318, right: 672, top: 120, bottom: 520 }; // favicon : le bâtiment seul
-/** Palmier et olivier : leurs ombres sombres ne sont pas de l'encre, elles ne s'inversent pas. */
-const VEGETATION = { left: 666, bottom: 530 };
-/** Opacité des aplats dans le fichier fourni (252–253 / 255). */
+/** Opacité des aplats dans les fichiers fournis (252–253 / 255). */
 const SOLID_ALPHA = 253;
+
+interface Box {
+  left?: number;
+  right?: number;
+  top: number;
+  bottom: number;
+}
+
+/** Zones mesurées sur chaque fichier source. */
+const DAY = {
+  src: resolve(ROOT, "assets-src/brand/talab-logo-terracotta-source.png"), // 1701 × 925
+  symbol: { top: 0, bottom: 614 }, // bâtiment, palmier, olivier
+  wordmark: { top: 612, bottom: 925 }, // TALAB, SOLUTIONS et le filet
+  building: { left: 588, right: 1166, top: 0, bottom: 612 }, // favicon : le bâtiment seul, sans la ligne de sol
+};
+
+const NIGHT_SRC = {
+  src: resolve(ROOT, "assets-src/brand/talab-logo-source.png"), // 887 × 887
+  symbol: { top: 110, bottom: 530 },
+  wordmark: { top: 528, bottom: 786 },
+  /** Palmier et olivier : leurs ombres sombres ne sont pas de l'encre, elles ne s'inversent pas. */
+  vegetation: { left: 666, bottom: 530 },
+};
 
 interface Rgba {
   data: Buffer;
@@ -36,19 +53,19 @@ interface Rgba {
   height: number;
 }
 
-async function load(): Promise<Rgba> {
-  const { data, info } = await sharp(SRC).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+async function load(src: string): Promise<Rgba> {
+  const { data, info } = await sharp(src).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   for (let q = 3; q < data.length; q += 4) data[q] = Math.min(255, Math.round((data[q]! * 255) / SOLID_ALPHA));
   return { data, width: info.width, height: info.height };
 }
 
-/** Noir du logo (sombre et neutre) remplacé par l'ivoire ; tout le reste est intact. */
-function reverse(img: Rgba): Rgba {
+/** Version blanche : le noir du logo (sombre et neutre) devient ivoire ; tout le reste est intact. */
+function whiten(img: Rgba, keep: { left: number; bottom: number }): Rgba {
   const out = Buffer.from(img.data);
   for (let q = 0; q < out.length; q += 4) {
     if (out[q + 3] === 0) continue;
     const p = q / 4;
-    if (p % img.width >= VEGETATION.left && Math.floor(p / img.width) < VEGETATION.bottom) continue;
+    if (p % img.width >= keep.left && Math.floor(p / img.width) < keep.bottom) continue;
     const r = out[q]!, g = out[q + 1]!, b = out[q + 2]!;
     const chroma = Math.max(r, g, b) - Math.min(r, g, b);
     const luma = 0.299 * r + 0.587 * g + 0.114 * b;
@@ -63,7 +80,7 @@ function reverse(img: Rgba): Rgba {
 
 const raw = (img: Rgba) => sharp(img.data, { raw: { width: img.width, height: img.height, channels: 4 } });
 
-async function crop(img: Rgba, box: { left?: number; right?: number; top: number; bottom: number }): Promise<Buffer> {
+async function crop(img: Rgba, box: Box): Promise<Buffer> {
   const left = box.left ?? 0;
   const right = box.right ?? img.width;
   const cut = await raw(img)
@@ -72,6 +89,8 @@ async function crop(img: Rgba, box: { left?: number; right?: number; top: number
     .toBuffer();
   return sharp(cut).trim({ threshold: 1 }).png().toBuffer();
 }
+
+const whole = (img: Rgba) => crop(img, { top: 0, bottom: img.height });
 
 async function save(buf: Buffer, name: string, width: number) {
   const base = resolve(LOGOS, name);
@@ -118,39 +137,39 @@ async function square(image: Buffer, size: number, pad: number, background?: str
 
 async function main() {
   mkdirSync(LOGOS, { recursive: true });
-  const positive = await load();
-  const negative = reverse(positive);
 
-  console.log("→ Logo Talab Solutions");
-  await save(await crop(positive, { top: 0, bottom: positive.height }), "talab-logo", 1200);
-  await save(await crop(negative, { top: 0, bottom: negative.height }), "talab-logo-reversed", 1200);
+  console.log("→ Jour : logo terracotta");
+  const day = await load(DAY.src);
+  const daySymbol = await crop(day, DAY.symbol);
+  const dayWordmark = await crop(day, DAY.wordmark);
+  await save(await whole(day), "talab-day-logo", 1701);
+  await save(dayWordmark, "talab-day-wordmark", 1400); // pied de page
+  await save(daySymbol, "talab-day-symbol-sm", 360); // en-tête
+  await save(dayWordmark, "talab-day-wordmark-sm", 640); // en-tête
 
-  const symbol = await crop(positive, SYMBOL);
-  const symbolNeg = await crop(negative, SYMBOL);
-  await save(symbol, "talab-symbol", 900);
-  await save(symbolNeg, "talab-symbol-reversed", 900);
+  console.log("→ Nuit : logo blanc et or");
+  const night = whiten(await load(NIGHT_SRC.src), NIGHT_SRC.vegetation);
+  const nightSymbol = await crop(night, NIGHT_SRC.symbol);
+  const nightWordmark = await crop(night, NIGHT_SRC.wordmark);
+  await save(await whole(night), "talab-logo-reversed", 1200);
+  await save(nightSymbol, "talab-symbol-reversed", 900); // loader, filigranes
+  await save(nightWordmark, "talab-wordmark-reversed", 1200); // pied de page
+  await save(nightSymbol, "talab-symbol-reversed-sm", 320); // en-tête
+  await save(nightWordmark, "talab-wordmark-reversed-sm", 560); // en-tête, loader
 
-  const wordmark = await crop(positive, WORDMARK);
-  const wordmarkNeg = await crop(negative, WORDMARK);
-  await save(wordmark, "talab-wordmark", 1200);
-  await save(wordmarkNeg, "talab-wordmark-reversed", 1200);
-
-  // Déclinaison légère du nom pour le loader.
-  await save(wordmarkNeg, "talab-wordmark-reversed-sm", 560);
-
-  console.log("→ Favicons (le bâtiment seul, lisible en petit)");
-  const building = await crop(positive, BUILDING);
+  console.log("→ Favicons et icônes (logo de jour, le bâtiment seul pour les petites tailles)");
+  const building = await crop(day, DAY.building);
   const icoParts = await Promise.all([16, 32, 48].map(async (size) => ({ size, data: await square(building, size, 0.02) })));
   writeFileSync(resolve(PUBLIC, "favicon.ico"), packIco(icoParts));
   writeFileSync(resolve(PUBLIC, "favicon-32.png"), await square(building, 32, 0.02));
-  writeFileSync(resolve(PUBLIC, "apple-touch-icon.png"), await square(symbol, 180, 0.12, "#F5F1E9"));
-  writeFileSync(resolve(PUBLIC, "icon-192.png"), await square(symbol, 192, 0.12, "#F5F1E9"));
-  writeFileSync(resolve(PUBLIC, "icon-512.png"), await square(symbol, 512, 0.12, "#F5F1E9"));
+  writeFileSync(resolve(PUBLIC, "apple-touch-icon.png"), await square(daySymbol, 180, 0.12, "#F5F1E9"));
+  writeFileSync(resolve(PUBLIC, "icon-192.png"), await square(daySymbol, 192, 0.12, "#F5F1E9"));
+  writeFileSync(resolve(PUBLIC, "icon-512.png"), await square(daySymbol, 512, 0.12, "#F5F1E9"));
   console.log("  ✓ favicon.ico, favicon-32.png, apple-touch-icon.png, icon-192.png, icon-512.png");
 
-  console.log("→ Image Open Graph");
+  console.log("→ Image Open Graph (logo blanc et or sur fond nuit)");
   const W = 1200, H = 630;
-  const lockup = await sharp(await crop(negative, { top: 0, bottom: negative.height })).resize({ height: 440 }).toBuffer();
+  const lockup = await sharp(await whole(night)).resize({ height: 440 }).toBuffer();
   const frame = Buffer.from(
     `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">` +
       `<rect x="48" y="48" width="${W - 96}" height="${H - 96}" fill="none" stroke="#B88D5E" stroke-opacity=".35"/>` +

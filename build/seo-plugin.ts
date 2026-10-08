@@ -45,7 +45,7 @@ function jsonLd(site: string, page: HeadInput): string {
     "@id": `${site}/#organization`,
     name: "Talab Solutions",
     url: `${site}/`,
-    logo: `${site}/logos/talab-logo.png`,
+    logo: `${site}/logos/talab-day-logo.png`,
     image: `${site}/og-image.jpg`,
     slogan: "De l'avis à la soumission.",
     description:

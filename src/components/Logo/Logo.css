@@ -1,17 +1,40 @@
-/* Même typographie que le nom du pied de page ; couleur d'accent : terracotta le jour, or la nuit. */
+@property --logo-h {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 46px;
+}
+
+/* Les deux versions occupent la même cellule ; seule celle de la lumière active est visible. */
 .logo {
-  display: inline-block;
-  font-family: var(--font-display);
-  font-size: 2.6rem;
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  color: var(--accent);
-  /* Boîte réduite à la hauteur des capitales : centrage vertical exact dans l'en-tête. */
-  text-box: trim-both cap alphabetic;
+  display: inline-grid;
+  align-items: center;
+  --logo-h: 46px;
+}
+
+.logo__set {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(8px, 0.9vw, 14px);
   transition:
-    color var(--dur-base) var(--ease-premium),
-    font-size var(--dur-base) var(--ease-premium);
+    opacity var(--dur-base) var(--ease-premium),
+    visibility var(--dur-base);
+}
+
+.logo--light .logo__set--night,
+.logo--dark .logo__set--day {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.logo__symbol,
+.logo__wordmark {
+  display: block;
+  width: auto;
+  height: var(--logo-h);
+}
+
+/* Les lettres TALAB ont la même hauteur dans les deux versions (66,8 % contre 59,7 % du mot-symbole). */
+.logo__set--day .logo__wordmark {
+  height: calc(var(--logo-h) * 0.894);
 }

@@ -1,6 +1,7 @@
 import { useLocation } from "react-router";
 import { CONTACT, NAV } from "../../data/navigation";
 import { useHeaderState } from "../../hooks/useHeaderState";
+import { useAppState } from "../AppState";
 import { CtaLink } from "../CtaLink/CtaLink";
 import { Logo } from "../Logo/Logo";
 import { ThemeToggle } from "../ThemeToggle/ThemeToggle";
@@ -14,13 +15,14 @@ interface HeaderProps {
 
 export function Header({ menuOpen, onToggleMenu }: HeaderProps) {
   const { pathname } = useLocation();
+  const { mode } = useAppState();
   const compact = useHeaderState();
 
   return (
     <header className={["header", compact && !menuOpen ? "is-compact" : ""].filter(Boolean).join(" ")}>
       <div className="header__inner">
         <TransitionLink to="/" className="header__brand" aria-label="Talab Solutions, accueil">
-          <Logo />
+          <Logo tone={mode === "night" ? "dark" : "light"} />
         </TransitionLink>
 
         <nav className="header__nav" aria-label="Navigation principale">

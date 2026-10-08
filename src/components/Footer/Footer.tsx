@@ -54,8 +54,9 @@ export function Footer() {
         </ul>
       </div>
 
-      <div className="footer__giant" aria-hidden="true">
-        <span>Talab Solutions</span>
+      <div className="footer__brand" aria-hidden="true">
+        <img className="footer__brand-day" src="/logos/talab-day-wordmark.webp" width={1313} height={313} alt="" loading="lazy" />
+        <img className="footer__brand-night" src="/logos/talab-wordmark-reversed.webp" width={790} height={248} alt="" loading="lazy" />
       </div>
 
       <div className="footer__bar container">

@@ -143,12 +143,15 @@ vérification (humains, texte, logos, géométrie).
 
 ### Logo
 
-`npm run logo` décline le fichier fourni (`assets-src/brand/talab-logo-source.png`, déjà détouré) : aucun redessin, version négative pour les fonds sombres
-(le noir passe en ivoire, le bronze et la végétation gardent leurs couleurs), symbole et mot-symbole séparés, favicons
-(le bâtiment seul) et image Open Graph.
+`npm run logo` décline les deux fichiers fournis, sans aucun redessin :
 
-Dans l’en-tête, le logo est le nom TALAB en capitales serif, comme le nom du pied de page, dans la couleur
-d’accent (terracotta le jour, or la nuit). Le logo complet sert au loader, aux icônes et à l’image de partage.
+- **jour** : le logo terracotta (`assets-src/brand/talab-logo-terracotta-source.png`), utilisé tel quel ;
+- **nuit** : le logo bronze (`assets-src/brand/talab-logo-source.png`) en version blanche : seul le noir passe en
+  ivoire, l’or et la végétation gardent leurs couleurs.
+
+L’en-tête affiche le logo de la lumière active (les deux versions sont empilées, la place réservée est celle de la plus
+large). Le pied de page affiche le mot-symbole TALAB SOLUTIONS : terracotta le jour, blanc et or la nuit. Le favicon et
+les icônes reprennent le logo de jour (le bâtiment seul pour les petites tailles), l’image de partage le logo de nuit.
 
 ## Formulaire de contact
 
