@@ -16,5 +16,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["server", "shared", "api/[...path].ts", "scripts/admin.ts", "tests/server", "drizzle.config.ts"]
+  "include": ["server", "shared", "api/index.ts", "scripts/admin.ts", "tests/server", "drizzle.config.ts"]
 }

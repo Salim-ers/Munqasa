@@ -1,6 +1,6 @@
 /**
  * API Hono : /api/auth/* (Better Auth) et /api/admin/* (métier, protégée).
- * Même application sur Vercel (api/[...path].ts) et en local (middleware Vite).
+ * Même application sur Vercel (api/index.ts) et en local (middleware Vite).
  */
 import { Hono } from "hono";
 import { getAuth } from "../auth/auth.js";

@@ -1,6 +1,7 @@
 /**
- * Fonction Vercel unique pour /api/* (hors /api/contact, servi par son propre fichier) :
- * délègue à l'API Hono (server/http/app.ts).
+ * Fonction Vercel unique pour /api/* : vercel.json réécrit /api/... vers cette fonction
+ * (hors /api/contact, servi en priorité par son propre fichier). L'URL d'origine est conservée :
+ * l'API Hono (server/http/app.ts) route sur le chemin demandé.
  */
 import { getApp } from "../server/http/app.js";
 

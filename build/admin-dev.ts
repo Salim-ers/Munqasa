@@ -2,7 +2,7 @@
  * Plugin Vite (développement et prévisualisation locale uniquement) :
  * - /api/* (hors /api/contact) → l'API Hono de server/http/app.ts, comme la fonction Vercel ;
  * - /administration/* → administration/index.html (application monopage de l'administration).
- * En production, Vercel fait la même chose avec api/[...path].ts et la réécriture de vercel.json.
+ * En production, Vercel fait la même chose avec api/index.ts et la réécriture de vercel.json.
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Readable } from "node:stream";

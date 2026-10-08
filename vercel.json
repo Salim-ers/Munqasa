@@ -5,9 +5,12 @@
   "outputDirectory": "dist",
   "cleanUrls": true,
   "trailingSlash": false,
-  "rewrites": [{ "source": "/administration/:path+", "destination": "/administration" }],
+  "rewrites": [
+    { "source": "/administration/:path+", "destination": "/administration" },
+    { "source": "/api/:path+", "destination": "/api" }
+  ],
   "functions": {
-    "api/[...path].ts": {
+    "api/index.ts": {
       "excludeFiles": "{node_modules/@electric-sql/**,.data/**,tests/**,docs/**,assets-src/**}"
     }
   },

@@ -32,7 +32,7 @@ navigateur
                               ▼
 Vercel Functions (Node 24)
  ├─ /api/contact           formulaire de la vitrine               inchangé
- └─ /api/*                 API Hono (server/)                      une fonction : api/[...path].ts
+ └─ /api/*                 API Hono (server/)                      une fonction : api/index.ts (réécriture de /api/*)
        ├─ /api/auth/*        Better Auth (connexion, 2FA, passkeys, sessions)
        ├─ /api/admin/*       API métier, protégée administrateur sur chaque route
        └─ /api/jobs/*        traitements longs (appel planifié + relance immédiate)
@@ -82,7 +82,7 @@ admin/                        application d'administration (React)
   components/                 composants d'interface (boutons, cartes, tableaux, dialogues…)
   lib/                        client API, client d'authentification, formatage
   styles/                     Tailwind et jetons de l'administration (jour / nuit)
-api/[...path].ts              fonction Vercel : délègue à l'API Hono
+api/index.ts                  fonction Vercel : délègue à l'API Hono (vercel.json réécrit /api/*)
 server/
   env.ts                      variables d'environnement validées (échec immédiat si absente en production)
   db/                         connexion (Neon ou PGlite), schéma Drizzle, migrations
