@@ -47,8 +47,8 @@
 }
 
 .cta--solid {
-  background: var(--color-terracotta);
-  color: var(--color-ivory);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .cta--solid::before {

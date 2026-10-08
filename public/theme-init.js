@@ -30,6 +30,9 @@
     preload("/fonts/manrope-variable.woff2", "font", "font/woff2", { crossorigin: "" });
   }
   root.setAttribute("data-theme", mode);
+  // Barre du navigateur (mobile) à la couleur de la lumière du site.
+  var themeColor = document.querySelector('meta[name="theme-color"]');
+  if (themeColor) themeColor.setAttribute("content", mode === "night" ? "#0B0C0D" : "#F5F1E9");
   if (window.location.pathname === "/") {
     preload("/images/hero-" + mode + "-1920.webp", "image", "image/webp", {
       imagesrcset: "/images/hero-" + mode + "-1280.webp 1280w, /images/hero-" + mode + "-1920.webp 1920w, /images/hero-" + mode + ".webp 2560w",

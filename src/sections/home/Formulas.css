@@ -37,7 +37,7 @@
   position: absolute;
   inset: -1px -1px auto;
   height: 3px;
-  background: var(--color-terracotta);
+  background: var(--accent);
 }
 
 .formula__flag {

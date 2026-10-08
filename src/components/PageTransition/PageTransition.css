@@ -4,9 +4,9 @@
   z-index: var(--z-transition);
   display: grid;
   place-items: center;
-  background: var(--color-terracotta) var(--grain);
+  background: var(--accent) var(--grain);
   background-size: 128px 128px;
-  color: var(--color-ivory);
+  color: var(--on-accent);
   visibility: hidden;
   clip-path: inset(0% 100% 0% 0%);
   pointer-events: none;

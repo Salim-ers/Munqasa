@@ -113,8 +113,8 @@ button {
 }
 
 ::selection {
-  background: var(--color-terracotta);
-  color: var(--color-ivory);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 [hidden] {

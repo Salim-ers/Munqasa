@@ -41,7 +41,7 @@
 }
 
 .sc-kicker {
-  color: var(--color-terracotta);
+  color: var(--accent-ink);
 }
 
 .sc-title {
@@ -94,7 +94,7 @@
 }
 
 .sc-paper .sc-check svg {
-  stroke: var(--color-terracotta);
+  stroke: var(--accent-ink);
 }
 
 .sc-check path {
@@ -111,7 +111,7 @@
   letter-spacing: 0.16em;
   text-transform: uppercase;
   white-space: nowrap;
-  color: var(--color-terracotta);
+  color: var(--accent-ink);
   background: rgb(255 253 248 / 0.8);
   border: 2px solid currentColor;
   rotate: -7deg;
@@ -155,7 +155,7 @@
   top: 0;
   bottom: 0;
   width: 0.7cqi;
-  background: var(--color-terracotta);
+  background: var(--accent-ink);
   transform-origin: 50% 100%;
 }
 
@@ -167,7 +167,7 @@
   font: 700 clamp(6.5px, 1.15cqi, 10px) / 1 var(--font-body);
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--color-terracotta);
+  color: var(--accent-ink);
   border: 1px solid currentColor;
 }
 
@@ -212,7 +212,7 @@
   justify-content: space-between;
   gap: 1.5cqi;
   padding: 1.6cqi 1.8cqi;
-  border-left: 0.7cqi solid var(--color-terracotta);
+  border-left: 0.7cqi solid var(--accent-ink);
 }
 
 /* ---------- Analyse ---------- */
@@ -247,7 +247,7 @@
 .sa-hl {
   position: absolute;
   inset: -0.55cqi 0;
-  background: var(--color-terracotta);
+  background: var(--accent-ink);
   opacity: 0.85;
   transform-origin: 0 50%;
 }
@@ -260,7 +260,7 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   white-space: nowrap;
-  color: var(--color-terracotta);
+  color: var(--accent-ink);
 }
 
 .sa-reader {
@@ -269,8 +269,8 @@
   right: -1.6cqi;
   top: 0;
   height: 1px;
-  background: var(--color-terracotta);
-  box-shadow: 0 0 1.2cqi 0.2cqi rgb(160 65 30 / 0.45);
+  background: var(--accent-ink);
+  box-shadow: 0 0 1.2cqi 0.2cqi color-mix(in srgb, var(--accent-ink) 45%, transparent);
   opacity: 0;
   visibility: hidden;
 }
@@ -355,7 +355,7 @@
 }
 
 .sd-stamp--expired {
-  color: var(--color-terracotta);
+  color: var(--accent-ink);
 }
 
 /* Pièce périmée : sortie du dossier (état final). */
@@ -376,14 +376,14 @@
   align-items: flex-end;
   height: 38%;
   padding: 2.4cqi 3cqi;
-  background: var(--color-terracotta) var(--grain);
+  background: var(--accent) var(--grain);
   background-size: 128px 128px;
   border-radius: 2px;
   box-shadow: 0 -1.4cqi 3cqi -2cqi var(--shadow);
 }
 
 .sd-front .sc-label {
-  color: var(--color-ivory);
+  color: var(--on-accent);
 }
 
 /* ---------- Offre technique ---------- */
@@ -452,7 +452,7 @@
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--color-terracotta);
+  color: var(--accent-ink);
 }
 
 .so-bars {
@@ -476,7 +476,7 @@
 .so-tiles i {
   width: 6cqi;
   height: 3.8cqi;
-  background: rgb(160 65 30 / 0.12);
+  background: color-mix(in srgb, var(--accent-ink) 12%, transparent);
   border: 1px solid rgb(23 23 23 / 0.22);
 }
 
@@ -575,7 +575,7 @@
 .cd-progress-fill {
   display: block;
   height: 100%;
-  background: var(--color-terracotta);
+  background: var(--accent-ink);
   transform-origin: 0 50%;
 }
 
@@ -583,7 +583,7 @@
   font: 700 clamp(6.5px, 1.25cqi, 10px) / 1.2 var(--font-body);
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--color-terracotta);
+  color: var(--accent-ink);
 }
 
 /* ---------- Contrôle avant dépôt ---------- */
@@ -619,7 +619,7 @@
 .sk-row-tint {
   position: absolute;
   inset: 0;
-  background: rgb(160 65 30 / 0.12);
+  background: color-mix(in srgb, var(--accent-ink) 12%, transparent);
   opacity: 0;
   visibility: hidden;
 }
@@ -647,7 +647,7 @@
 }
 
 .sk-gap {
-  color: var(--color-terracotta);
+  color: var(--accent-ink);
   opacity: 0;
   visibility: hidden;
 }
@@ -666,7 +666,7 @@
   right: -1.2cqi;
   top: 0;
   height: calc((100% - 4 * 1.2cqi) / 5);
-  border: 1.5px solid var(--color-terracotta);
+  border: 1.5px solid var(--accent-ink);
   border-radius: 2px;
   opacity: 0;
   visibility: hidden;

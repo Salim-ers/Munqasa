@@ -156,7 +156,7 @@ fieldset.field {
 }
 
 .has-error .input {
-  border-bottom-color: var(--color-terracotta);
+  border-bottom-color: var(--error);
 }
 
 /* Puces radio / cases à cocher */
@@ -223,7 +223,7 @@ fieldset.field {
 }
 
 .has-error .chip span {
-  border-color: rgb(160 65 30 / 0.55);
+  border-color: color-mix(in srgb, var(--error) 55%, transparent);
 }
 
 /* Consentement */
@@ -261,15 +261,15 @@ fieldset.field {
   top: 3px;
   width: 6px;
   height: 11px;
-  border: solid var(--color-ivory);
+  border: solid var(--on-accent);
   border-width: 0 1.5px 1.5px 0;
   transform: rotate(45deg) scale(0);
   transition: transform var(--dur-fast) var(--ease-premium);
 }
 
 .consent__label input:checked + .consent__box {
-  background: var(--color-terracotta);
-  border-color: var(--color-terracotta);
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
 .consent__label input:checked + .consent__box::after {
@@ -305,8 +305,8 @@ fieldset.field {
 .contact__alert {
   padding: 0.9rem 1.1rem;
   color: var(--error);
-  background: rgb(160 65 30 / 0.08);
-  border-left: 3px solid var(--color-terracotta);
+  background: color-mix(in srgb, var(--error) 10%, transparent);
+  border-left: 3px solid var(--error);
   font-size: var(--text-sm);
 }
 
@@ -333,7 +333,7 @@ fieldset.field {
   padding: clamp(1.5rem, 3.4vw, 3.5rem);
   background: var(--bg-1);
   border: 1px solid var(--line);
-  border-top: 3px solid var(--color-terracotta);
+  border-top: 3px solid var(--accent);
 }
 
 .contact__done h2:focus {

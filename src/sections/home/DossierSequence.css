@@ -146,7 +146,7 @@
 }
 
 .seq__sheet-kicker {
-  color: var(--color-terracotta);
+  color: var(--accent-ink);
   font-size: clamp(7px, 1.05cqi, 11px);
 }
 
@@ -172,7 +172,7 @@
 .seq__hl {
   position: absolute;
   inset: -0.45cqi 0;
-  background: var(--color-terracotta);
+  background: var(--accent-ink);
   opacity: 0.85;
   transform-origin: 0 50%;
 }
@@ -185,7 +185,7 @@
   width: 2px;
   height: 2.4cqi;
   margin-top: -1.2cqi;
-  background: var(--color-terracotta);
+  background: var(--accent-ink);
 }
 
 .seq__sheet-tab {
@@ -256,8 +256,8 @@
 }
 
 .seq__folder--1 .seq__folder-tab {
-  color: var(--color-ivory);
-  background: var(--color-terracotta);
+  color: var(--on-accent);
+  background: var(--accent);
 }
 
 .seq__folder--2 .seq__folder-tab {
@@ -287,7 +287,7 @@
 }
 
 .seq__folder--1 .seq__piece {
-  border-left-color: var(--color-terracotta);
+  border-left-color: var(--accent-ink);
 }
 
 .seq__folder--2 .seq__piece {
@@ -332,7 +332,7 @@
   width: 85%;
   height: 85%;
   fill: none;
-  stroke: var(--color-terracotta);
+  stroke: var(--accent-ink);
   stroke-width: 2;
   stroke-linecap: square;
 }
@@ -368,8 +368,8 @@
   gap: 1.2cqi;
   width: 33%;
   padding: 3cqi;
-  color: var(--color-ivory);
-  background: var(--color-terracotta) var(--grain);
+  color: var(--on-accent);
+  background: var(--accent) var(--grain);
   background-size: 128px 128px;
   border-radius: var(--radius-xs);
   box-shadow: 0 4cqi 8cqi -4cqi var(--shadow);
@@ -388,14 +388,14 @@
 
 .seq__cover-arch path {
   fill: none;
-  stroke: rgb(245 241 233 / 0.55);
+  stroke: color-mix(in srgb, var(--on-accent) 55%, transparent);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
 
 .seq__cover .label {
   font-size: clamp(7px, 1.05cqi, 11px);
-  color: rgb(245 241 233 / 0.85);
+  color: color-mix(in srgb, var(--on-accent) 85%, transparent);
 }
 
 .seq__cover-title {

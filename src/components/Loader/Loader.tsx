@@ -8,9 +8,9 @@ import { LOADER_SEEN_KEY, useAppState } from "../AppState";
 import "./Loader.css";
 
 /**
- * Loader (1re visite de la session, ≈ 1,8 s) : une ligne sable trace l'arche,
- * le symbole Talab prend sa place, puis le nom apparaît ; le cadre s'ouvre
- * comme deux battants.
+ * Loader (1re visite de la session, ≈ 1,8 s), dans la lumière du site : une ligne
+ * trace l'arche, le symbole Talab prend sa place, puis le nom apparaît ; le cadre
+ * s'ouvre comme deux battants. Jour : logo noir et terracotta ; nuit : logo or.
  */
 export function Loader() {
   const { introDone, setIntroDone } = useAppState();
@@ -37,7 +37,7 @@ export function Loader() {
       // Mouvement réduit : le logo s'affiche tel quel, puis le loader s'efface.
       if (reduced) {
         gsap.set(".loader__arch", { autoAlpha: 0 });
-        gsap.set(".loader__symbol, .loader__wordmark", { clipPath: "inset(0% 0% 0% 0%)" });
+        gsap.set(".loader__symbols, .loader__wordmarks", { clipPath: "inset(0% 0% 0% 0%)" });
         gsap.set(".loader__label", { autoAlpha: 1 });
         gsap.timeline({ onComplete: () => setVisible(false) }).to(el, { autoAlpha: 0, duration: 0.4, delay: 0.6 }).call(finish, [], 0.6);
         return;
@@ -47,9 +47,9 @@ export function Loader() {
         .timeline({ onComplete: () => setVisible(false) })
         .to(paths[0] ?? [], { strokeDashoffset: 0, duration: 0.8, ease: "power2.inOut" }, 0)
         .to(paths[1] ?? [], { strokeDashoffset: 0, duration: 0.6, ease: "power2.inOut" }, 0.2)
-        .fromTo(".loader__symbol", { clipPath: "inset(100% 0% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.55, ease: EASE.architect }, 0.42)
+        .fromTo(".loader__symbols", { clipPath: "inset(100% 0% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.55, ease: EASE.architect }, 0.42)
         .to(".loader__arch", { autoAlpha: 0, duration: 0.35, ease: EASE.linear }, 0.6)
-        .fromTo(".loader__wordmark", { clipPath: "inset(0% 100% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.5, ease: EASE.architect }, 0.72)
+        .fromTo(".loader__wordmarks", { clipPath: "inset(0% 100% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 0.5, ease: EASE.architect }, 0.72)
         .fromTo(".loader__label", { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: 0.35 }, 0.9)
         .to(".loader__content", { autoAlpha: 0, scale: 1.04, duration: 0.32, ease: "power2.in" }, 1.25)
         .call(finish, [], 1.33)
@@ -75,9 +75,15 @@ export function Loader() {
             <path d={ARCH_OUTLINE} />
             <path d={ARCH_INNER} />
           </svg>
-          <img className="loader__symbol" src="/logos/talab-symbol-reversed.webp" width={662} height={391} alt="" />
+          <span className="loader__symbols">
+            <img className="loader__day" src="/logos/talab-day-symbol.webp" width={900} height={559} alt="" />
+            <img className="loader__night" src="/logos/talab-night-symbol.webp" width={900} height={569} alt="" />
+          </span>
         </div>
-        <img className="loader__wordmark" src="/logos/talab-wordmark-reversed-sm.webp" width={790} height={248} alt="" />
+        <span className="loader__wordmarks">
+          <img className="loader__day" src="/logos/talab-day-wordmark-sm.webp" width={640} height={186} alt="" />
+          <img className="loader__night" src="/logos/talab-night-wordmark-sm.webp" width={640} height={188} alt="" />
+        </span>
         <p className="loader__label label">Appels d’offres au Maroc</p>
       </div>
     </div>

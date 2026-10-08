@@ -95,7 +95,7 @@ export function MobileMenu({ open, onClose }: MobileMenuProps) {
       aria-label="Menu"
       data-lenis-prevent
     >
-      <img className="menu__arch" src="/logos/talab-symbol-reversed.webp" width={662} height={391} alt="" />
+      <img className="menu__arch" src="/logos/talab-night-symbol.webp" width={900} height={569} alt="" />
       <nav className="menu__nav" aria-label="Navigation mobile">
         <ol>
           {NAV.map((item) => (

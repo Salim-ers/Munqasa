@@ -33,8 +33,3 @@
   width: auto;
   height: var(--logo-h);
 }
-
-/* Les lettres TALAB ont la même hauteur dans les deux versions (66,8 % contre 59,7 % du mot-symbole). */
-.logo__set--day .logo__wordmark {
-  height: calc(var(--logo-h) * 0.894);
-}

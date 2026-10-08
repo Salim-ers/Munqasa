@@ -46,6 +46,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       const apply = () => {
         flushSync(() => setMode(next));
         document.documentElement.dataset.theme = next;
+        document.querySelector('meta[name="theme-color"]')?.setAttribute("content", next === "night" ? "#0B0C0D" : "#F5F1E9");
         writeStorage("local", LIGHT_KEY, next);
       };
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;

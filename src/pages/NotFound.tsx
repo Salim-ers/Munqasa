@@ -8,7 +8,7 @@ export default function NotFound() {
   return (
     <div ref={ref}>
       <section className="not-found tone-1 has-grain" aria-labelledby="page-title">
-        <img className="not-found__arch" src="/logos/talab-symbol-reversed.webp" width={662} height={391} alt="" />
+        <img className="not-found__arch" src="/logos/talab-night-symbol.webp" width={900} height={569} alt="" />
         <div className="not-found__inner container">
           <Tag>Erreur 404</Tag>
           <h1 id="page-title" className="display-xl" data-reveal="lines">

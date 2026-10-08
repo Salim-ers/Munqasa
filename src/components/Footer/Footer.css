@@ -73,7 +73,7 @@
   color: var(--fg);
 }
 
-/* Mot-symbole du logo : version terracotta le jour, version blanc et or la nuit. */
+/* Mot-symbole du logo : version noir et terracotta le jour, version blanc et or la nuit. */
 .footer__brand {
   --wm-w: clamp(17rem, 44vw, 40rem);
   display: grid;
@@ -83,20 +83,12 @@
 
 .footer__brand img {
   grid-area: 1 / 1;
+  width: var(--wm-w);
   max-width: 100%;
   height: auto;
   transition:
     opacity var(--dur-base) var(--ease-premium),
     visibility var(--dur-base);
-}
-
-.footer__brand-day {
-  width: var(--wm-w);
-}
-
-/* Même hauteur de lettres TALAB que la version de jour. */
-.footer__brand-night {
-  width: calc(var(--wm-w) * 0.85);
 }
 
 [data-theme="day"] .footer__brand-night,

@@ -13,7 +13,7 @@ export function Footer() {
 
   return (
     <footer className="footer tone-1 has-grain">
-      <img className="footer__arch" src="/logos/talab-symbol-reversed.webp" width={662} height={391} alt="" loading="lazy" />
+      <img className="footer__arch" src="/logos/talab-night-symbol.webp" width={900} height={569} alt="" loading="lazy" />
 
       <div className="footer__cta container">
         <p className="footer__question display-lg">
@@ -55,8 +55,8 @@ export function Footer() {
       </div>
 
       <div className="footer__brand" aria-hidden="true">
-        <img className="footer__brand-day" src="/logos/talab-day-wordmark.webp" width={1313} height={313} alt="" loading="lazy" />
-        <img className="footer__brand-night" src="/logos/talab-wordmark-reversed.webp" width={790} height={248} alt="" loading="lazy" />
+        <img className="footer__brand-day" src="/logos/talab-day-wordmark.webp" width={1219} height={355} alt="" loading="lazy" />
+        <img className="footer__brand-night" src="/logos/talab-night-wordmark.webp" width={1240} height={365} alt="" loading="lazy" />
       </div>
 
       <div className="footer__bar container">

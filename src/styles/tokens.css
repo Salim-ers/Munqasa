@@ -98,7 +98,8 @@
   --line: rgb(23 23 23 / 0.13);
   --line-strong: rgb(23 23 23 / 0.3);
   --accent: #a0411e;
-  --accent-2: #b88d5e;
+  /* Accent posé sur papier clair (feuilles, pièces, tampons). */
+  --accent-ink: #a0411e;
   --on-accent: #f5f1e9;
   --paper: #fffdf8;
   --paper-fg: #171717;
@@ -120,7 +121,8 @@
   --line: rgb(245 241 233 / 0.13);
   --line-strong: rgb(245 241 233 / 0.3);
   --accent: #c9a06a;
-  --accent-2: #a0411e;
+  /* Or bruni : lisible sur le papier ivoire des scènes. */
+  --accent-ink: #8f6532;
   --on-accent: #171717;
   --paper: #efe8dc;
   --paper-fg: #171717;
