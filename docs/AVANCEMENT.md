@@ -67,7 +67,11 @@ Limites connues de cette étape, à traiter plus tard :
 | Agent « Lecture des plans et métré » : PDF découpé page par page, relevé de chaque page (cartouche, éléments de gros œuvre, cotes lisibles avec leur source), métré proposé avec formules ; quantités calculées par le serveur en décimal exact ; fichiers illisibles écartés avec explication | fait | tests d'intégration et parcours navigateur (simulation) ; essai réel dès que R2 est configuré |
 | Métré : ouvrages et mesures modifiables, aperçu du calcul en direct, validation, rejet, traçabilité des sources ; une nouvelle analyse ne remplace que les propositions non validées | fait | tests + parcours navigateur |
 | Page « Agents IA » : prérequis, lancement, suivi en direct des traitements | fait | parcours navigateur |
-| Rédaction du CCTP, DPGF depuis le CCTP, bibliothèque de prix et sous-détails, exports | à venir | |
+| Référentiel : lois, normes, DTU, règlements, avec statut de vérification ; catalogue de départ importable (références courantes du gros œuvre, toutes « à vérifier ») | fait | tests d'intégration + parcours navigateur |
+| Agent « Rédaction du CCTP » : plan adapté au lot et au métré, rédaction chapitre par chapitre en blocs structurés, citations limitées aux références choisies, valeurs non justifiées signalées comme à préciser ; réécriture ciblée d'articles avec consigne | fait | tests (simulation) + parcours navigateur |
+| Contrôle qualité du CCTP : articles non rédigés, références à vérifier ou rejetées, normes écrites hors référentiel, ouvrages du métré non couverts ; points mis de côté avec motif ; validation refusée tant qu'une anomalie bloquante est ouverte | fait | tests d'intégration |
+| CCTP : lecture et édition article par article, validation, versions figées, export Word (couverture à l'identité documentaire, sommaire, annexe des références citées) | fait | tests + parcours navigateur |
+| DPGF depuis le CCTP, bibliothèque de prix et sous-détails | à venir | |
 
 Prérequis de l'agent de lecture des plans en production : le compartiment R2 (les plans doivent pouvoir être déposés).
 

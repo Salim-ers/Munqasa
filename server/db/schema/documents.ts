@@ -94,6 +94,8 @@ export const cctpDocument = pgTable(
     country: countryEnum("country").notNull(),
     phase: designPhaseEnum("phase").notNull(),
     detailLevel: text("detail_level").notNull().default("standard"),
+    /** Références du référentiel retenues pour la rédaction : les seules que le document peut citer. */
+    referenceIds: jsonb("reference_ids").$type<string[]>().notNull().default([]),
     status: documentStatusEnum("status").notNull().default("brouillon"),
     currentVersion: integer("current_version").notNull().default(0),
     createdAt: createdAt(),
@@ -115,6 +117,8 @@ export const cctpSection = pgTable(
     number: text("number").notNull(),
     title: text("title").notNull(),
     kind: text("kind").notNull().default("article"),
+    /** Objet de l'article, fixé par le plan : guide sa rédaction et sa relecture. */
+    intent: text("intent"),
     content: jsonb("content").$type<unknown[]>().notNull().default([]),
     /** Références techniques citées (identifiants de technical_reference). */
     referenceIds: jsonb("reference_ids").$type<string[]>().notNull().default([]),

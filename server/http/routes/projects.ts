@@ -53,7 +53,7 @@ export const projectRoutes = new Hono<AdminEnv>()
           updatedAt: p.updatedAt,
           clientId: p.clientId,
           clientName: schema.client.name,
-          lotCount: sql<number>`(select count(*)::int from ${schema.projectLot} where ${schema.projectLot.projectId} = ${p.id})`,
+          lotCount: sql<number>`(select count(*)::int from project_lot pl where pl.project_id = "project"."id")`,
         })
         .from(p)
         .leftJoin(schema.client, eq(schema.client.id, p.clientId))

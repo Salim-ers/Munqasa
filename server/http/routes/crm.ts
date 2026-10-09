@@ -10,7 +10,8 @@ import { body, conflict, notFound, parse, patchBody, uuidParam } from "../valida
 const c_ = schema.client;
 const p_ = schema.prospect;
 
-const projectCount = sql<number>`(select count(*)::int from ${schema.project} where ${schema.project.clientId} = ${c_.id})`.as("project_count");
+/** Colonnes qualifiées : dans une requête sur une seule table, Drizzle omet le nom de la table (« id » serait ambigu). */
+const projectCount = sql<number>`(select count(*)::int from project p where p.client_id = "client"."id")`.as("project_count");
 
 export const clientRoutes = new Hono<AdminEnv>()
   .get("/", async (c) => {

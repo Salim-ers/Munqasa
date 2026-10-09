@@ -85,3 +85,49 @@ export const metreProposal = z.object({
   warnings: z.array(z.string()),
 });
 export type MetreProposal = z.output<typeof metreProposal>;
+
+/* ---------- CCTP ---------- */
+
+export const CCTP_DETAIL_LEVELS = ["synthetique", "standard", "detaille"] as const;
+export type CctpDetailLevel = (typeof CCTP_DETAIL_LEVELS)[number];
+
+/** Plan du CCTP : chapitres et articles, chacun avec son objet et les ouvrages qu'il couvre. */
+export const cctpOutline = z.object({
+  title: z.string(),
+  chapters: z.array(
+    z.object({
+      number: z.string(),
+      title: z.string(),
+      articles: z.array(
+        z.object({
+          number: z.string(),
+          title: z.string(),
+          intent: z.string(),
+          workItemCodes: z.array(z.string()),
+        }),
+      ),
+    }),
+  ),
+});
+export type CctpOutline = z.output<typeof cctpOutline>;
+
+export const CCTP_BLOCK_TYPES = ["paragraphe", "liste", "exigence", "note"] as const;
+
+export const cctpBlock = z.object({
+  type: z.enum(CCTP_BLOCK_TYPES),
+  text: z.string().nullable(),
+  items: z.array(z.string()),
+  referenceIds: z.array(z.string()),
+});
+export type CctpBlock = z.output<typeof cctpBlock>;
+
+/** Rédaction des articles d'un chapitre (ou d'articles à réécrire). */
+export const cctpChapter = z.object({
+  articles: z.array(
+    z.object({
+      number: z.string(),
+      blocks: z.array(cctpBlock),
+    }),
+  ),
+});
+export type CctpChapter = z.output<typeof cctpChapter>;

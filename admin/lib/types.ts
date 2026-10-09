@@ -248,3 +248,89 @@ export interface WorkItem {
   jobId: string | null;
   measurements: Measurement[];
 }
+
+/* ---------- Référentiel, CCTP, contrôle qualité ---------- */
+
+export interface TechnicalReference {
+  id: string;
+  scope: import("../../shared/enums").ReferenceScope;
+  kind: import("../../shared/enums").ReferenceKind;
+  code: string;
+  title: string;
+  version: string | null;
+  publishedOn: string | null;
+  domain: string | null;
+  sourceUrl: string | null;
+  verificationStatus: import("../../shared/enums").ValidationStatus;
+  verifiedAt: string | null;
+  notes: string | null;
+  cited?: number;
+}
+
+export interface CctpBlock {
+  type: "paragraphe" | "liste" | "exigence" | "note";
+  text: string | null;
+  items: string[];
+  referenceIds: string[];
+}
+
+export interface CctpSection {
+  id: string;
+  documentId: string;
+  parentId: string | null;
+  position: number;
+  number: string;
+  title: string;
+  kind: "chapitre" | "article";
+  intent: string | null;
+  content: CctpBlock[];
+  referenceIds: string[];
+  workItemId: string | null;
+  status: import("../../shared/enums").SectionStatus;
+  validatedAt: string | null;
+}
+
+export interface CctpDocumentSummary {
+  id: string;
+  projectId: string;
+  lotId: string | null;
+  title: string;
+  detailLevel: string;
+  status: import("../../shared/enums").DocumentStatus;
+  currentVersion: number;
+  referenceIds: string[];
+  createdAt: string;
+  updatedAt: string;
+  articles?: number;
+  validatedArticles?: number;
+  openIssues?: number;
+}
+
+export interface QualityIssue {
+  id: string;
+  severity: import("../../shared/enums").IssueSeverity;
+  category: string;
+  message: string;
+  targets: Array<{ type: string; id: string }>;
+  status: "ouverte" | "resolue" | "ignoree";
+  resolutionNote: string | null;
+  createdAt: string;
+}
+
+export interface DocumentVersionRow {
+  id: string;
+  version: number;
+  note: string | null;
+  validated: boolean;
+  createdAt: string;
+}
+
+export interface CctpDetail {
+  document: CctpDocumentSummary;
+  sections: CctpSection[];
+  references: TechnicalReference[];
+  issues: QualityIssue[];
+  versions: DocumentVersionRow[];
+  lot: Lot | null;
+  workItems: Array<{ id: string; code: string | null; designation: string }>;
+}

@@ -1,10 +1,12 @@
 /** Gestionnaires des traitements longs, par nature. */
 import type { JobKind } from "../../shared/enums.js";
+import { cctpHandler } from "./handlers/cctp.js";
 import { planAnalysisHandler } from "./handlers/plan-analysis.js";
 import type { JobHandler } from "./types.js";
 
 const handlers: Partial<Record<JobKind, JobHandler>> = {
   analyse_plans: planAnalysisHandler,
+  generation_cctp: cctpHandler,
 };
 
 export function handlerFor(kind: JobKind): JobHandler {

@@ -169,6 +169,35 @@ test.describe.serial("administration", () => {
     await expect(page.getByText("Mode simulation")).toBeVisible();
   });
 
+  test("rédige un CCTP avec l'agent, le relit et l'exporte en Word", async () => {
+    await page.goto("/administration/referentiel");
+    await page.getByRole("button", { name: "Catalogue de départ" }).click();
+    await expect(page.getByText(/référence\(s\) ajoutée\(s\), à vérifier/)).toBeVisible();
+    const rps = page.getByRole("listitem").filter({ hasText: "RPS 2000" });
+    await rps.getByRole("button", { name: "Vérifiée" }).click();
+    await expect(rps.getByText("Vérifié", { exact: true })).toBeVisible();
+
+    await page.goto(`${projectUrl}?onglet=cctp`);
+    await page.getByRole("button", { name: "Rédiger un CCTP" }).click();
+    const dialog = page.getByRole("dialog", { name: "Rédaction du CCTP" });
+    await expect(dialog.getByRole("checkbox", { name: /RPS 2000/ })).toBeChecked();
+    await dialog.getByText(/J’accepte que les informations de l’affaire/).click();
+    await dialog.getByRole("button", { name: "Rédiger le CCTP" }).click();
+
+    const document = page.getByRole("button", { name: /CCTP, lot 01 Gros œuvre/ });
+    await expect(document).toBeVisible({ timeout: 30_000 });
+    await document.click();
+    await expect(page.getByRole("heading", { name: "1.1 Objet du présent CCTP" })).toBeVisible();
+    await expect(page.getByText(/Les travaux sont exécutés conformément à/).first()).toBeVisible();
+    await page.getByRole("button", { name: "Valider", exact: true }).first().click();
+    await expect(page.getByText(/1 validé\(s\)/)).toBeVisible();
+
+    const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Exporter en Word" }).click()]);
+    expect(download.suggestedFilename()).toMatch(/\.docx$/);
+    const { readFileSync } = await import("node:fs");
+    expect(readFileSync(await download.path()).subarray(0, 2).toString()).toBe("PK");
+  });
+
   test("crée un client puis une affaire qui lui est rattachée", async () => {
     await page.goto("/administration/clients");
     await page.getByRole("button", { name: "Nouveau client" }).click();

@@ -25,7 +25,7 @@ export function JobProgress({ job, defaultOpen = false, showProject = false }: {
     );
 
   return (
-    <div className="rounded-xl border border-line bg-surface">
+    <div className="min-w-0 rounded-xl border border-line bg-surface">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 p-4">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">

@@ -206,6 +206,7 @@ export const QUOTE_LINE_KINDS = ["section", "ligne", "option"] as const;
 export const QUOTE_EVENT_KINDS = ["creation", "modification", "validation", "envoi", "relance", "acceptation", "refus", "expiration", "duplication"] as const;
 export const RATE_KINDS = ["reference", "achat", "vente", "contractuel"] as const;
 export const DOCUMENT_TYPES = ["cctp", "dpgf", "sous_detail", "devis"] as const;
+export type DocumentType = (typeof DOCUMENT_TYPES)[number];
 export const JOB_KINDS = ["analyse_plans", "generation_cctp", "generation_dpgf", "sous_detail", "generation_devis", "controle_qualite", "export", "import_prix"] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
 export const JOB_KIND_LABELS: Record<JobKind, string> = {

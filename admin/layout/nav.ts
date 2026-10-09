@@ -3,7 +3,7 @@
  * un module apparaît ici quand ses écrans et son API fonctionnent (aucun lien décoratif).
  */
 import type { LucideIcon } from "lucide-react";
-import { Bell, Bot, Building2, CalendarDays, FolderKanban, LayoutDashboard, Server, Settings, ShieldCheck, UserRoundSearch } from "lucide-react";
+import { Bell, BookMarked, Bot, Building2, CalendarDays, FolderKanban, LayoutDashboard, Server, Settings, ShieldCheck, UserRoundSearch } from "lucide-react";
 
 export interface NavItem {
   to: string;
@@ -37,7 +37,10 @@ export const NAV: NavGroup[] = [
   },
   {
     label: "Talab Intelligence",
-    items: [{ to: "/administration/agents", label: "Agents IA", icon: Bot, keywords: ["intelligence artificielle", "plans", "métré", "cctp", "dpgf", "sous-détail", "traitements"] }],
+    items: [
+      { to: "/administration/agents", label: "Agents IA", icon: Bot, keywords: ["intelligence artificielle", "plans", "métré", "cctp", "dpgf", "sous-détail", "traitements"] },
+      { to: "/administration/referentiel", label: "Référentiel", icon: BookMarked, keywords: ["normes", "dtu", "eurocodes", "décrets", "ccag", "références"] },
+    ],
   },
   {
     label: "Administration",

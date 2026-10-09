@@ -229,6 +229,13 @@ describe("affaires", () => {
     expect(history.json.entries.every((e: { actorUserId: string | null }) => e.actorUserId)).toBe(true);
   });
 
+  it("compte les affaires de chaque client", async () => {
+    const clients = (await admin.request("/api/admin/clients")).json.items;
+    expect(clients.find((c: { id: string }) => c.id === clientId).projectCount).toBe(1);
+    const lots = (await admin.request("/api/admin/projects?q=groupe")).json.items;
+    expect(lots.length === 0 || typeof lots[0].lotCount === "number").toBe(true);
+  });
+
   it("ne délivre jamais deux fois la même référence", async () => {
     const refs = await Promise.all(Array.from({ length: 20 }, () => nextReference(ctx.db, "quote", "DEV")));
     expect(new Set(refs).size).toBe(20);

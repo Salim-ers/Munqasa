@@ -13,6 +13,8 @@ import {
   MEASURE_METHODS,
   PROJECT_STATUSES,
   PROSPECT_STATUSES,
+  REFERENCE_KINDS,
+  REFERENCE_SCOPES,
   SECTORS,
 } from "./enums.js";
 import { TRADE_KEYS } from "./trades.js";
@@ -223,6 +225,55 @@ export const planAnalysisRequest = z.object({
   fileIds: z.array(z.string().uuid()).min(1, "Choisissez au moins un plan.").max(30),
   lotId: optionalUuid,
   consent: z.literal(true, { error: "Confirmez l’envoi des plans à l’API OpenAI." }),
+});
+
+/* ---------- Référentiel et CCTP ---------- */
+
+export const referenceInput = z.object({
+  scope: z.enum(REFERENCE_SCOPES),
+  kind: z.enum(REFERENCE_KINDS),
+  code: requiredText(100),
+  title: requiredText(400),
+  version: optionalText(150),
+  publishedOn: optionalDate,
+  domain: optionalText(100),
+  sourceUrl: z
+    .union([z.string().trim().url("Adresse web invalide."), z.literal(""), z.null()])
+    .optional()
+    .transform((v) => (v ? v : null)),
+  notes: optionalText(3000),
+});
+export type ReferenceInput = z.input<typeof referenceInput>;
+
+export const CCTP_LEVELS = ["synthetique", "standard", "detaille"] as const;
+export const CCTP_LEVEL_LABELS: Record<(typeof CCTP_LEVELS)[number], string> = { synthetique: "Synthétique", standard: "Standard", detaille: "Détaillé" };
+
+/** Lancement de la rédaction : informations de l'affaire transmises à l'API OpenAI avec accord explicite. */
+export const cctpGenerationRequest = z.object({
+  lotId: optionalUuid,
+  detailLevel: z.enum(CCTP_LEVELS),
+  useMetre: z.boolean(),
+  referenceIds: z.array(z.string().uuid()).max(300),
+  instructions: optionalText(3000),
+  consent: z.literal(true, { error: "Confirmez l’envoi des informations de l’affaire à l’API OpenAI." }),
+});
+
+export const cctpBlockInput = z.object({
+  type: z.enum(["paragraphe", "liste", "exigence", "note"]),
+  text: z.string().trim().max(6000).nullable(),
+  items: z.array(z.string().trim().max(1000)).max(60),
+  referenceIds: z.array(z.string().uuid()).max(30),
+});
+
+export const cctpSectionUpdate = z.object({
+  title: requiredText(300),
+  blocks: z.array(cctpBlockInput).max(80),
+});
+
+export const cctpRewriteRequest = z.object({
+  sectionIds: z.array(z.string().uuid()).min(1, "Choisissez au moins un article.").max(20),
+  instructions: optionalText(2000),
+  consent: z.literal(true, { error: "Confirmez l’envoi des informations de l’affaire à l’API OpenAI." }),
 });
 
 /* ---------- Entreprise ---------- */

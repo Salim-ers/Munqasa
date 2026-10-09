@@ -1,4 +1,4 @@
-import { CircleCheck, CircleDashed, ScanLine, Sparkles } from "lucide-react";
+import { CircleCheck, CircleDashed, PenLine, ScanLine, Sparkles } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Link } from "react-router";
 import { JobProgress } from "../../components/JobProgress";
@@ -8,6 +8,7 @@ import { EmptyState, Skeleton } from "../../components/ui/Feedback";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { formatNumber } from "../../lib/format";
 import { useAgentStatus, useJobs } from "../../lib/jobs";
+import { CctpLaunchDialog } from "../cctp/CctpLaunchDialog";
 import { PlanAnalysisDialog } from "./PlanAnalysisDialog";
 
 function Requirement({ ok, label, detail }: { ok: boolean; label: string; detail: ReactNode }) {
@@ -51,6 +52,7 @@ export function AgentsPage() {
   const status = useAgentStatus();
   const jobs = useJobs();
   const [planOpen, setPlanOpen] = useState(false);
+  const [cctpOpen, setCctpOpen] = useState(false);
   const s = status.data;
 
   return (
@@ -71,9 +73,21 @@ export function AgentsPage() {
               </Button>
             }
           />
-          <Card className="flex flex-col justify-center p-5 md:min-h-[14rem]">
+          <AgentCard
+            icon={<PenLine />}
+            title="Rédaction du CCTP"
+            text="Établit le plan du CCTP du lot, puis rédige chaque chapitre. Ne cite que les références cochées de votre référentiel et signale ce qui reste à préciser."
+            input="Affaire, lot, métré et références choisies"
+            output="CCTP article par article, contrôlé, versionné, exportable en Word"
+            action={
+              <Button icon={<Sparkles className="size-4" />} onClick={() => setCctpOpen(true)}>
+                Rédiger un CCTP
+              </Button>
+            }
+          />
+          <Card className="flex flex-col justify-center p-5 md:col-span-2">
             <p className="text-xs font-semibold text-ink">Prochains agents</p>
-            <p className="mt-1 text-xs leading-relaxed text-ink-3">Rédaction du CCTP à partir des plans, DPGF à partir du CCTP, puis sous-détails de prix à partir de la DPGF et de votre bibliothèque de prix.</p>
+            <p className="mt-1 text-xs leading-relaxed text-ink-3">DPGF à partir du CCTP, puis sous-détails de prix à partir de la DPGF et de votre bibliothèque de prix.</p>
           </Card>
         </div>
 
@@ -121,6 +135,7 @@ export function AgentsPage() {
       </Card>
 
       <PlanAnalysisDialog open={planOpen} onOpenChange={setPlanOpen} />
+      <CctpLaunchDialog open={cctpOpen} onOpenChange={setCctpOpen} />
     </div>
   );
 }

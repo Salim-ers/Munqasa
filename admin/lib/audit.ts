@@ -58,6 +58,23 @@ export const ACTION_LABELS: Record<string, string> = {
   "prospect.conversion": "Prospect converti en client",
   // Agents IA et métré
   "agent.lecture_plans": "Lecture des plans lancée",
+  "agent.redaction_cctp": "Rédaction du CCTP lancée",
+  "agent.reecriture_cctp": "Réécriture d’articles lancée",
+  "cctp.article_modifie": "Article du CCTP modifié",
+  "cctp.article_valide": "Article du CCTP validé",
+  "cctp.article_a_revoir": "Article du CCTP à revoir",
+  "cctp.valide": "CCTP validé",
+  "cctp.version": "Version du CCTP enregistrée",
+  "cctp.export": "CCTP exporté",
+  "cctp.suppression": "CCTP supprimé",
+  "qualite.point_ecarte": "Point du contrôle qualité mis de côté",
+  "referentiel.ajout": "Référence ajoutée",
+  "referentiel.modification": "Référence modifiée",
+  "referentiel.verifiee": "Référence vérifiée",
+  "referentiel.rejetee": "Référence rejetée",
+  "referentiel.a_verifier": "Référence remise à vérifier",
+  "referentiel.suppression": "Référence supprimée",
+  "referentiel.catalogue_importe": "Catalogue de départ importé",
   "agent.annulation": "Traitement arrêté",
   "agent.reprise": "Traitement repris",
   "metre.ouvrage_ajoute": "Ouvrage ajouté",
@@ -137,6 +154,9 @@ export function describeDetails(details: Record<string, unknown> | null | undefi
   if (typeof d.fichier === "string") parts.push(d.fichier);
   if (typeof d.ouvrage === "string") parts.push(d.ouvrage);
   if (typeof d.mesure === "string") parts.push(d.mesure);
+  if (typeof d.article === "string") parts.push(d.article);
+  if (typeof d.document === "string") parts.push(d.document);
+  if (typeof d.reference === "string" && !parts.includes(d.reference)) parts.push(d.reference);
   if (typeof d.fichiers === "number") parts.push(`${d.fichiers} fichier${d.fichiers > 1 ? "s" : ""}`);
   if (typeof d.taille === "number") parts.push(formatBytes(d.taille));
   if (typeof d.motif === "string") parts.push(d.motif);
