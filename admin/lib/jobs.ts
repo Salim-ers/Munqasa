@@ -40,6 +40,9 @@ export interface AgentStatus {
   storage: boolean;
   monthUsd: string;
   budgetUsd: string | null;
+  /** Prix utilisables de la bibliothèque (ni archivés ni rejetés), dont vérifiés. */
+  prices: number;
+  verifiedPrices: number;
 }
 
 export const isActive = (job: Pick<Job, "status">) => job.status === "en_attente" || job.status === "en_cours";

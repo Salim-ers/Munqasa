@@ -11,12 +11,14 @@ import { AiConfigError } from "../ai/client.js";
 import { AiBudgetError } from "../services/openai.js";
 import { StorageNotConfiguredError } from "../services/storage.js";
 import { agentRoutes, metreRoutes } from "./routes/agents.js";
+import { breakdownRoutes } from "./routes/breakdowns.js";
 import { cctpRoutes, qualityRoutes } from "./routes/cctp.js";
 import { dpgfRoutes } from "./routes/dpgf.js";
 import { clientRoutes, prospectRoutes } from "./routes/crm.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
 import { fileRoutes } from "./routes/files.js";
 import { jobRoutes } from "./routes/jobs.js";
+import { libraryRoutes } from "./routes/library.js";
 import { referenceRoutes } from "./routes/references.js";
 import { deadlineRoutes, projectRoutes } from "./routes/projects.js";
 import { aiRoutes, companyRoutes, notificationRoutes, settingRoutes } from "./routes/settings.js";
@@ -56,6 +58,8 @@ function adminApi() {
   admin.route("/quality-issues", qualityRoutes);
   admin.route("/", cctpRoutes);
   admin.route("/", dpgfRoutes);
+  admin.route("/library", libraryRoutes);
+  admin.route("/", breakdownRoutes);
   return admin;
 }
 

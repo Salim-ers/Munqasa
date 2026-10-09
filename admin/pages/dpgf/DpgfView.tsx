@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, Download, FolderPlus, History, ListPlus, Plus, RotateCcw, Save, ShieldCheck, Trash2 } from "lucide-react";
+import { ArrowLeft, Calculator, Check, Download, FolderPlus, History, ListPlus, Plus, RotateCcw, Save, ShieldCheck, Trash2 } from "lucide-react";
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react";
+import { Link } from "react-router";
 import { toast } from "sonner";
 import { DOCUMENT_STATUS_LABELS, LINE_STATUS_LABELS } from "../../../shared/enums";
 import { QualityPanel } from "../../components/QualityPanel";
@@ -20,7 +21,7 @@ const documentTone = { brouillon: "neutral", en_generation: "accent", a_valider:
 const lineTone = { non_chiffre: "neutral", a_verifier: "warning", valide: "success" } as const;
 
 /** Cellule modifiable sur place : Entrée ou sortie du champ enregistre, Échap annule. */
-function EditableCell({ value, display, onSave, numeric = false, align = "left", placeholder, label }: { value: string | null; display: string; onSave: (next: string | null) => Promise<unknown>; numeric?: boolean; align?: "left" | "right"; placeholder?: string; label: string }) {
+export function EditableCell({ value, display, onSave, numeric = false, align = "left", placeholder, label }: { value: string | null; display: string; onSave: (next: string | null) => Promise<unknown>; numeric?: boolean; align?: "left" | "right"; placeholder?: string; label: string }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
@@ -138,6 +139,10 @@ export function DpgfView({ projectId, dpgfId, onBack }: { projectId: string; dpg
           DPGF de l’affaire
         </Button>
         <span className="flex-1" />
+        <Link to={`?onglet=sousdetails&dpgf=${dpgfId}`} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-xs font-semibold text-ink hover:bg-surface-2">
+          <Calculator className="size-3.5" aria-hidden="true" />
+          Sous-détails
+        </Link>
         <a href={`/api/admin/dpgf/${dpgfId}/export.xlsx`} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-xs font-semibold text-ink hover:bg-surface-2">
           <Download className="size-3.5" aria-hidden="true" />
           Exporter en Excel

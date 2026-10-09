@@ -3,7 +3,7 @@
  * un module apparaît ici quand ses écrans et son API fonctionnent (aucun lien décoratif).
  */
 import type { LucideIcon } from "lucide-react";
-import { Bell, BookMarked, Bot, Building2, CalendarDays, FolderKanban, LayoutDashboard, Server, Settings, ShieldCheck, UserRoundSearch } from "lucide-react";
+import { Bell, BookMarked, Bot, Building2, CalendarDays, FolderKanban, LayoutDashboard, Library, Server, Settings, ShieldCheck, UserRoundSearch } from "lucide-react";
 
 export interface NavItem {
   to: string;
@@ -39,13 +39,14 @@ export const NAV: NavGroup[] = [
     label: "Talab Intelligence",
     items: [
       { to: "/administration/agents", label: "Agents IA", icon: Bot, keywords: ["intelligence artificielle", "plans", "métré", "cctp", "dpgf", "sous-détail", "traitements"] },
+      { to: "/administration/bibliotheque", label: "Bibliothèque de prix", icon: Library, keywords: ["prix", "tarifs", "bordereau", "fournisseurs", "import", "devis fournisseur"] },
       { to: "/administration/referentiel", label: "Référentiel", icon: BookMarked, keywords: ["normes", "dtu", "eurocodes", "décrets", "ccag", "références"] },
     ],
   },
   {
     label: "Administration",
     items: [
-      { to: "/administration/parametres", label: "Paramètres", icon: Settings, keywords: ["entreprise", "entité", "tva", "identité", "couleurs", "intelligence artificielle", "openai", "modèles", "alertes"] },
+      { to: "/administration/parametres", label: "Paramètres", icon: Settings, keywords: ["entreprise", "entité", "tva", "identité", "couleurs", "intelligence artificielle", "openai", "modèles", "chiffrage", "marge", "frais généraux", "alertes"] },
       { to: "/administration/systeme", label: "Système", icon: Server, keywords: ["connexions", "sauvegarde", "export", "journal", "audit"] },
       { to: "/administration/securite", label: "Sécurité", icon: ShieldCheck, keywords: ["sessions", "passkey", "double authentification", "mot de passe"] },
     ],

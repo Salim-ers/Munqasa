@@ -7,11 +7,14 @@ import {
   COUNTRIES,
   CURRENCIES,
   DEADLINE_KINDS,
+  COMPONENT_CATEGORIES,
   DESIGN_PHASES,
   FILE_KINDS,
   MARKET_TYPES,
   MEASURE_METHODS,
   PROJECT_STATUSES,
+  PRICE_KINDS,
+  PRICE_ORIGINS,
   PROSPECT_STATUSES,
   REFERENCE_KINDS,
   REFERENCE_SCOPES,
@@ -310,6 +313,90 @@ export const dpgfUpdate = z.object({
   title: requiredText(300),
   vatRate: optionalRate,
 });
+
+/* ---------- Bibliothèque de prix et sous-détails ---------- */
+
+/** Prix unitaire strictement positif, 4 décimales au plus. */
+const positivePrice = decimalString.refine((v) => Number(v) > 0, "Le prix doit être positif.");
+
+export const priceItemInput = z.object({
+  code: optionalText(50),
+  designation: requiredText(500),
+  kind: z.enum(PRICE_KINDS),
+  unit: requiredText(20),
+  unitPrice: positivePrice,
+  currency: z.enum(CURRENCIES),
+  country: z.enum(COUNTRIES),
+  region: optionalText(100),
+  city: optionalText(100),
+  tradeFamily: optionalText(60),
+  subFamily: optionalText(120),
+  origin: z.enum(PRICE_ORIGINS),
+  supplierId: optionalUuid,
+  sourceRef: optionalText(300),
+  priceDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide."),
+  commercialConditions: optionalText(2000),
+});
+export type PriceItemInput = z.input<typeof priceItemInput>;
+
+export const supplierInput = z.object({
+  name: requiredText(200),
+  country: z.enum(COUNTRIES),
+  city: optionalText(120),
+  contactName: optionalText(150),
+  email: optionalEmail,
+  phone: optionalText(40),
+  notes: optionalText(3000),
+});
+
+/** Fichier de prix (CSV ou Excel) transmis en base64 : 3 Mo au plus. */
+export const priceFile = z.object({
+  fileName: z.string().trim().min(1).max(255).regex(/\.(csv|txt|xlsx)$/i, "Fichier CSV ou Excel (.xlsx) attendu."),
+  contentBase64: z.string().min(1).max(4_200_000, "Fichier trop volumineux (3 Mo au plus)."),
+});
+
+const columnRef = z.union([z.number().int().min(0).max(200), z.null()]);
+
+export const priceImportRequest = priceFile.extend({
+  sheet: z.string().max(100).nullable().optional(),
+  headerRow: z.number().int().min(0).max(50),
+  columns: z.object({
+    designation: z.number().int().min(0).max(200),
+    unit: z.number().int().min(0).max(200),
+    unitPrice: z.number().int().min(0).max(200),
+    code: columnRef,
+    kind: columnRef,
+    priceDate: columnRef,
+  }),
+  defaults: z.object({
+    kind: z.enum(PRICE_KINDS),
+    currency: z.enum(CURRENCIES),
+    country: z.enum(COUNTRIES),
+    origin: z.enum(PRICE_ORIGINS),
+    priceDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide."),
+    tradeFamily: optionalText(60),
+    supplierId: optionalUuid,
+  }),
+});
+
+/** Lancement de l'agent des sous-détails : postes d'une DPGF, accord d'envoi. */
+export const sousDetailRequest = z.object({
+  lineIds: z.array(z.string().uuid()).max(400),
+  instructions: optionalText(2000),
+  consent: z.literal(true, { error: "Confirmez l’envoi des postes et des prix candidats à l’API OpenAI." }),
+});
+
+export const breakdownComponentInput = z.object({
+  category: z.enum(COMPONENT_CATEGORIES),
+  designation: requiredText(300),
+  unit: requiredText(20),
+  quantity: decimalString.refine((v) => Number(v) >= 0, "Quantité invalide."),
+  unitCost: optionalDecimal,
+  lossRate: optionalDecimal,
+  priceItemId: optionalUuid,
+  sourceNote: optionalText(1000),
+});
+export type BreakdownComponentInput = z.input<typeof breakdownComponentInput>;
 
 /* ---------- Entreprise ---------- */
 

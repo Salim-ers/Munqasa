@@ -98,6 +98,31 @@ const builders: Record<string, (input: string) => unknown> = {
       ],
     };
   },
+  sous_detail: (input) => {
+    const postes = jsonAfter(input, "Postes (JSON)") as Array<{ lineId: string; prixCandidats: Array<{ id: string; designation: string; nature: string; unite: string }> }>;
+    const category: Record<string, string> = { ouvrage: "sous_traitance", materiau: "materiau", main_oeuvre: "main_oeuvre", materiel: "materiel", sous_traitance: "sous_traitance", transport: "transport" };
+    const quantity: Record<string, string> = { materiau: "1.05", main_oeuvre: "2.5", materiel: "0.5" };
+    return {
+      postes: postes.map((poste) => {
+        const chosen = poste.prixCandidats.slice(0, 3);
+        return {
+          lineId: poste.lineId,
+          components: chosen.length
+            ? chosen.map((c) => ({
+                category: category[c.nature] ?? "materiau",
+                designation: c.designation,
+                unit: c.unite,
+                quantity: quantity[c.nature] ?? "1",
+                lossRate: c.nature === "materiau" ? "5" : null,
+                priceItemId: c.id,
+                justification: "Ratio usuel à confirmer",
+              }))
+            : [{ category: "main_oeuvre", designation: "Main-d’œuvre de mise en œuvre", unit: "h", quantity: "2", lossRate: null, priceItemId: null, justification: "Aucun prix de main-d’œuvre dans la bibliothèque" }],
+          notes: null,
+        };
+      }),
+    };
+  },
   releve_plan: () => ({
     sheet: { title: "Plan de fondations", number: "GO-01", kind: "plan_niveau", level: "Fondations", scale: "1/100", readable: true },
     elements: [

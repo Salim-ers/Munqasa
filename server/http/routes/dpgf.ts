@@ -2,7 +2,7 @@
  * DPGF : établie par l'agent à partir d'un CCTP, puis modifiable ligne par ligne (quantités, prix,
  * désignations), montants recalculés en décimal exact, contrôle qualité, validation, versions, export Excel.
  */
-import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { dpgfGenerationRequest, dpgfLineInput, dpgfUpdate } from "../../../shared/schemas.js";
 import { modelFor } from "../../ai/client.js";
@@ -20,6 +20,12 @@ import { serializeJob } from "./agents.js";
 
 const d = schema.dpgf;
 const l = schema.dpgfLine;
+
+/** Sous-détails dont le poste a disparu (poste ou DPGF supprimés) : ils ne servent plus à rien. */
+async function dropOrphanBreakdowns(projectId: string) {
+  const db = await getDb();
+  await db.delete(schema.priceBreakdown).where(and(eq(schema.priceBreakdown.projectId, projectId), isNull(schema.priceBreakdown.dpgfLineId)));
+}
 
 async function loadDpgf(id: string) {
   const db = await getDb();
@@ -199,6 +205,7 @@ export const dpgfRoutes = new Hono<AdminEnv>()
     if (!line) notFound("Ligne introuvable.");
     const doc = await loadDpgf(line.dpgfId);
     await db.delete(l).where(eq(l.id, id));
+    await dropOrphanBreakdowns(doc.projectId);
     await renumber(db, line.dpgfId);
     await touch(line.dpgfId);
     await rerunChecks(line.dpgfId);
@@ -235,9 +242,11 @@ export const dpgfRoutes = new Hono<AdminEnv>()
     const doc = await loadDpgf(id);
     await db.transaction(async (tx) => {
       await tx.delete(schema.qualityIssue).where(and(eq(schema.qualityIssue.documentType, "dpgf"), eq(schema.qualityIssue.documentId, id)));
+      await tx.delete(schema.qualityIssue).where(and(eq(schema.qualityIssue.documentType, "sous_detail"), eq(schema.qualityIssue.documentId, id)));
       await tx.delete(schema.documentVersion).where(and(eq(schema.documentVersion.documentType, "dpgf"), eq(schema.documentVersion.documentId, id)));
       await tx.delete(d).where(eq(d.id, id));
     });
+    await dropOrphanBreakdowns(doc.projectId);
     await auditAction(c, "dpgf.suppression", "project", doc.projectId, { document: doc.title });
     return c.json({ ok: true });
   })

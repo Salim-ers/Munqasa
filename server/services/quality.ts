@@ -8,6 +8,7 @@ import type { DocumentType, IssueCategory, IssueSeverity } from "../../shared/en
 import type { CctpBlock } from "../ai/schemas.js";
 import { type Database, schema } from "../db/index.js";
 import { normalizeUnit } from "./units.js";
+import { readSetting } from "./settings.js";
 
 export interface IssueDraft {
   severity: IssueSeverity;
@@ -175,5 +176,67 @@ export async function checkDpgf(db: Database, dpgfId: string): Promise<IssueDraf
 
   const unpriced = postes.filter((p) => p.unitPrice === null).length;
   if (unpriced) issues.push({ severity: "information", category: "completude", message: `${unpriced} poste(s) sans prix unitaire : à chiffrer (sous-détails ou saisie).`, targets: [] });
+  return issues;
+}
+
+/** Contrôle des sous-détails d'une DPGF : prix manquants, prix à vérifier ou anciens, hypothèses, cohérence avec la DPGF. */
+export async function checkBreakdowns(db: Database, dpgfId: string): Promise<IssueDraft[]> {
+  const lines = await db
+    .select()
+    .from(schema.dpgfLine)
+    .where(and(eq(schema.dpgfLine.dpgfId, dpgfId), eq(schema.dpgfLine.kind, "poste")));
+  if (lines.length === 0) return [];
+  const breakdowns = await db.select().from(schema.priceBreakdown).where(inArray(schema.priceBreakdown.dpgfLineId, lines.map((l) => l.id)));
+  const components = breakdowns.length
+    ? await db.select().from(schema.priceBreakdownComponent).where(inArray(schema.priceBreakdownComponent.breakdownId, breakdowns.map((b) => b.id)))
+    : [];
+  const itemIds = [...new Set(components.map((c) => c.priceItemId).filter((v): v is string => Boolean(v)))];
+  const items = itemIds.length ? await db.select().from(schema.priceItem).where(inArray(schema.priceItem.id, itemIds)) : [];
+  const { stalePriceMonths } = await readSetting("alertes");
+  const stale = new Date();
+  stale.setMonth(stale.getMonth() - stalePriceMonths);
+  const staleDate = stale.toISOString().slice(0, 10);
+  const issues: IssueDraft[] = [];
+  const label = (l: { code: string | null; designation: string }) => [l.code, l.designation].filter(Boolean).join(" ");
+
+  const without = lines.filter((l) => !breakdowns.some((b) => b.dpgfLineId === l.id));
+  if (without.length) issues.push({ severity: "information", category: "completude", message: `${without.length} poste(s) sans sous-détail.`, targets: [] });
+
+  let hypotheses = 0;
+  let toApply = 0;
+  for (const b of breakdowns) {
+    const line = lines.find((l) => l.id === b.dpgfLineId)!;
+    const own = components.filter((c) => c.breakdownId === b.id);
+    const target = [{ type: "dpgf_line", id: line.id }];
+    if (own.length === 0) issues.push({ severity: "majeure", category: "completude", message: `Sous-détail vide, poste ${label(line)}`, targets: target });
+    const missing = own.filter((c) => c.unitCost === null);
+    if (missing.length) {
+      issues.push({ severity: "majeure", category: "source_manquante", message: `Prix manquant pour ${missing.map((c) => c.designation).join(", ")}, poste ${label(line)}`, targets: target });
+    }
+    for (const c of own) {
+      if (c.isHypothesis) hypotheses++;
+      const item = items.find((i) => i.id === c.priceItemId);
+      if (!item) continue;
+      if (item.verificationStatus === "a_verifier") issues.push({ severity: "mineure", category: "source_manquante", message: `Prix à vérifier utilisé : ${item.designation}, poste ${label(line)}`, targets: target });
+      if (item.priceDate < staleDate) issues.push({ severity: "mineure", category: "version", message: `Prix de plus de ${stalePriceMonths} mois : ${item.designation} du ${item.priceDate.split("-").reverse().join("/")}, poste ${label(line)}`, targets: target });
+      if (item.archivedAt) issues.push({ severity: "majeure", category: "source_manquante", message: `Prix archivé utilisé : ${item.designation}, poste ${label(line)}`, targets: target });
+    }
+    if (b.locked && b.computedUnitPrice !== null) {
+      if (line.unitPrice === null) toApply++;
+      else if (Number(line.unitPrice) !== Number(b.computedUnitPrice)) {
+        issues.push(
+          line.priceSource === "Sous-détail validé"
+            ? { severity: "majeure", category: "incoherence", message: `Prix de la DPGF différent du sous-détail validé, à reporter de nouveau : poste ${label(line)}`, targets: target }
+            : { severity: "mineure", category: "incoherence", message: `Prix saisi dans la DPGF différent du sous-détail validé : poste ${label(line)}`, targets: target },
+        );
+      }
+    }
+  }
+  if (toApply) issues.push({ severity: "information", category: "completude", message: `${toApply} sous-détail(s) validé(s) dont le prix n’est pas encore reporté dans la DPGF.`, targets: [] });
+  if (hypotheses) issues.push({ severity: "information", category: "reserve", message: `${hypotheses} consommation(s) proposée(s) par l’agent : hypothèses à confirmer.`, targets: [] });
+  const rates = await readSetting("chiffrage");
+  if (!rates.overheadRate && !rates.contingencyRate && !rates.marginRate) {
+    issues.push({ severity: "information", category: "completude", message: "Frais généraux, aléas et marge non saisis dans Paramètres, Chiffrage : le prix de vente est égal au déboursé.", targets: [] });
+  }
   return issues;
 }

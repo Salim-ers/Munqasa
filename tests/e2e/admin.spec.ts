@@ -223,6 +223,65 @@ test.describe.serial("administration", () => {
     expect(download.suggestedFilename()).toMatch(/\.xlsx$/);
   });
 
+  test("importe des prix, établit les sous-détails avec l'agent et reporte le prix validé dans la DPGF", async () => {
+    await page.goto("/administration/bibliotheque");
+    await expect(page.getByText("Bibliothèque vide")).toBeVisible();
+    await page.getByRole("button", { name: "Importer un fichier" }).first().click();
+    const importer = page.getByRole("dialog", { name: "Importer des prix" });
+    const csv = [
+      "Désignation;Unité;Prix unitaire;Nature",
+      "Béton C25/30 prêt à l’emploi pour semelles;m3;980,00;Matériau",
+      "Acier HA FeE500 façonné pour béton armé;kg;14,50;Matériau",
+      "Main-d’œuvre maçon qualifié, béton armé;h;65;Main-d’œuvre",
+      ";m3;12;",
+    ].join("\r\n");
+    await importer.locator('input[type="file"]').setInputFiles({ name: "prix.csv", mimeType: "text/csv", buffer: Buffer.from(csv, "utf-8") });
+    await importer.getByRole("button", { name: "Importer 4 ligne(s)" }).click();
+    await expect(importer.getByText("3 prix importé(s)")).toBeVisible();
+    await expect(importer.getByText("Ligne 5 : désignation vide")).toBeVisible();
+    await importer.getByRole("button", { name: "Fermer" }).last().click();
+    await expect(page.getByRole("table", { name: "Prix de la bibliothèque" }).getByRole("row")).toHaveCount(4);
+    await page.getByRole("button", { name: "Marquer Béton C25/30 prêt à l’emploi pour semelles comme vérifié" }).click();
+    await expect(page.getByRole("row", { name: /Béton C25\/30/ }).getByText("Vérifié", { exact: true })).toBeVisible();
+
+    await page.goto("/administration/parametres?onglet=chiffrage");
+    await page.getByLabel("Frais généraux (%)").fill("10");
+    await page.getByLabel("Aléas (%)").fill("2");
+    await page.getByLabel("Taux de marge (%)").fill("8");
+    await page.getByRole("button", { name: "Enregistrer" }).click();
+    await expect(page.getByText("Réglages de chiffrage enregistrés pour les prochains sous-détails.")).toBeVisible();
+
+    await page.goto("/administration/agents");
+    await expect(page.getByText("3 prix utilisables, dont 1 vérifié.")).toBeVisible();
+
+    await page.goto(`${projectUrl}?onglet=sousdetails`);
+    await page.getByRole("button", { name: "Lancer l’agent" }).click();
+    const launch = page.getByRole("dialog", { name: "Sous-détails de prix" });
+    await launch.getByText(/J’accepte que les postes de la DPGF/).click();
+    await launch.getByRole("button", { name: "Établir 2 sous-détail(s)" }).click();
+
+    // Béton 1,05 × 980 × 1,05, acier 1,05 × 14,50 × 1,05, maçon 2,5 × 65 ; frais 12 % ; marge 8 %.
+    const poste = page.getByRole("button", { name: /Béton armé pour semelles filantes/ });
+    await expect(poste).toContainText(/1\s522,81\sMAD/, { timeout: 30_000 });
+    await poste.click();
+    const editor = page.getByRole("dialog", { name: /Béton armé pour semelles filantes/ });
+    await expect(editor.getByText("Hypothèse", { exact: true })).toHaveCount(3);
+    await editor.getByRole("button", { name: "Valider le sous-détail" }).click();
+    await expect(page.getByText("Sous-détail validé et figé.")).toBeVisible();
+    await editor.getByRole("button", { name: "Fermer" }).last().click();
+
+    await page.getByRole("button", { name: "Reporter 1 prix validé(s)" }).click();
+    await page.getByRole("dialog", { name: "Reporter les prix validés ?" }).getByRole("button", { name: "Reporter" }).click();
+    await expect(page.getByText("1 prix reporté(s) dans la DPGF.")).toBeVisible();
+    const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Exporter en Excel" }).click()]);
+    expect(download.suggestedFilename()).toMatch(/Sous-détails.*\.xlsx$/);
+
+    await page.getByRole("link", { name: "Ouvrir la DPGF" }).click();
+    const row = page.getByRole("row", { name: /Béton armé pour semelles filantes/ });
+    await expect(row.getByText("Sous-détail validé")).toBeVisible();
+    await expect(row.getByText(/15\s532,66\sMAD/)).toBeVisible();
+  });
+
   test("crée un client puis une affaire qui lui est rattachée", async () => {
     await page.goto("/administration/clients");
     await page.getByRole("button", { name: "Nouveau client" }).click();
@@ -343,12 +402,30 @@ test.describe.serial("administration", () => {
 
   test("s'affiche sans débordement sur téléphone", async () => {
     await page.setViewportSize({ width: 390, height: 844 });
-    for (const path of ["/administration/dashboard", "/administration/affaires", new URL(projectUrl).pathname, "/administration/agenda", "/administration/parametres", "/administration/systeme"]) {
+    const project = new URL(projectUrl).pathname;
+    const overflows: string[] = [];
+    for (const path of [
+      "/administration/dashboard",
+      "/administration/affaires",
+      project,
+      `${project}?onglet=metre`,
+      `${project}?onglet=cctp`,
+      `${project}?onglet=dpgf`,
+      `${project}?onglet=sousdetails`,
+      "/administration/agents",
+      "/administration/bibliotheque",
+      "/administration/referentiel",
+      "/administration/agenda",
+      "/administration/parametres",
+      "/administration/parametres?onglet=chiffrage",
+      "/administration/systeme",
+    ]) {
       await page.goto(path);
       await page.waitForLoadState("networkidle");
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-      expect(overflow, path).toBeLessThanOrEqual(0);
+      if (overflow > 0) overflows.push(`${path} : ${overflow} px`);
     }
+    expect(overflows).toEqual([]);
     await page.goto("/administration/affaires");
     await expect(page.getByRole("list", { name: "Affaires" }).getByText("Construction d’un groupe scolaire")).toBeVisible();
   });

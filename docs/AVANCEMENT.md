@@ -55,7 +55,7 @@ Limites connues de cette étape, à traiter plus tard :
   service externe, à décider.
 - **Gros fichiers** : l'empreinte SHA-256 n'est calculée qu'en dessous de 100 Mo ; au-delà, un traitement de fond
   s'en chargera (étape C). En production, tout envoi passe par R2 (les fonctions Vercel limitent les requêtes à 4,5 Mo).
-- **Bibliothèque de documents sans affaire** : prête côté API et testée, son écran arrive avec la bibliothèque de prix.
+- **Bibliothèque de documents sans affaire** : prête côté API et testée ; son écran reste à faire.
 - **Notifications par e-mail** : non prévues à ce stade (notifications dans l'application uniquement).
 
 ## Étape C : agents IA (en cours)
@@ -73,9 +73,13 @@ Limites connues de cette étape, à traiter plus tard :
 | CCTP : lecture et édition article par article, validation, versions figées, export Word (couverture à l'identité documentaire, sommaire, annexe des références citées) | fait | tests + parcours navigateur |
 | Agent « DPGF depuis le CCTP » : postes établis chapitre par chapitre, chacun relié à son article du CCTP et à son ouvrage ; quantité reprise du métré (avec sa source), forfait ou « à métrer » ; aucun prix inventé | fait | tests (simulation) + parcours navigateur |
 | DPGF modifiable dans les cellules, numérotation automatique, montants et taxe en décimal exact, sous-totaux ; contrôle qualité (quantités, liens, unités, doublons, chiffrage) ; validation, versions, export Excel avec formules vivantes | fait | tests d'intégration + parcours navigateur |
-| Bibliothèque de prix et sous-détails | à venir | |
+| Bibliothèque de prix : chaque prix avec sa provenance, sa date, sa zone et son statut de vérification ; historique de chaque valeur ; import CSV ou Excel avec correspondance des colonnes et lignes refusées avec leur motif ; fournisseurs ; archivage | fait | tests d'intégration + parcours navigateur |
+| Agent « Sous-détails de prix » : décomposition de chaque poste de la DPGF ; coûts tirés uniquement des prix candidats de la bibliothèque (même devise, même pays, recherche plein texte en français), jamais du modèle ; consommations marquées comme hypothèses ; calcul exact par le serveur (déboursé sec, frais de chantier, frais généraux et aléas sur leur assiette, y compris le prix de revient, marge, marque ou coefficient) ; un sous-détail validé n'est jamais remplacé | fait | tests (simulation) + parcours navigateur |
+| Sous-détails : édition des composants et des taux, validation qui fige, report des prix validés dans la DPGF, contrôle qualité (prix manquants, à vérifier, anciens ou archivés, hypothèses, écarts avec la DPGF), export Excel ; frais et marge par défaut dans *Paramètres* > *Chiffrage* | fait | tests d'intégration + parcours navigateur |
+| Devis | à venir | |
 
 Prérequis de l'agent de lecture des plans en production : le compartiment R2 (les plans doivent pouvoir être déposés).
+Prérequis de l'agent des sous-détails : une bibliothèque de prix renseignée ; sans prix, il ne peut rien chiffrer.
 
 ## Étapes C à E
 
@@ -109,3 +113,5 @@ Voir `docs/ARCHITECTURE.md`, section « Phases ».
 7. **Tâche planifiée** : générer un secret long (`openssl rand -hex 32`) et le déclarer dans Vercel sous
    `CRON_SECRET`. Vercel l'envoie automatiquement à chaque exécution quotidienne ; la page *Système* indique
    s'il est présent.
+8. **Prix et chiffrage** : importer vos prix (bordereaux, devis fournisseurs, anciennes DPGF) dans
+   *Bibliothèque de prix*, les vérifier, puis saisir frais généraux, aléas et marge dans *Paramètres* > *Chiffrage*.

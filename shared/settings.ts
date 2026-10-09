@@ -3,6 +3,7 @@
  * Aucune valeur métier n'est supposée : les barèmes de prix des modèles, par exemple, sont saisis.
  */
 import { z } from "zod";
+import { MARGIN_MODES, RATE_BASES } from "./enums.js";
 
 const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Couleur au format #RRGGBB.");
 const usdDecimal = z
@@ -48,9 +49,30 @@ export const alertSettings = z.object({
 });
 export type AlertSettings = z.output<typeof alertSettings>;
 
+const optionalPercent = z
+  .string()
+  .trim()
+  .transform((v) => v.replace(/\s/g, "").replace(",", "."))
+  .refine((v) => v === "" || /^\d{1,4}(\.\d{1,4})?$/.test(v), "Valeur invalide.");
+
+/**
+ * Chiffrage : taux appliqués aux sous-détails, chacun avec son assiette. Vides par défaut :
+ * sans taux saisi, le prix de vente est égal au déboursé (aucun taux supposé).
+ */
+export const pricingSettings = z.object({
+  overheadRate: optionalPercent.default(""),
+  overheadBase: z.enum(RATE_BASES).default("debourse_total"),
+  contingencyRate: optionalPercent.default(""),
+  contingencyBase: z.enum(RATE_BASES).default("debourse_total"),
+  marginRate: optionalPercent.default(""),
+  marginMode: z.enum(MARGIN_MODES).default("taux_de_marge"),
+});
+export type PricingSettings = z.output<typeof pricingSettings>;
+
 export const SETTINGS = {
   ia: aiSettings,
   identite_documentaire: documentIdentity,
   alertes: alertSettings,
+  chiffrage: pricingSettings,
 } as const;
 export type SettingKey = keyof typeof SETTINGS;

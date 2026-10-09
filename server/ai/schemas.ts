@@ -4,7 +4,7 @@
  * le serveur à partir des entrées fournies, jamais recopiés tels quels depuis le modèle.
  */
 import { z } from "zod";
-import { DRAWING_KINDS, MEASURE_METHODS } from "../../shared/enums.js";
+import { COMPONENT_CATEGORIES, DRAWING_KINDS, MEASURE_METHODS } from "../../shared/enums.js";
 
 export const ELEMENT_CATEGORIES = [
   "terrassement",
@@ -157,3 +157,30 @@ export const dpgfChapter = z.object({
   ),
 });
 export type DpgfChapter = z.output<typeof dpgfChapter>;
+
+/* ---------- Sous-détails de prix ---------- */
+
+/**
+ * Décomposition d'une unité d'ouvrage. Le modèle ne donne jamais de coût : chaque coût unitaire vient
+ * d'un prix candidat de la bibliothèque (« priceItemId »), sinon le composant reste à chiffrer.
+ */
+export const sousDetailBatch = z.object({
+  postes: z.array(
+    z.object({
+      lineId: z.string(),
+      components: z.array(
+        z.object({
+          category: z.enum(COMPONENT_CATEGORIES),
+          designation: z.string(),
+          unit: z.string(),
+          quantity: z.string(),
+          lossRate: z.string().nullable(),
+          priceItemId: z.string().nullable(),
+          justification: z.string(),
+        }),
+      ),
+      notes: z.string().nullable(),
+    }),
+  ),
+});
+export type SousDetailBatch = z.output<typeof sousDetailBatch>;

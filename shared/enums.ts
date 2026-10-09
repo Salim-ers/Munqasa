@@ -200,7 +200,15 @@ export const COMPONENT_CATEGORY_LABELS: Record<ComponentCategory, string> = {
   frais_chantier: "Frais de chantier",
 };
 export const MARGIN_MODES = ["taux_de_marge", "taux_de_marque", "coefficient"] as const;
+export type MarginMode = (typeof MARGIN_MODES)[number];
+export const MARGIN_MODE_LABELS: Record<MarginMode, string> = {
+  taux_de_marge: "Taux de marge (sur le prix de revient)",
+  taux_de_marque: "Taux de marque (sur le prix de vente)",
+  coefficient: "Coefficient de vente",
+};
 export const RATE_BASES = ["debourse_sec", "debourse_total", "prix_de_revient"] as const;
+export type RateBase = (typeof RATE_BASES)[number];
+export const RATE_BASE_LABELS: Record<RateBase, string> = { debourse_sec: "Déboursé sec", debourse_total: "Déboursé total", prix_de_revient: "Prix de revient" };
 export const QUOTE_STATUSES = ["brouillon", "a_verifier", "valide", "envoye", "accepte", "refuse", "expire"] as const;
 export const QUOTE_LINE_KINDS = ["section", "ligne", "option"] as const;
 export const QUOTE_EVENT_KINDS = ["creation", "modification", "validation", "envoi", "relance", "acceptation", "refus", "expiration", "duplication"] as const;

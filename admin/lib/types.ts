@@ -395,3 +395,107 @@ export interface DpgfDetail {
   cctp: { id: string; title: string } | null;
   lot: Lot | null;
 }
+
+/* ---------- Bibliothèque de prix et sous-détails ---------- */
+
+export interface PriceItem {
+  id: string;
+  code: string | null;
+  designation: string;
+  kind: import("../../shared/enums").PriceKind;
+  unit: string;
+  unitPrice: string;
+  currency: Currency;
+  country: Country;
+  region: string | null;
+  city: string | null;
+  tradeFamily: string | null;
+  subFamily: string | null;
+  origin: import("../../shared/enums").PriceOrigin;
+  supplierId: string | null;
+  supplierName?: string | null;
+  sourceRef: string | null;
+  priceDate: string;
+  verificationStatus: import("../../shared/enums").ValidationStatus;
+  commercialConditions: string | null;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PriceHistoryEntry {
+  id: string;
+  unitPrice: string;
+  currency: Currency;
+  priceDate: string;
+  origin: import("../../shared/enums").PriceOrigin;
+  note: string | null;
+  recordedAt: string;
+}
+
+export interface Supplier {
+  id: string;
+  name: string;
+  country: Country;
+  city: string | null;
+  contactName: string | null;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+}
+
+export interface BreakdownComponent {
+  id: string;
+  breakdownId: string;
+  position: number;
+  category: import("../../shared/enums").ComponentCategory;
+  designation: string;
+  unit: string;
+  quantity: string;
+  unitCost: string | null;
+  lossRate: string | null;
+  isHypothesis: boolean;
+  priceItemId: string | null;
+  sourceNote: string | null;
+}
+
+export interface BreakdownResult {
+  complete: boolean;
+  componentTotals: Array<string | null>;
+  debourseSec: string;
+  fraisChantier: string;
+  debourseTotal: string;
+  overhead: string;
+  contingency: string;
+  prixDeRevient: string;
+  margin: string;
+  prixDeVente: string | null;
+}
+
+export interface Breakdown {
+  id: string;
+  projectId: string;
+  dpgfLineId: string | null;
+  designation: string;
+  unit: string;
+  currency: Currency;
+  overheadRate: string | null;
+  overheadBase: import("../../shared/enums").RateBase;
+  contingencyRate: string | null;
+  contingencyBase: import("../../shared/enums").RateBase;
+  marginRate: string | null;
+  marginMode: import("../../shared/enums").MarginMode;
+  computedUnitPrice: string | null;
+  locked: boolean;
+  status: import("../../shared/enums").DocumentStatus;
+  notes: string | null;
+  updatedAt: string;
+  components: BreakdownComponent[];
+  result: BreakdownResult | { error: string };
+}
+
+export interface BreakdownList {
+  dpgf: DpgfSummary;
+  postes: Array<{ line: DpgfLine; breakdown: Breakdown | null }>;
+  issues: QualityIssue[];
+}

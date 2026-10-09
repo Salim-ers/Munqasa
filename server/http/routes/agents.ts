@@ -2,7 +2,7 @@
  * Agents IA : prérequis, suivi des traitements (progression, journal, annulation, reprise),
  * lancement de la lecture des plans, et métré (ouvrages et mesures, recalculés par le serveur).
  */
-import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { Hono } from "hono";
 import { measurementInput, planAnalysisRequest, workItemInput } from "../../../shared/schemas.js";
 import { modelFor } from "../../ai/client.js";
@@ -75,6 +75,12 @@ export const agentRoutes = new Hono<AdminEnv>()
     const env = getEnv();
     const settings = await readSetting("ia");
     const simulation = !env.isProduction && process.env.TALAB_FAKE_AI === "1";
+    const db = await getDb();
+    const usable = and(isNull(schema.priceItem.archivedAt), ne(schema.priceItem.verificationStatus, "rejete"));
+    const [[prices], [verified]] = await Promise.all([
+      db.select({ n: count() }).from(schema.priceItem).where(usable),
+      db.select({ n: count() }).from(schema.priceItem).where(and(usable, eq(schema.priceItem.verificationStatus, "verifie"))),
+    ]);
     return c.json({
       simulation,
       openaiKey: Boolean(env.OPENAI_API_KEY),
@@ -83,6 +89,8 @@ export const agentRoutes = new Hono<AdminEnv>()
       storage: storageConfigured() || !env.isProduction,
       monthUsd: await monthSpendUsd(),
       budgetUsd: settings.monthlyBudgetUsd || null,
+      prices: Number(prices?.n ?? 0),
+      verifiedPrices: Number(verified?.n ?? 0),
     });
   })
   .get("/jobs", async (c) => {

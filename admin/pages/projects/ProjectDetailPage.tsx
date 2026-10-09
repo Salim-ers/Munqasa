@@ -17,13 +17,14 @@ import { DeadlinesTab } from "./DeadlinesTab";
 import { FilesTab } from "./FilesTab";
 import { HistoryTab } from "./HistoryTab";
 import { CctpTab } from "../cctp/CctpTab";
+import { SousDetailTab } from "../breakdowns/SousDetailTab";
 import { DpgfTab } from "../dpgf/DpgfTab";
 import { LotsTab } from "./LotsTab";
 import { MetreTab } from "./MetreTab";
 import { OverviewTab } from "./OverviewTab";
 import { ProjectFormDialog } from "./ProjectFormDialog";
 
-const TABS = ["synthese", "lots", "echeances", "documents", "metre", "cctp", "dpgf", "historique"] as const;
+const TABS = ["synthese", "lots", "echeances", "documents", "metre", "cctp", "dpgf", "sousdetails", "historique"] as const;
 type Tab = (typeof TABS)[number];
 
 export function ProjectDetailPage() {
@@ -151,6 +152,7 @@ export function ProjectDetailPage() {
           { value: "metre", label: "Plans et métré" },
           { value: "cctp", label: "CCTP" },
           { value: "dpgf", label: "DPGF" },
+          { value: "sousdetails", label: "Sous-détails" },
           { value: "historique", label: "Historique" },
         ]}
       >
@@ -176,6 +178,9 @@ export function ProjectDetailPage() {
             </TabPanel>
             <TabPanel value="dpgf">
               <DpgfTab projectId={id} />
+            </TabPanel>
+            <TabPanel value="sousdetails">
+              <SousDetailTab projectId={id} />
             </TabPanel>
             <TabPanel value="historique">
               <HistoryTab projectId={id} />

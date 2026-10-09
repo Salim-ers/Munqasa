@@ -1,4 +1,4 @@
-import { CircleCheck, CircleDashed, PenLine, ScanLine, Sparkles, TableProperties } from "lucide-react";
+import { Calculator, CircleCheck, CircleDashed, PenLine, ScanLine, Sparkles, TableProperties } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Link } from "react-router";
 import { JobProgress } from "../../components/JobProgress";
@@ -8,6 +8,7 @@ import { EmptyState, Skeleton } from "../../components/ui/Feedback";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { formatNumber } from "../../lib/format";
 import { useAgentStatus, useJobs } from "../../lib/jobs";
+import { SousDetailLaunchDialog } from "../breakdowns/SousDetailLaunchDialog";
 import { CctpLaunchDialog } from "../cctp/CctpLaunchDialog";
 import { DpgfLaunchDialog } from "../dpgf/DpgfLaunchDialog";
 import { PlanAnalysisDialog } from "./PlanAnalysisDialog";
@@ -55,6 +56,7 @@ export function AgentsPage() {
   const [planOpen, setPlanOpen] = useState(false);
   const [cctpOpen, setCctpOpen] = useState(false);
   const [dpgfOpen, setDpgfOpen] = useState(false);
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
   const s = status.data;
 
   return (
@@ -99,10 +101,18 @@ export function AgentsPage() {
               </Button>
             }
           />
-          <Card className="flex flex-col justify-center p-5">
-            <p className="text-xs font-semibold text-ink">Prochain agent</p>
-            <p className="mt-1 text-xs leading-relaxed text-ink-3">Sous-détails de prix à partir de la DPGF et de votre bibliothèque de prix.</p>
-          </Card>
+          <AgentCard
+            icon={<Calculator />}
+            title="Sous-détails de prix"
+            text="Décompose chaque poste de la DPGF en matériaux, main-d’œuvre, matériel et frais. Chaque coût vient d’un prix de votre bibliothèque ; les consommations proposées restent des hypothèses à confirmer."
+            input="DPGF de l’affaire et bibliothèque de prix"
+            output="Sous-détails calculés au centime, à valider puis à reporter dans la DPGF, exportables en Excel"
+            action={
+              <Button icon={<Sparkles className="size-4" />} onClick={() => setBreakdownOpen(true)}>
+                Établir les sous-détails
+              </Button>
+            }
+          />
         </div>
 
         <Card className="h-fit p-5">
@@ -127,6 +137,19 @@ export function AgentsPage() {
                 }
               />
               <Requirement ok={s.storage} label="Stockage des plans" detail={s.storage ? "Disponible." : "Compartiment R2 à configurer (variables S3_*) pour déposer des plans."} />
+              <Requirement
+                ok={s.prices > 0}
+                label="Bibliothèque de prix"
+                detail={
+                  s.prices ? (
+                    `${formatNumber(s.prices)} prix utilisable${s.prices > 1 ? "s" : ""}, dont ${formatNumber(s.verifiedPrices)} vérifié${s.verifiedPrices > 1 ? "s" : ""}.`
+                  ) : (
+                    <Link to="/administration/bibliotheque" className="font-semibold text-accent hover:underline">
+                      Importer vos prix pour les sous-détails
+                    </Link>
+                  )
+                }
+              />
               <Requirement ok label="Dépense du mois" detail={`${formatNumber(s.monthUsd)} $${s.budgetUsd ? ` sur un plafond de ${formatNumber(s.budgetUsd)} $` : ", sans plafond"}`} />
             </ul>
           )}
@@ -151,6 +174,7 @@ export function AgentsPage() {
       <PlanAnalysisDialog open={planOpen} onOpenChange={setPlanOpen} />
       <CctpLaunchDialog open={cctpOpen} onOpenChange={setCctpOpen} />
       <DpgfLaunchDialog open={dpgfOpen} onOpenChange={setDpgfOpen} />
+      <SousDetailLaunchDialog open={breakdownOpen} onOpenChange={setBreakdownOpen} />
     </div>
   );
 }
