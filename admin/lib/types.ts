@@ -334,3 +334,64 @@ export interface CctpDetail {
   lot: Lot | null;
   workItems: Array<{ id: string; code: string | null; designation: string }>;
 }
+
+/* ---------- DPGF ---------- */
+
+export interface DpgfSummary {
+  id: string;
+  projectId: string;
+  lotId: string | null;
+  cctpDocumentId: string | null;
+  title: string;
+  currency: import("../../shared/enums").Currency;
+  vatRate: string | null;
+  status: import("../../shared/enums").DocumentStatus;
+  currentVersion: number;
+  createdAt: string;
+  updatedAt: string;
+  postes?: number;
+  priced?: number;
+  totalHt?: string;
+  openIssues?: number;
+}
+
+export interface DpgfLine {
+  id: string;
+  dpgfId: string;
+  parentId: string | null;
+  position: number;
+  kind: "chapitre" | "sous_chapitre" | "poste";
+  code: string | null;
+  cctpRef: string | null;
+  cctpSectionId: string | null;
+  workItemId: string | null;
+  designation: string;
+  description: string | null;
+  unit: string | null;
+  quantity: string | null;
+  unitPrice: string | null;
+  amount: string | null;
+  quantitySource: string | null;
+  priceSource: string | null;
+  priceItemId: string | null;
+  status: import("../../shared/enums").LineStatus;
+}
+
+export interface DpgfTotals {
+  subtotals: Record<string, string>;
+  totalHt: string;
+  vat: string | null;
+  totalTtc: string | null;
+  postes: number;
+  priced: number;
+}
+
+export interface DpgfDetail {
+  dpgf: DpgfSummary;
+  lines: DpgfLine[];
+  totals: DpgfTotals;
+  issues: QualityIssue[];
+  versions: DocumentVersionRow[];
+  cctp: { id: string; title: string } | null;
+  lot: Lot | null;
+}

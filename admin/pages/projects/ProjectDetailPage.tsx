@@ -17,12 +17,13 @@ import { DeadlinesTab } from "./DeadlinesTab";
 import { FilesTab } from "./FilesTab";
 import { HistoryTab } from "./HistoryTab";
 import { CctpTab } from "../cctp/CctpTab";
+import { DpgfTab } from "../dpgf/DpgfTab";
 import { LotsTab } from "./LotsTab";
 import { MetreTab } from "./MetreTab";
 import { OverviewTab } from "./OverviewTab";
 import { ProjectFormDialog } from "./ProjectFormDialog";
 
-const TABS = ["synthese", "lots", "echeances", "documents", "metre", "cctp", "historique"] as const;
+const TABS = ["synthese", "lots", "echeances", "documents", "metre", "cctp", "dpgf", "historique"] as const;
 type Tab = (typeof TABS)[number];
 
 export function ProjectDetailPage() {
@@ -149,6 +150,7 @@ export function ProjectDetailPage() {
           { value: "documents", label: "Documents", count: data ? fileCount : undefined },
           { value: "metre", label: "Plans et métré" },
           { value: "cctp", label: "CCTP" },
+          { value: "dpgf", label: "DPGF" },
           { value: "historique", label: "Historique" },
         ]}
       >
@@ -171,6 +173,9 @@ export function ProjectDetailPage() {
             </TabPanel>
             <TabPanel value="cctp">
               <CctpTab projectId={id} lots={data.lots} />
+            </TabPanel>
+            <TabPanel value="dpgf">
+              <DpgfTab projectId={id} />
             </TabPanel>
             <TabPanel value="historique">
               <HistoryTab projectId={id} />

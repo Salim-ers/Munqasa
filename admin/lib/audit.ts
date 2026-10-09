@@ -60,6 +60,17 @@ export const ACTION_LABELS: Record<string, string> = {
   "agent.lecture_plans": "Lecture des plans lancée",
   "agent.redaction_cctp": "Rédaction du CCTP lancée",
   "agent.reecriture_cctp": "Réécriture d’articles lancée",
+  "agent.dpgf": "Établissement de la DPGF lancé",
+  "dpgf.modification": "DPGF modifiée",
+  "dpgf.ligne_ajoutee": "Ligne de DPGF ajoutée",
+  "dpgf.ligne_modifiee": "Ligne de DPGF modifiée",
+  "dpgf.ligne_validee": "Poste de DPGF validé",
+  "dpgf.ligne_a_revoir": "Poste de DPGF à revoir",
+  "dpgf.ligne_supprimee": "Ligne de DPGF supprimée",
+  "dpgf.validee": "DPGF validée",
+  "dpgf.version": "Version de la DPGF enregistrée",
+  "dpgf.export": "DPGF exportée",
+  "dpgf.suppression": "DPGF supprimée",
   "cctp.article_modifie": "Article du CCTP modifié",
   "cctp.article_valide": "Article du CCTP validé",
   "cctp.article_a_revoir": "Article du CCTP à revoir",
@@ -155,6 +166,7 @@ export function describeDetails(details: Record<string, unknown> | null | undefi
   if (typeof d.ouvrage === "string") parts.push(d.ouvrage);
   if (typeof d.mesure === "string") parts.push(d.mesure);
   if (typeof d.article === "string") parts.push(d.article);
+  if (typeof d.ligne === "string") parts.push(d.ligne);
   if (typeof d.document === "string") parts.push(d.document);
   if (typeof d.reference === "string" && !parts.includes(d.reference)) parts.push(d.reference);
   if (typeof d.fichiers === "number") parts.push(`${d.fichiers} fichier${d.fichiers > 1 ? "s" : ""}`);

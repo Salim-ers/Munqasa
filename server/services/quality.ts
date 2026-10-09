@@ -7,6 +7,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import type { DocumentType, IssueCategory, IssueSeverity } from "../../shared/enums.js";
 import type { CctpBlock } from "../ai/schemas.js";
 import { type Database, schema } from "../db/index.js";
+import { normalizeUnit } from "./units.js";
 
 export interface IssueDraft {
   severity: IssueSeverity;
@@ -117,4 +118,62 @@ export async function hasBlockingIssues(db: Database, documentType: DocumentType
     .where(and(eq(q.documentType, documentType), eq(q.documentId, documentId), eq(q.status, "ouverte"), eq(q.severity, "bloquante")))
     .limit(1);
   return Boolean(row);
+}
+
+/** Contrôle d'une DPGF : quantités, liens avec le CCTP et le métré, unités, doublons, chiffrage. */
+export async function checkDpgf(db: Database, dpgfId: string): Promise<IssueDraft[]> {
+  const [doc] = await db.select().from(schema.dpgf).where(eq(schema.dpgf.id, dpgfId));
+  if (!doc) return [];
+  const lines = await db.select().from(schema.dpgfLine).where(eq(schema.dpgfLine.dpgfId, dpgfId));
+  const postes = lines.filter((l) => l.kind === "poste");
+  const issues: IssueDraft[] = [];
+  const label = (l: { code: string | null; designation: string }) => [l.code, l.designation].filter(Boolean).join(" ");
+  const target = (id: string) => [{ type: "dpgf_line", id }];
+
+  const items = await db.select().from(schema.workItem).where(eq(schema.workItem.projectId, doc.projectId));
+  const measures = items.length
+    ? await db
+        .select()
+        .from(schema.measurement)
+        .where(inArray(schema.measurement.workItemId, items.map((i) => i.id)))
+    : [];
+
+  for (const p of postes) {
+    if (p.quantity === null) issues.push({ severity: "majeure", category: "completude", message: `Quantité à métrer : ${label(p)}`, targets: target(p.id) });
+    if (!p.cctpRef && !p.cctpSectionId) issues.push({ severity: "majeure", category: "tracabilite", message: `Poste sans article du CCTP : ${label(p)}`, targets: target(p.id) });
+    if (p.workItemId) {
+      const item = items.find((i) => i.id === p.workItemId);
+      const own = measures.filter((m) => m.workItemId === p.workItemId && m.status !== "rejete");
+      if (item?.unit && p.unit && normalizeUnit(item.unit) !== normalizeUnit(p.unit)) {
+        issues.push({ severity: "majeure", category: "unite", message: `Unité différente du métré (${p.unit} au lieu de ${item.unit}) : ${label(p)}`, targets: target(p.id) });
+      }
+      if (p.quantity !== null && own.some((m) => m.status === "a_verifier")) {
+        issues.push({ severity: "mineure", category: "source_manquante", message: `Quantité issue d’un métré non vérifié : ${label(p)}`, targets: target(p.id) });
+      }
+    }
+  }
+
+  // Doublons : même désignation dans le même chapitre.
+  const seen = new Map<string, string>();
+  for (const p of postes) {
+    const key = `${p.parentId}:${p.designation.trim().toLowerCase()}`;
+    const first = seen.get(key);
+    if (first) issues.push({ severity: "mineure", category: "doublon", message: `Poste en double : ${label(p)}`, targets: [...target(first), ...target(p.id)] });
+    else seen.set(key, p.id);
+  }
+
+  // Articles de mise en œuvre du CCTP sans poste correspondant.
+  if (doc.cctpDocumentId) {
+    const sections = await db.select().from(schema.cctpSection).where(eq(schema.cctpSection.documentId, doc.cctpDocumentId));
+    const referenced = new Set(postes.map((p) => p.cctpSectionId).filter(Boolean));
+    for (const s of sections) {
+      if (s.kind === "article" && s.workItemId && !referenced.has(s.id)) {
+        issues.push({ severity: "mineure", category: "completude", message: `Article du CCTP sans poste dans la DPGF : ${s.number} ${s.title}`, targets: [{ type: "cctp_section", id: s.id }] });
+      }
+    }
+  }
+
+  const unpriced = postes.filter((p) => p.unitPrice === null).length;
+  if (unpriced) issues.push({ severity: "information", category: "completude", message: `${unpriced} poste(s) sans prix unitaire : à chiffrer (sous-détails ou saisie).`, targets: [] });
+  return issues;
 }

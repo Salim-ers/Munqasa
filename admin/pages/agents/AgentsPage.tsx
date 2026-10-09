@@ -1,4 +1,4 @@
-import { CircleCheck, CircleDashed, PenLine, ScanLine, Sparkles } from "lucide-react";
+import { CircleCheck, CircleDashed, PenLine, ScanLine, Sparkles, TableProperties } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Link } from "react-router";
 import { JobProgress } from "../../components/JobProgress";
@@ -9,6 +9,7 @@ import { PageHeader } from "../../components/ui/PageHeader";
 import { formatNumber } from "../../lib/format";
 import { useAgentStatus, useJobs } from "../../lib/jobs";
 import { CctpLaunchDialog } from "../cctp/CctpLaunchDialog";
+import { DpgfLaunchDialog } from "../dpgf/DpgfLaunchDialog";
 import { PlanAnalysisDialog } from "./PlanAnalysisDialog";
 
 function Requirement({ ok, label, detail }: { ok: boolean; label: string; detail: ReactNode }) {
@@ -53,6 +54,7 @@ export function AgentsPage() {
   const jobs = useJobs();
   const [planOpen, setPlanOpen] = useState(false);
   const [cctpOpen, setCctpOpen] = useState(false);
+  const [dpgfOpen, setDpgfOpen] = useState(false);
   const s = status.data;
 
   return (
@@ -85,9 +87,21 @@ export function AgentsPage() {
               </Button>
             }
           />
-          <Card className="flex flex-col justify-center p-5 md:col-span-2">
-            <p className="text-xs font-semibold text-ink">Prochains agents</p>
-            <p className="mt-1 text-xs leading-relaxed text-ink-3">DPGF à partir du CCTP, puis sous-détails de prix à partir de la DPGF et de votre bibliothèque de prix.</p>
+          <AgentCard
+            icon={<TableProperties />}
+            title="DPGF depuis le CCTP"
+            text="Établit les postes de la DPGF à partir de chaque chapitre du CCTP. Les quantités viennent du métré ; ce qui n’est pas métré reste à métrer."
+            input="CCTP de l’affaire et métré du lot"
+            output="DPGF modifiable, contrôlée, versionnée, exportable en Excel avec formules"
+            action={
+              <Button icon={<Sparkles className="size-4" />} onClick={() => setDpgfOpen(true)}>
+                Établir une DPGF
+              </Button>
+            }
+          />
+          <Card className="flex flex-col justify-center p-5">
+            <p className="text-xs font-semibold text-ink">Prochain agent</p>
+            <p className="mt-1 text-xs leading-relaxed text-ink-3">Sous-détails de prix à partir de la DPGF et de votre bibliothèque de prix.</p>
           </Card>
         </div>
 
@@ -136,6 +150,7 @@ export function AgentsPage() {
 
       <PlanAnalysisDialog open={planOpen} onOpenChange={setPlanOpen} />
       <CctpLaunchDialog open={cctpOpen} onOpenChange={setCctpOpen} />
+      <DpgfLaunchDialog open={dpgfOpen} onOpenChange={setDpgfOpen} />
     </div>
   );
 }

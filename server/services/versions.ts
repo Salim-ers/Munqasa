@@ -21,6 +21,16 @@ export async function snapshotCctp(db: Database, documentId: string, note: strin
   return version;
 }
 
+export async function snapshotDpgf(db: Database, dpgfId: string, note: string, validated = false): Promise<number> {
+  const [document] = await db.select().from(schema.dpgf).where(eq(schema.dpgf.id, dpgfId));
+  if (!document) throw new Error("DPGF introuvable.");
+  const lines = await db.select().from(schema.dpgfLine).where(eq(schema.dpgfLine.dpgfId, dpgfId)).orderBy(asc(schema.dpgfLine.position));
+  const version = await nextVersion(db, "dpgf", dpgfId);
+  await db.insert(schema.documentVersion).values({ projectId: document.projectId, documentType: "dpgf", documentId: dpgfId, version, snapshot: { document, lines }, note, validated });
+  await db.update(schema.dpgf).set({ currentVersion: version }).where(eq(schema.dpgf.id, dpgfId));
+  return version;
+}
+
 export async function listVersions(db: Database, documentType: DocumentType, documentId: string) {
   return db
     .select({ id: schema.documentVersion.id, version: schema.documentVersion.version, note: schema.documentVersion.note, validated: schema.documentVersion.validated, createdAt: schema.documentVersion.createdAt })

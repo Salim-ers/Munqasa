@@ -74,6 +74,30 @@ const builders: Record<string, (input: string) => unknown> = {
       })),
     };
   },
+  dpgf_chapitre: (input) => {
+    const title = /Chapitre \S+ du CCTP : (.*)/.exec(input)?.[1]?.trim() ?? "Chapitre";
+    const articles = jsonAfter(input, "Articles (JSON)") as Array<{ numero: string; titre: string }>;
+    const metre = jsonAfter(input, "Métré du lot (JSON)") as Array<{ code: string; designation: string; unite: string }>;
+    if (/généralités/i.test(title)) {
+      return {
+        title: "Installation et généralités",
+        groups: [{ title: null, postes: [{ designation: "Installation de chantier", description: null, unit: "ens", cctpArticle: articles[0]?.numero ?? null, workItemCode: null, quantityBasis: "forfait" }] }],
+      };
+    }
+    if (/matériaux/i.test(title)) return { title, groups: [] };
+    return {
+      title,
+      groups: [
+        {
+          title: null,
+          postes: articles.map((a) => {
+            const item = metre.find((m) => m.code && a.titre.includes(m.code));
+            return { designation: item ? item.designation : a.titre, description: null, unit: item?.unite ?? "u", cctpArticle: a.numero, workItemCode: item?.code ?? null, quantityBasis: item ? "metre" : "a_metrer" };
+          }),
+        },
+      ],
+    };
+  },
   releve_plan: () => ({
     sheet: { title: "Plan de fondations", number: "GO-01", kind: "plan_niveau", level: "Fondations", scale: "1/100", readable: true },
     elements: [

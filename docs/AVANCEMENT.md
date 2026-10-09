@@ -71,7 +71,9 @@ Limites connues de cette étape, à traiter plus tard :
 | Agent « Rédaction du CCTP » : plan adapté au lot et au métré, rédaction chapitre par chapitre en blocs structurés, citations limitées aux références choisies, valeurs non justifiées signalées comme à préciser ; réécriture ciblée d'articles avec consigne | fait | tests (simulation) + parcours navigateur |
 | Contrôle qualité du CCTP : articles non rédigés, références à vérifier ou rejetées, normes écrites hors référentiel, ouvrages du métré non couverts ; points mis de côté avec motif ; validation refusée tant qu'une anomalie bloquante est ouverte | fait | tests d'intégration |
 | CCTP : lecture et édition article par article, validation, versions figées, export Word (couverture à l'identité documentaire, sommaire, annexe des références citées) | fait | tests + parcours navigateur |
-| DPGF depuis le CCTP, bibliothèque de prix et sous-détails | à venir | |
+| Agent « DPGF depuis le CCTP » : postes établis chapitre par chapitre, chacun relié à son article du CCTP et à son ouvrage ; quantité reprise du métré (avec sa source), forfait ou « à métrer » ; aucun prix inventé | fait | tests (simulation) + parcours navigateur |
+| DPGF modifiable dans les cellules, numérotation automatique, montants et taxe en décimal exact, sous-totaux ; contrôle qualité (quantités, liens, unités, doublons, chiffrage) ; validation, versions, export Excel avec formules vivantes | fait | tests d'intégration + parcours navigateur |
+| Bibliothèque de prix et sous-détails | à venir | |
 
 Prérequis de l'agent de lecture des plans en production : le compartiment R2 (les plans doivent pouvoir être déposés).
 

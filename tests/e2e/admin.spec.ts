@@ -198,6 +198,31 @@ test.describe.serial("administration", () => {
     expect(readFileSync(await download.path()).subarray(0, 2).toString()).toBe("PK");
   });
 
+  test("établit la DPGF depuis le CCTP, la chiffre et l'exporte en Excel", async () => {
+    await page.goto(`${projectUrl}?onglet=dpgf`);
+    await page.getByRole("button", { name: "Établir une DPGF" }).click();
+    const dialog = page.getByRole("dialog", { name: "DPGF depuis le CCTP" });
+    await expect(dialog.getByLabel("CCTP source")).not.toHaveValue("");
+    await dialog.getByLabel(/Taux de TVA/).fill("20");
+    await dialog.getByText(/J’accepte que le CCTP et le métré/).click();
+    await dialog.getByRole("button", { name: "Établir la DPGF" }).click();
+
+    const document = page.getByRole("button", { name: /DPGF, lot 01 Gros œuvre/ });
+    await expect(document).toBeVisible({ timeout: 30_000 });
+    await document.click();
+    const row = page.getByRole("row", { name: /Béton armé pour semelles filantes/ });
+    await expect(row).toBeVisible();
+    await expect(row.getByText("Métré : 1 mesure(s), dont 1 vérifiée(s)")).toBeVisible();
+    await row.getByRole("button", { name: /Prix unitaire/ }).click();
+    await row.getByRole("textbox", { name: "Prix unitaire" }).fill("1250,5");
+    await row.getByRole("textbox", { name: "Prix unitaire" }).press("Enter");
+    await expect(row.getByText(/12\s755,10\sMAD/)).toBeVisible();
+    await expect(page.getByText(/15\s306,12\sMAD/)).toBeVisible();
+
+    const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Exporter en Excel" }).click()]);
+    expect(download.suggestedFilename()).toMatch(/\.xlsx$/);
+  });
+
   test("crée un client puis une affaire qui lui est rattachée", async () => {
     await page.goto("/administration/clients");
     await page.getByRole("button", { name: "Nouveau client" }).click();

@@ -131,3 +131,29 @@ export const cctpChapter = z.object({
   ),
 });
 export type CctpChapter = z.output<typeof cctpChapter>;
+
+/* ---------- DPGF ---------- */
+
+/**
+ * Postes de DPGF proposés pour un chapitre du CCTP. Aucun nombre n'est demandé au modèle :
+ * la quantité vient du métré (« metre »), vaut 1 pour un forfait, ou reste « à métrer ».
+ */
+export const dpgfChapter = z.object({
+  title: z.string(),
+  groups: z.array(
+    z.object({
+      title: z.string().nullable(),
+      postes: z.array(
+        z.object({
+          designation: z.string(),
+          description: z.string().nullable(),
+          unit: z.string(),
+          cctpArticle: z.string().nullable(),
+          workItemCode: z.string().nullable(),
+          quantityBasis: z.enum(["metre", "forfait", "a_metrer"]),
+        }),
+      ),
+    }),
+  ),
+});
+export type DpgfChapter = z.output<typeof dpgfChapter>;

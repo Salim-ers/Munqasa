@@ -276,6 +276,41 @@ export const cctpRewriteRequest = z.object({
   consent: z.literal(true, { error: "Confirmez l’envoi des informations de l’affaire à l’API OpenAI." }),
 });
 
+/* ---------- DPGF ---------- */
+
+/** Taux en pourcentage (0 à 100), 4 décimales au plus, saisi : jamais supposé. */
+const optionalRate = z
+  .union([z.string().trim(), z.literal(""), z.null()])
+  .optional()
+  .transform((v) => (v ? v.replace(/\s/g, "").replace(",", ".") : null))
+  .refine((v) => v === null || (/^\d{1,3}(\.\d{1,4})?$/.test(v) && Number(v) <= 100), "Taux invalide (entre 0 et 100).");
+
+export const dpgfGenerationRequest = z.object({
+  cctpDocumentId: z.string().uuid("Choisissez un CCTP."),
+  vatRate: optionalRate,
+  instructions: optionalText(2000),
+  consent: z.literal(true, { error: "Confirmez l’envoi du CCTP et du métré à l’API OpenAI." }),
+});
+
+export const DPGF_LINE_KIND_LIST = ["chapitre", "sous_chapitre", "poste"] as const;
+
+export const dpgfLineInput = z.object({
+  kind: z.enum(DPGF_LINE_KIND_LIST),
+  parentId: optionalUuid,
+  designation: requiredText(500),
+  description: optionalText(3000),
+  unit: optionalText(20),
+  quantity: optionalDecimal,
+  unitPrice: optionalDecimal,
+  cctpRef: optionalText(30),
+});
+export type DpgfLineInput = z.input<typeof dpgfLineInput>;
+
+export const dpgfUpdate = z.object({
+  title: requiredText(300),
+  vatRate: optionalRate,
+});
+
 /* ---------- Entreprise ---------- */
 
 export const companyProfileInput = z.object({
