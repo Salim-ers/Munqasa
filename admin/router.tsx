@@ -79,6 +79,7 @@ export const router = createBrowserRouter([
           { path: "clients/:id", lazy: page(() => import("./pages/clients/ClientDetailPage"), "ClientDetailPage") },
           { path: "prospects", lazy: page(() => import("./pages/prospects/ProspectsPage"), "ProspectsPage") },
           { path: "agenda", lazy: page(() => import("./pages/agenda/AgendaPage"), "AgendaPage") },
+          { path: "agents", lazy: page(() => import("./pages/agents/AgentsPage"), "AgentsPage") },
           { path: "notifications", lazy: page(() => import("./pages/NotificationsPage"), "NotificationsPage") },
           { path: "parametres", lazy: page(() => import("./pages/settings/SettingsPage"), "SettingsPage") },
           { path: "systeme", lazy: page(() => import("./pages/SystemPage"), "SystemPage") },

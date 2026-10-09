@@ -58,6 +58,19 @@ Limites connues de cette étape, à traiter plus tard :
 - **Bibliothèque de documents sans affaire** : prête côté API et testée, son écran arrive avec la bibliothèque de prix.
 - **Notifications par e-mail** : non prévues à ce stade (notifications dans l'application uniquement).
 
+## Étape C : agents IA (en cours)
+
+| Élément | État | Vérification |
+| --- | --- | --- |
+| Traitements longs : étapes persistées, verrou, tranches de temps et relance automatique sur Vercel, reprise après interruption, annulation, nouvel essai sur incident passager | fait | tests d'intégration (incident, erreur de configuration, budget de temps, annulation, jeton de relance) |
+| Appels aux agents : API OpenAI Responses, sorties structurées validées par schéma, modèle choisi dans les paramètres, plafond mensuel, journal des exécutions et consommation | fait | tests avec un fournisseur simulé |
+| Agent « Lecture des plans et métré » : PDF découpé page par page, relevé de chaque page (cartouche, éléments de gros œuvre, cotes lisibles avec leur source), métré proposé avec formules ; quantités calculées par le serveur en décimal exact ; fichiers illisibles écartés avec explication | fait | tests d'intégration et parcours navigateur (simulation) ; essai réel dès que R2 est configuré |
+| Métré : ouvrages et mesures modifiables, aperçu du calcul en direct, validation, rejet, traçabilité des sources ; une nouvelle analyse ne remplace que les propositions non validées | fait | tests + parcours navigateur |
+| Page « Agents IA » : prérequis, lancement, suivi en direct des traitements | fait | parcours navigateur |
+| Rédaction du CCTP, DPGF depuis le CCTP, bibliothèque de prix et sous-détails, exports | à venir | |
+
+Prérequis de l'agent de lecture des plans en production : le compartiment R2 (les plans doivent pouvoir être déposés).
+
 ## Étapes C à E
 
 Voir `docs/ARCHITECTURE.md`, section « Phases ».

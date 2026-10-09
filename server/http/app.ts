@@ -7,8 +7,10 @@ import { HTTPException } from "hono/http-exception";
 import { getAuth } from "../auth/auth.js";
 import { type AdminEnv, requireAdmin, sameOriginOnly } from "../auth/guard.js";
 import { ConfigError } from "../env.js";
+import { AiConfigError } from "../ai/client.js";
 import { AiBudgetError } from "../services/openai.js";
 import { StorageNotConfiguredError } from "../services/storage.js";
+import { agentRoutes, metreRoutes } from "./routes/agents.js";
 import { clientRoutes, prospectRoutes } from "./routes/crm.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
 import { fileRoutes } from "./routes/files.js";
@@ -45,6 +47,8 @@ function adminApi() {
   admin.route("/settings", settingRoutes);
   admin.route("/notifications", notificationRoutes);
   admin.route("/ai", aiRoutes);
+  admin.route("/agents", agentRoutes);
+  admin.route("/", metreRoutes);
   return admin;
 }
 
@@ -74,6 +78,7 @@ export function createApp() {
       return c.json({ error: code, message: error.message }, error.status);
     }
     if (error instanceof AiBudgetError) return c.json({ error: "plafond_ia", message: error.message }, 429);
+    if (error instanceof AiConfigError) return c.json({ error: "ia_non_configuree", message: error.message }, 400);
     // Le détail reste dans les journaux serveur ; le client reçoit un message neutre.
     console.error("[api]", c.req.method, c.req.path, error);
     if (error instanceof ConfigError) {

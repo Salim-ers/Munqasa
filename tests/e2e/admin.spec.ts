@@ -139,6 +139,36 @@ test.describe.serial("administration", () => {
     }
   });
 
+  test("lit les plans avec l'agent et valide le métré proposé", async () => {
+    const { PDFDocument, StandardFonts } = await import("pdf-lib");
+    const pdf = await PDFDocument.create();
+    const font = await pdf.embedFont(StandardFonts.Helvetica);
+    pdf.addPage([842, 595]).drawText("Plan de fondations", { x: 50, y: 500, size: 18, font });
+    const plan = Buffer.from(await pdf.save());
+
+    await page.goto(`${projectUrl}?onglet=documents`);
+    await page.locator('input[type="file"]').setInputFiles([{ name: "Fondations.pdf", mimeType: "application/pdf", buffer: plan }]);
+    await expect(page.getByRole("tabpanel").getByText("Fondations.pdf").first()).toBeVisible();
+
+    await page.getByRole("tab", { name: "Plans et métré" }).click();
+    await page.getByRole("tabpanel").getByRole("button", { name: "Lancer la lecture" }).click();
+    const dialog = page.getByRole("dialog", { name: "Lecture des plans et métré" });
+    await expect(dialog.getByRole("checkbox", { name: /Fondations\.pdf/ })).toBeChecked();
+    await expect(dialog.getByRole("button", { name: "Lancer la lecture" })).toBeDisabled();
+    await dialog.getByText(/J’accepte que les pages sélectionnées soient transmises/).click();
+    await dialog.getByRole("button", { name: "Lancer la lecture" }).click();
+
+    await expect(page.getByText("Terminé").first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText("Béton armé pour semelles filantes")).toBeVisible();
+    await expect(page.getByText(/10,2 m3/).first()).toBeVisible();
+    await page.getByRole("button", { name: "Valider" }).first().click();
+    await expect(page.getByText("Vérifié").first()).toBeVisible();
+
+    await page.goto("/administration/agents");
+    await expect(page.getByText("Lecture des plans et métré").first()).toBeVisible();
+    await expect(page.getByText("Mode simulation")).toBeVisible();
+  });
+
   test("crée un client puis une affaire qui lui est rattachée", async () => {
     await page.goto("/administration/clients");
     await page.getByRole("button", { name: "Nouveau client" }).click();
@@ -193,6 +223,8 @@ test.describe.serial("administration", () => {
     await expect(page.getByText("Visite des lieux obligatoire")).toBeVisible();
     await expect(page.getByText("Remise des offres").first()).toBeVisible();
 
+    // Point de départ : tout est lu (les traitements précédents ont créé leurs propres notifications).
+    expect((await page.request.post("/api/admin/notifications/read-all", { headers: { origin: E2E.baseUrl }, data: {} })).status()).toBe(200);
     const cron = await page.request.get("/api/jobs/cron", { headers: { authorization: `Bearer ${E2E.cronSecret}` } });
     expect(cron.status()).toBe(200);
     expect((await cron.json()).reminders).toBe(2);

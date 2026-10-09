@@ -10,6 +10,7 @@ import {
   DESIGN_PHASES,
   FILE_KINDS,
   MARKET_TYPES,
+  MEASURE_METHODS,
   PROJECT_STATUSES,
   PROSPECT_STATUSES,
   SECTORS,
@@ -189,6 +190,40 @@ export const deadlineInput = z.object({
   notes: optionalText(5000),
 });
 export type DeadlineInput = z.input<typeof deadlineInput>;
+
+/* ---------- Métré ---------- */
+
+export const workItemInput = z.object({
+  lotId: optionalUuid,
+  code: optionalText(30),
+  designation: requiredText(300),
+  unit: requiredText(20),
+  location: optionalText(200),
+  description: optionalText(5000),
+});
+export type WorkItemInput = z.input<typeof workItemInput>;
+
+/** Mesure : formule et entrées nommées ; la quantité est toujours calculée par le serveur. */
+export const measurementInput = z.object({
+  label: requiredText(300),
+  method: z.enum(MEASURE_METHODS),
+  formula: requiredText(300),
+  inputs: z
+    .array(z.object({ name: z.string().trim().regex(/^[A-Za-z_][A-Za-z0-9_]{0,30}$/, "Nom de variable invalide."), value: z.string().trim().min(1, "Valeur obligatoire.").max(30) }))
+    .max(20),
+  unit: requiredText(20),
+  drawingId: optionalUuid,
+  zoneRef: optionalText(200),
+  notes: optionalText(5000),
+});
+export type MeasurementInput = z.input<typeof measurementInput>;
+
+/** Lancement de l'agent de lecture des plans : envoi des pages à l'API OpenAI confirmé explicitement. */
+export const planAnalysisRequest = z.object({
+  fileIds: z.array(z.string().uuid()).min(1, "Choisissez au moins un plan.").max(30),
+  lotId: optionalUuid,
+  consent: z.literal(true, { error: "Confirmez l’envoi des plans à l’API OpenAI." }),
+});
 
 /* ---------- Entreprise ---------- */
 

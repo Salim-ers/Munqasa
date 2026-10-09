@@ -56,6 +56,19 @@ export const ACTION_LABELS: Record<string, string> = {
   "prospect.creation": "Prospect créé",
   "prospect.modification": "Prospect modifié",
   "prospect.conversion": "Prospect converti en client",
+  // Agents IA et métré
+  "agent.lecture_plans": "Lecture des plans lancée",
+  "agent.annulation": "Traitement arrêté",
+  "agent.reprise": "Traitement repris",
+  "metre.ouvrage_ajoute": "Ouvrage ajouté",
+  "metre.ouvrage_modifie": "Ouvrage modifié",
+  "metre.ouvrage_supprime": "Ouvrage supprimé",
+  "metre.mesure_ajoutee": "Mesure ajoutée",
+  "metre.mesure_modifiee": "Mesure modifiée",
+  "metre.mesure_validee": "Mesure validée",
+  "metre.mesure_rejetee": "Mesure rejetée",
+  "metre.mesure_a_verifier": "Mesure à revoir",
+  "metre.mesure_supprimee": "Mesure supprimée",
   // Réglages et système
   "entreprise.creation": "Entité émettrice créée",
   "entreprise.modification": "Entité émettrice modifiée",
@@ -122,6 +135,9 @@ export function describeDetails(details: Record<string, unknown> | null | undefi
   if (typeof d.lot === "string") parts.push(`Lot ${d.lot}`);
   if (typeof d.titre === "string") parts.push(d.titre);
   if (typeof d.fichier === "string") parts.push(d.fichier);
+  if (typeof d.ouvrage === "string") parts.push(d.ouvrage);
+  if (typeof d.mesure === "string") parts.push(d.mesure);
+  if (typeof d.fichiers === "number") parts.push(`${d.fichiers} fichier${d.fichiers > 1 ? "s" : ""}`);
   if (typeof d.taille === "number") parts.push(formatBytes(d.taille));
   if (typeof d.motif === "string") parts.push(d.motif);
   if (typeof d.entite === "string") parts.push(d.entite);

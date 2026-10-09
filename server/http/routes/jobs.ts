@@ -11,6 +11,7 @@ import { getEnv } from "../../env.js";
 import { writeAudit } from "../../services/audit.js";
 import { generateDeadlineReminders } from "../../services/notifications.js";
 import { getStorage } from "../../services/storage.js";
+import { resumeStalledJobs, runSlice, verifyJobToken } from "../../jobs/runner.js";
 
 function authorized(header: string | undefined, secret: string | undefined): boolean {
   if (!secret || !header?.startsWith("Bearer ")) return false;
@@ -37,15 +38,31 @@ export async function purgeAbandonedUploads(db: Database, now = new Date()): Pro
   return stale.length;
 }
 
-export const jobRoutes = new Hono().get("/cron", async (c) => {
+export const jobRoutes = new Hono()
+  .post("/run", async (c) => {
+    // Relance interne d'un traitement long (appelée par le serveur lui-même, jeton signé).
+    const { jobId } = (await c.req.json().catch(() => ({}))) as { jobId?: string };
+    if (!jobId || !/^[0-9a-f-]{36}$/i.test(jobId)) return c.json({ error: "requete_invalide" }, 400);
+    if (!verifyJobToken(jobId, c.req.header("authorization")?.replace(/^Bearer /, ""))) return c.json({ error: "interdit" }, 403);
+    if (process.env.VERCEL) {
+      const { waitUntil } = await import("@vercel/functions");
+      waitUntil(runSlice(jobId).catch((error: unknown) => console.error("[jobs]", jobId, error)));
+    } else {
+      void runSlice(jobId).catch((error: unknown) => console.error("[jobs]", jobId, error));
+    }
+    return c.json({ ok: true }, 202);
+  })
+  .get("/cron", async (c) => {
   if (!authorized(c.req.header("authorization"), getEnv().CRON_SECRET)) return c.json({ error: "interdit" }, 403);
   const db = await getDb();
   const reminders = await generateDeadlineReminders(db);
+  // Traitements longs interrompus : relancés là où ils s'étaient arrêtés.
+  const resumedJobs = await resumeStalledJobs().catch(() => 0);
   const abandonedUploads = await purgeAbandonedUploads(db).catch((error: unknown) => {
     // Stockage indisponible : les rappels restent prioritaires.
     console.error("[cron] nettoyage des envois", error);
     return 0;
   });
-  await writeAudit({ action: "systeme.tache_planifiee", details: { rappels: reminders, envoisAbandonnes: abandonedUploads } });
-  return c.json({ ok: true, reminders, abandonedUploads });
-});
+  await writeAudit({ action: "systeme.tache_planifiee", details: { rappels: reminders, envoisAbandonnes: abandonedUploads, traitementsRelances: resumedJobs } });
+  return c.json({ ok: true, reminders, abandonedUploads, resumedJobs });
+  });

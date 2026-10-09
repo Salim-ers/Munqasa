@@ -184,3 +184,67 @@ export interface SystemStatus {
   cron: boolean;
   adminPassword: boolean;
 }
+
+/* ---------- Plans et métré ---------- */
+
+export interface DrawingElement {
+  category: string;
+  designation: string;
+  location: string | null;
+  count: number | null;
+  material: string | null;
+  dimensions: Array<{ name: string; value: string; unit: string; source: "cote_lue" | "texte_lu" | "deduit" }>;
+  confidence: "elevee" | "moyenne" | "faible";
+  note: string | null;
+}
+
+export interface Drawing {
+  id: string;
+  sourceFileId: string;
+  fileName: string;
+  pageNumber: number;
+  title: string | null;
+  sheetNumber: string | null;
+  kind: import("../../shared/enums").DrawingKind;
+  level: string | null;
+  scaleText: string | null;
+  status: import("../../shared/enums").ValidationStatus;
+  analysed: boolean;
+  readable: boolean | null;
+  elementCount: number;
+  uncertainties: string[];
+  notes: string[];
+  elements: DrawingElement[];
+}
+
+export interface Measurement {
+  id: string;
+  workItemId: string | null;
+  drawingId: string | null;
+  zoneRef: string | null;
+  label: string;
+  method: import("../../shared/enums").MeasureMethod;
+  formula: string | null;
+  inputs: Record<string, string>;
+  quantity: string | null;
+  unit: string;
+  source: import("../../shared/enums").MeasureSource;
+  status: import("../../shared/enums").ValidationStatus;
+  validatedAt: string | null;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface WorkItem {
+  id: string;
+  lotId: string | null;
+  code: string | null;
+  designation: string;
+  description: string | null;
+  unit: string | null;
+  location: string | null;
+  attributes: Array<{ name: string; value: string; source: string }>;
+  origin: "proposition_ia" | "saisie";
+  jobId: string | null;
+  measurements: Measurement[];
+}

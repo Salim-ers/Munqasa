@@ -40,6 +40,10 @@ export const workItem = pgTable(
     location: text("location"),
     /** Caractéristiques retenues (matériau, épaisseur…) avec leur source : jamais inventées. */
     attributes: jsonb("attributes").$type<Array<{ name: string; value: string; source: string }>>().notNull().default([]),
+    /** « proposition_ia » (lecture des plans) ou « saisie » : une nouvelle analyse ne remplace que les propositions non validées. */
+    origin: text("origin").notNull().default("saisie"),
+    /** Traitement qui a proposé l'ouvrage (traçabilité). */
+    jobId: uuid("job_id"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

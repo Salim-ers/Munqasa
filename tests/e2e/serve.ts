@@ -19,6 +19,8 @@ Object.assign(process.env, {
   BETTER_AUTH_SECRET: "secret-de-session-des-tests-e2e-0123456789",
   CRON_SECRET: E2E.cronSecret,
   APP_URL: E2E.baseUrl,
+  // Agents IA simulés (réponses conformes aux schémas, sans appel externe).
+  TALAB_FAKE_AI: "1",
   // Chaînes vides : aucune base distante, aucun stockage distant, aucun appel à OpenAI.
   DATABASE_URL: "",
   OPENAI_API_KEY: "",
