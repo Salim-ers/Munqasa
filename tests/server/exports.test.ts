@@ -207,7 +207,7 @@ describe("bibliothèque, versions et dossier complet", () => {
     expect(csv.status).toBe(200);
     const text = Buffer.from(csv.bytes).toString("utf8");
     expect(text.charCodeAt(0)).toBe(0xfeff);
-    expect(text).toContain("Code;Désignation;Nature;Unité;Prix unitaire HT");
+    expect(text).toContain("Code;Désignation;Nature;Portée;Unité;Prix unitaire;Assiette;TVA incluse %;Prix unitaire HT;Devise");
     expect(text).toContain("950,5;MAD");
     expect((await workbook((await get("bibliotheque/xlsx")).bytes)).getWorksheet("Prix")).toBeTruthy();
     expect(await pdfText((await get("bibliotheque/pdf")).bytes)).toContain("Béton C25/30 prêt à l’emploi");

@@ -418,6 +418,29 @@ export interface PriceItem {
   priceDate: string;
   verificationStatus: import("../../shared/enums").ValidationStatus;
   commercialConditions: string | null;
+  attributes: Record<string, string>;
+  description: string | null;
+  priceScope: import("../../shared/enums").PriceScope | null;
+  taxBasis: import("../../shared/enums").TaxBasis | null;
+  vatRate: string | null;
+  valueStatus: import("../../shared/enums").PriceValueStatus;
+  reliability: import("../../shared/enums").Reliability | null;
+  sourceId: string | null;
+  sourceName?: string | null;
+  sourceKey?: string | null;
+  sourcePublisher?: string | null;
+  externalKey: string | null;
+  groupKey: string | null;
+  sourceUrl: string | null;
+  license: string | null;
+  period: string | null;
+  priceMin: string | null;
+  priceMax: string | null;
+  sampleSize: number | null;
+  aggregation: string | null;
+  series: Record<string, number> | null;
+  verifiedAt: string | null;
+  importBatchId: string | null;
   archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -430,7 +453,67 @@ export interface PriceHistoryEntry {
   priceDate: string;
   origin: import("../../shared/enums").PriceOrigin;
   note: string | null;
+  batchLabel?: string | null;
   recordedAt: string;
+}
+
+export interface PriceBatch {
+  id: string;
+  sourceId: string | null;
+  sourceName?: string | null;
+  sourceKey?: string | null;
+  label: string;
+  trigger: string;
+  status: import("../../shared/enums").PriceBatchStatus;
+  stats: import("../../shared/prices").BatchStats;
+  message: string | null;
+  publishedAt: string | null;
+  revertedAt: string | null;
+  createdAt: string;
+}
+
+export interface PriceBatchRow {
+  id: string;
+  batchId: string;
+  externalKey: string;
+  action: "nouveau" | "modifie";
+  decision: import("../../shared/enums").PriceRowDecision;
+  reason: string | null;
+  payload: import("../../shared/prices").SourceRecord;
+  previous: import("../../shared/prices").PreviousValue | null;
+  priceItemId: string | null;
+}
+
+export interface PriceSourceInfo {
+  id: string;
+  key: string;
+  name: string;
+  publisher: string;
+  country: Country;
+  homepage: string;
+  license: string;
+  licenseUrl: string | null;
+  description: string | null;
+  method: string | null;
+  coverage: string | null;
+  autoPublish: boolean;
+  maxVariation: string;
+  refreshDays: number;
+  enabled: boolean;
+  lastCheckedAt: string | null;
+  lastChangedAt: string | null;
+  references: number;
+  pending: number;
+  lastBatch: PriceBatch | null;
+  snapshot: { generatedAt: string; references: number } | null;
+  job: import("./jobs").Job | null;
+}
+
+export interface LibraryFacets {
+  regions: string[];
+  cities: Array<{ city: string; region: string | null }>;
+  families: Array<string | null>;
+  sources: Array<{ key: string; name: string; country: Country; n: number }>;
 }
 
 export interface Supplier {

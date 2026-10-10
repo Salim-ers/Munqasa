@@ -25,8 +25,12 @@ import {
   MEASURE_METHODS,
   MEASURE_SOURCES,
   NOTIFICATION_KINDS,
+  PRICE_BATCH_STATUSES,
   PRICE_KINDS,
   PRICE_ORIGINS,
+  PRICE_ROW_DECISIONS,
+  PRICE_SCOPES,
+  PRICE_VALUE_STATUSES,
   PROJECT_STATUSES,
   PROSPECT_STATUSES,
   QUOTE_EVENT_KINDS,
@@ -36,9 +40,11 @@ import {
   RATE_KINDS,
   REFERENCE_KINDS,
   REFERENCE_SCOPES,
+  RELIABILITY_LEVELS,
   SECTION_STATUSES,
   SECTORS,
   STEP_STATUSES,
+  TAX_BASES,
   VALIDATION_STATUSES,
 } from "../../../shared/enums.js";
 
@@ -59,6 +65,12 @@ export const referenceKindEnum = pgEnum("reference_kind", REFERENCE_KINDS);
 export const referenceScopeEnum = pgEnum("reference_scope", REFERENCE_SCOPES);
 export const priceOriginEnum = pgEnum("price_origin", PRICE_ORIGINS);
 export const priceKindEnum = pgEnum("price_kind", PRICE_KINDS);
+export const priceScopeEnum = pgEnum("price_scope", PRICE_SCOPES);
+export const taxBasisEnum = pgEnum("tax_basis", TAX_BASES);
+export const priceValueStatusEnum = pgEnum("price_value_status", PRICE_VALUE_STATUSES);
+export const reliabilityEnum = pgEnum("reliability", RELIABILITY_LEVELS);
+export const priceBatchStatusEnum = pgEnum("price_batch_status", PRICE_BATCH_STATUSES);
+export const priceRowDecisionEnum = pgEnum("price_row_decision", PRICE_ROW_DECISIONS);
 export const documentStatusEnum = pgEnum("document_status", DOCUMENT_STATUSES);
 export const sectionStatusEnum = pgEnum("section_status", SECTION_STATUSES);
 export const dpgfLineKindEnum = pgEnum("dpgf_line_kind", DPGF_LINE_KINDS);

@@ -1,6 +1,6 @@
 /**
- * Tâche planifiée (Vercel Cron, chaque matin) : rappels d'échéance, nettoyage des envois abandonnés ;
- * plus tard, reprise des traitements longs. Protégée par CRON_SECRET (Vercel envoie
+ * Tâche planifiée (Vercel Cron, chaque matin) : rappels d'échéance, nettoyage des envois abandonnés,
+ * reprise des traitements longs, vérification des sources publiques de prix. Protégée par CRON_SECRET (Vercel envoie
  * « Authorization: Bearer <CRON_SECRET> »).
  */
 import { timingSafeEqual } from "node:crypto";
@@ -10,6 +10,7 @@ import { type Database, getDb, schema } from "../../db/index.js";
 import { getEnv } from "../../env.js";
 import { writeAudit } from "../../services/audit.js";
 import { generateDeadlineReminders } from "../../services/notifications.js";
+import { scheduleSourceChecks } from "../../services/price-sources/schedule.js";
 import { getStorage } from "../../services/storage.js";
 import { resumeStalledJobs, runSlice, verifyJobToken } from "../../jobs/runner.js";
 
@@ -63,6 +64,10 @@ export const jobRoutes = new Hono()
     console.error("[cron] nettoyage des envois", error);
     return 0;
   });
-  await writeAudit({ action: "systeme.tache_planifiee", details: { rappels: reminders, envoisAbandonnes: abandonedUploads, traitementsRelances: resumedJobs } });
-  return c.json({ ok: true, reminders, abandonedUploads, resumedJobs });
+  const priceChecks = await scheduleSourceChecks(db).catch((error: unknown) => {
+    console.error("[cron] sources de prix", error);
+    return 0;
+  });
+  await writeAudit({ action: "systeme.tache_planifiee", details: { rappels: reminders, envoisAbandonnes: abandonedUploads, traitementsRelances: resumedJobs, sourcesDePrix: priceChecks } });
+  return c.json({ ok: true, reminders, abandonedUploads, resumedJobs, priceChecks });
   });

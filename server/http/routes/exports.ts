@@ -5,7 +5,6 @@
  */
 import type { Context } from "hono";
 import { Hono } from "hono";
-import { COUNTRIES, type Country, CURRENCIES, type Currency, PRICE_KINDS, type PriceKind } from "../../../shared/enums.js";
 import type { AdminEnv } from "../../auth/guard.js";
 import { getDb } from "../../db/index.js";
 import type { DocTheme } from "../../documents/brand.js";
@@ -14,6 +13,8 @@ import { ExportNotFound } from "../../documents/context.js";
 import type { DocumentKind } from "../../documents/model.js";
 import { buildDossier } from "../../documents/zip.js";
 import { auditAction } from "../../services/audit.js";
+import { parsePriceFilters } from "../../services/price-filters.js";
+import { readSetting } from "../../services/settings.js";
 import { notFound, ValidationError } from "../validate.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -57,15 +58,7 @@ export const exportRoutes = new Hono<AdminEnv>()
   .get("/bibliotheque/:format", async (c) => {
     const db = await getDb();
     const q = c.req.query();
-    const pick = <T extends string>(value: string | undefined, allowed: readonly T[]) => (value && (allowed as readonly string[]).includes(value) ? (value as T) : null);
-    const filters = {
-      q: q.q?.trim().slice(0, 200) || null,
-      country: pick<Country>(q.pays, COUNTRIES),
-      currency: pick<Currency>(q.devise, CURRENCIES),
-      kind: pick<PriceKind>(q.nature, PRICE_KINDS),
-      status: pick(q.statut, ["a_verifier", "verifie", "rejete"] as const),
-      archived: q.archives === "1",
-    };
+    const filters = parsePriceFilters(q, q.anciens === "1" ? (await readSetting("alertes")).stalePriceMonths : undefined);
     const result = await guarded(() => renderLibrary(db, filters, c.req.param("format") as ExportFormat, themeOf(c)));
     await auditAction(c, "bibliotheque.export", "price_item", null, { format: c.req.param("format"), filtres: filters });
     return download(result);

@@ -3,6 +3,7 @@ import { Library, LockOpen, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { COMPONENT_CATEGORY_LABELS, type Currency, MARGIN_MODE_LABELS, PRICE_KIND_LABELS, RATE_BASE_LABELS, VALIDATION_STATUS_LABELS } from "../../../shared/enums";
+import { priceExclTax } from "../../../shared/prices";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { Modal } from "../../components/ui/Dialog";
@@ -14,6 +15,7 @@ import { Segmented } from "../../components/ui/Segmented";
 import { api, ApiError, errorMessage, query } from "../../lib/api";
 import { cn } from "../../lib/cn";
 import { formatDate, formatMoney, formatNumber } from "../../lib/format";
+import { whenLabel, zoneLabel } from "../../lib/prices";
 import type { Breakdown, BreakdownComponent, DpgfLine, Paged, PriceItem } from "../../lib/types";
 import { EditableCell } from "../dpgf/DpgfView";
 import { breakdownState } from "./state";
@@ -42,7 +44,8 @@ function PricePicker({ currency, onPick, onCancel }: { currency: Currency; onPic
     queryFn: ({ signal }) => api<Paged<PriceItem>>(`/library/prices${query({ q, devise: currency, pageSize: 8 })}`, { signal }),
     enabled: q.length >= 2,
   });
-  const items = (results.data?.items ?? []).filter((p) => p.verificationStatus !== "rejete");
+  // Un ratio d'opération ne chiffre pas un composant ; un prix TTC est ramené HT par le serveur.
+  const items = (results.data?.items ?? []).filter((p) => p.verificationStatus !== "rejete" && p.kind !== "ratio");
   return (
     <div className="grid gap-2 rounded-xl border border-line bg-surface-2 p-3">
       <SearchInput value={q} onChange={setQ} placeholder="Rechercher dans la bibliothèque" label="Rechercher un prix" />
@@ -59,10 +62,13 @@ function PricePicker({ currency, onPick, onCancel }: { currency: Currency; onPic
               <button type="button" onClick={() => onPick(p)} className="flex w-full flex-wrap items-center gap-x-3 gap-y-0.5 rounded-lg bg-surface px-3 py-2 text-left hover:bg-accent-soft">
                 <span className="min-w-0 flex-1 basis-40">
                   <span className="block text-xs font-semibold text-ink">{p.designation}</span>
-                  <span className="block text-2xs text-ink-3">{[PRICE_KIND_LABELS[p.kind], `prix du ${formatDate(p.priceDate)}`, VALIDATION_STATUS_LABELS[p.verificationStatus].toLowerCase()].join(", ")}</span>
+                  <span className="block text-2xs text-ink-3">{[PRICE_KIND_LABELS[p.kind], zoneLabel(p), p.period ? whenLabel(p) : `prix du ${formatDate(p.priceDate)}`, VALIDATION_STATUS_LABELS[p.verificationStatus].toLowerCase()].join(", ")}</span>
                 </span>
-                <span className="shrink-0 text-xs font-semibold text-ink tabular">
+                <span className="shrink-0 text-right text-xs font-semibold text-ink tabular">
                   {formatMoney(p.unitPrice, p.currency)} / {p.unit}
+                  {p.taxBasis === "TTC" ? (
+                    <span className="block text-2xs font-normal text-ink-3">{`TTC, soit ${formatMoney(priceExclTax(p.unitPrice, p.taxBasis, p.vatRate), p.currency)} HT`}</span>
+                  ) : null}
                 </span>
               </button>
             </li>

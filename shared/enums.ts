@@ -150,6 +150,7 @@ export const PRICE_ORIGINS = [
   "tableau_personnel",
   "base_sous_licence",
   "saisie_manuelle",
+  "donnees_publiques",
 ] as const;
 export type PriceOrigin = (typeof PRICE_ORIGINS)[number];
 export const PRICE_ORIGIN_LABELS: Record<PriceOrigin, string> = {
@@ -161,8 +162,52 @@ export const PRICE_ORIGIN_LABELS: Record<PriceOrigin, string> = {
   tableau_personnel: "Tableau personnel",
   base_sous_licence: "Base sous licence",
   saisie_manuelle: "Saisie manuelle",
+  donnees_publiques: "Données publiques ouvertes",
 };
-export const PRICE_KINDS = ["ouvrage", "materiau", "main_oeuvre", "materiel", "sous_traitance", "transport"] as const;
+/** Ce que couvre un prix : un prix de matériau ne s'applique jamais tel quel à une ligne de DPGF. */
+export const PRICE_SCOPES = ["fourniture", "pose", "fourniture_pose", "ouvrage_complet"] as const;
+export type PriceScope = (typeof PRICE_SCOPES)[number];
+export const PRICE_SCOPE_LABELS: Record<PriceScope, string> = {
+  fourniture: "Fourniture seule",
+  pose: "Pose seule",
+  fourniture_pose: "Fourniture et pose",
+  ouvrage_complet: "Ouvrage complet",
+};
+export const TAX_BASES = ["HT", "TTC"] as const;
+export type TaxBasis = (typeof TAX_BASES)[number];
+/** Nature de la valeur : reprise telle quelle de la source, calculée sur ses observations, ou estimée. */
+export const PRICE_VALUE_STATUSES = ["source", "calculee", "estimee"] as const;
+export type PriceValueStatus = (typeof PRICE_VALUE_STATUSES)[number];
+export const PRICE_VALUE_STATUS_LABELS: Record<PriceValueStatus, string> = {
+  source: "Reprise de la source",
+  calculee: "Calculée sur la source",
+  estimee: "Estimée",
+};
+export const RELIABILITY_LEVELS = ["haute", "moyenne", "faible"] as const;
+export type Reliability = (typeof RELIABILITY_LEVELS)[number];
+export const RELIABILITY_LABELS: Record<Reliability, string> = { haute: "Haute", moyenne: "Moyenne", faible: "Faible" };
+/** Lot d'import d'une source : analysé, publié (avec ou sans quarantaine), annulé. */
+export const PRICE_BATCH_STATUSES = ["en_cours", "a_publier", "quarantaine", "publie", "sans_changement", "annule", "echoue"] as const;
+export type PriceBatchStatus = (typeof PRICE_BATCH_STATUSES)[number];
+export const PRICE_BATCH_STATUS_LABELS: Record<PriceBatchStatus, string> = {
+  en_cours: "Analyse en cours",
+  a_publier: "À publier",
+  quarantaine: "Quarantaine à examiner",
+  publie: "Publié",
+  sans_changement: "Sans changement",
+  annule: "Annulé",
+  echoue: "Échec",
+};
+export const PRICE_ROW_DECISIONS = ["a_publier", "quarantaine", "publie", "rejete", "annule"] as const;
+export type PriceRowDecision = (typeof PRICE_ROW_DECISIONS)[number];
+export const PRICE_ROW_DECISION_LABELS: Record<PriceRowDecision, string> = {
+  a_publier: "À publier",
+  quarantaine: "En quarantaine",
+  publie: "Publiée",
+  rejete: "Rejetée",
+  annule: "Annulée",
+};
+export const PRICE_KINDS = ["ouvrage", "materiau", "main_oeuvre", "materiel", "sous_traitance", "transport", "ratio"] as const;
 export type PriceKind = (typeof PRICE_KINDS)[number];
 export const PRICE_KIND_LABELS: Record<PriceKind, string> = {
   ouvrage: "Ouvrage",
@@ -171,6 +216,7 @@ export const PRICE_KIND_LABELS: Record<PriceKind, string> = {
   materiel: "Matériel",
   sous_traitance: "Sous-traitance",
   transport: "Transport",
+  ratio: "Ratio d’opération",
 };
 export const DOCUMENT_STATUSES = ["brouillon", "en_generation", "a_valider", "valide", "archive"] as const;
 export type DocumentStatus = (typeof DOCUMENT_STATUSES)[number];

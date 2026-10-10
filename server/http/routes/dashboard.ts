@@ -76,11 +76,12 @@ export const dashboardRoutes = new Hono<AdminEnv>().get("/", async (c) => {
     db
       .select({ n: count() })
       .from(schema.priceItem)
-      .where(and(isNull(schema.priceItem.archivedAt), lt(schema.priceItem.priceDate, staleDate.toISOString().slice(0, 10)))),
+      // Vos prix seulement : les références publiques ont leur propre suivi (date, source, actualisation).
+      .where(and(isNull(schema.priceItem.archivedAt), isNull(schema.priceItem.sourceId), lt(schema.priceItem.priceDate, staleDate.toISOString().slice(0, 10)))),
     db
       .select({ n: count() })
       .from(schema.priceItem)
-      .where(and(isNull(schema.priceItem.archivedAt), eq(schema.priceItem.verificationStatus, "a_verifier"))),
+      .where(and(isNull(schema.priceItem.archivedAt), isNull(schema.priceItem.sourceId), eq(schema.priceItem.verificationStatus, "a_verifier"))),
     db
       .select({ n: count() })
       .from(schema.generationJob)

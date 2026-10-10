@@ -4,14 +4,18 @@
  */
 import { and, asc, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { Hono } from "hono";
-import { dpgfGenerationRequest, dpgfLineInput, dpgfUpdate } from "../../../shared/schemas.js";
+import { PRICE_ORIGIN_LABELS } from "../../../shared/enums.js";
+import { appliesToDpgfLine } from "../../../shared/prices.js";
+import { applyPricesRequest, dpgfGenerationRequest, dpgfLineInput, dpgfUpdate, priceMatchRequest } from "../../../shared/schemas.js";
 import { modelFor } from "../../ai/client.js";
 import type { AdminEnv } from "../../auth/guard.js";
 import { getDb, schema } from "../../db/index.js";
 import { createJob } from "../../jobs/runner.js";
 import { auditAction } from "../../services/audit.js";
 import { computeTotals, lineAmount, renumber } from "../../services/dpgf.js";
+import { exclTax, findCandidates } from "../../services/pricing.js";
 import { checkDpgf, hasBlockingIssues, replaceIssues } from "../../services/quality.js";
+import { sameUnit } from "../../services/units.js";
 import { listVersions, snapshotDpgf } from "../../services/versions.js";
 import { body, conflict, notFound, patchBody, uuidParam, ValidationError } from "../validate.js";
 import { serializeJob } from "./agents.js";
@@ -45,7 +49,98 @@ async function touch(dpgfId: string) {
   await db.update(d).set({ status: sql`case when ${d.status} = 'valide' then 'a_valider'::document_status else ${d.status} end` }).where(eq(d.id, dpgfId));
 }
 
+/** Nombre de postes rapprochés par demande : chaque poste interroge la bibliothèque. */
+const MATCH_LIMIT = 150;
+
 export const dpgfRoutes = new Hono<AdminEnv>()
+  /**
+   * Prix de la bibliothèque applicables à chaque poste : prix d'ouvrage (fourniture et pose, ouvrage
+   * complet) de même unité, même devise et même pays, classés par pertinence puis par proximité.
+   * Sans candidat, le poste est signalé « prix non disponible dans la bibliothèque ».
+   */
+  .post("/dpgf/:id/price-matches", async (c) => {
+    const id = uuidParam(c);
+    const db = await getDb();
+    const doc = await loadDpgf(id);
+    const data = await body(c, priceMatchRequest);
+    const [project] = await db.select().from(schema.project).where(eq(schema.project.id, doc.projectId));
+    const postes = await db
+      .select()
+      .from(l)
+      .where(and(eq(l.dpgfId, id), eq(l.kind, "poste")))
+      .orderBy(asc(l.position));
+    const wanted = new Set(data.lineIds ?? []);
+    const targets = postes.filter((line) => (wanted.size ? wanted.has(line.id) : true) && (!data.onlyUnpriced || line.unitPrice === null));
+    const items = [];
+    for (const line of targets.slice(0, MATCH_LIMIT)) {
+      const candidates = line.unit
+        ? (await findCandidates(db, { text: `${line.designation} ${line.description ?? ""}`, currency: doc.currency, country: project!.country, city: project!.city, limit: 15, purpose: "ligne" })).filter((cand) => sameUnit(cand.unit, line.unit)).slice(0, 5)
+        : [];
+      items.push({ lineId: line.id, code: line.code, designation: line.designation, unit: line.unit, quantity: line.quantity, unitPrice: line.unitPrice, priceSource: line.priceSource, candidates });
+    }
+    return c.json({ items, total: targets.length, truncated: targets.length > MATCH_LIMIT });
+  })
+  /** Applique des prix de la bibliothèque aux postes : prix hors taxes, provenance inscrite, poste à vérifier. */
+  .post("/dpgf/:id/apply-prices", async (c) => {
+    const id = uuidParam(c);
+    const db = await getDb();
+    const doc = await loadDpgf(id);
+    const data = await body(c, applyPricesRequest);
+    const [project] = await db.select().from(schema.project).where(eq(schema.project.id, doc.projectId));
+    const lines = await db.select().from(l).where(and(eq(l.dpgfId, id), inArray(l.id, data.assignments.map((a) => a.lineId))));
+    const prices = await db
+      .select({ price: schema.priceItem, sourceName: schema.priceSource.name })
+      .from(schema.priceItem)
+      .leftJoin(schema.priceSource, eq(schema.priceSource.id, schema.priceItem.sourceId))
+      .where(inArray(schema.priceItem.id, data.assignments.map((a) => a.priceItemId)));
+    const errors: Array<{ lineId: string; message: string }> = [];
+    let applied = 0;
+    for (const a of data.assignments) {
+      const line = lines.find((x) => x.id === a.lineId);
+      const found = prices.find((x) => x.price.id === a.priceItemId);
+      const fail = (message: string) => errors.push({ lineId: a.lineId, message });
+      if (!line || line.kind !== "poste") {
+        fail("Poste introuvable dans cette DPGF.");
+        continue;
+      }
+      if (!found || found.price.archivedAt || found.price.verificationStatus === "rejete") {
+        fail("Prix introuvable, archivé ou rejeté.");
+        continue;
+      }
+      const price = found.price;
+      if (price.currency !== doc.currency || price.country !== project!.country) {
+        fail(`Prix en ${price.currency} pour ${price.country}, DPGF en ${doc.currency}.`);
+        continue;
+      }
+      if (!appliesToDpgfLine(price)) {
+        fail("Prix de fourniture ou ratio d’opération : il sert aux sous-détails, pas au prix d’un poste.");
+        continue;
+      }
+      if (!sameUnit(price.unit, line.unit)) {
+        fail(`Unité du prix (${price.unit}) différente de celle du poste (${line.unit ?? "aucune"}).`);
+        continue;
+      }
+      const ht = exclTax(price.unitPrice, price.taxBasis, price.vatRate);
+      if (ht === null) {
+        fail("Prix TTC sans taux de TVA : il ne peut pas être ramené hors taxes.");
+        continue;
+      }
+      const zone = price.city ?? price.region;
+      const when = price.period ? `valeur ${price.period}` : `prix du ${price.priceDate.split("-").reverse().join("/")}`;
+      const priceSource = [`Bibliothèque : ${price.designation}`, zone, when, found.sourceName ?? PRICE_ORIGIN_LABELS[price.origin], price.taxBasis === "TTC" ? "TTC ramené HT" : null].filter(Boolean).join(", ");
+      await db
+        .update(l)
+        .set({ unitPrice: ht, amount: lineAmount(line.quantity, ht), priceItemId: price.id, priceSource, status: "a_verifier" })
+        .where(eq(l.id, line.id));
+      applied++;
+    }
+    if (applied) {
+      await touch(id);
+      await rerunChecks(id);
+      await auditAction(c, "dpgf.prix_bibliotheque", "project", doc.projectId, { document: doc.title, postes: applied, refuses: errors.length });
+    }
+    return c.json({ applied, errors });
+  })
   .get("/projects/:id/dpgf", async (c) => {
     const projectId = uuidParam(c);
     const db = await getDb();

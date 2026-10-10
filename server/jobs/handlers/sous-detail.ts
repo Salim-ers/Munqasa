@@ -12,7 +12,7 @@ import { callAgent } from "../../ai/client.js";
 import { type CctpBlock, sousDetailBatch } from "../../ai/schemas.js";
 import { schema } from "../../db/index.js";
 import { defaultRates, recomputeBreakdown } from "../../services/breakdowns.js";
-import { findCandidates, type PriceCandidate } from "../../services/pricing.js";
+import { candidateNote, findCandidates, type PriceCandidate } from "../../services/pricing.js";
 import { blocksText, checkBreakdowns, replaceIssues } from "../../services/quality.js";
 import { normalizeUnit } from "../../services/units.js";
 import type { JobHandler } from "../types.js";
@@ -30,14 +30,12 @@ Pour chaque poste, décompose le prix d'une unité d'ouvrage en composants : mat
 Règles strictes :
 - tu ne donnes jamais de coût ni de prix : le coût unitaire d'un composant vient uniquement d'un prix candidat de la bibliothèque, désigné par son identifiant dans « priceItemId » ; si aucun candidat ne convient, mets « priceItemId » à null : le composant restera à chiffrer ;
 - ne choisis un candidat que si sa désignation et son unité correspondent réellement au composant ;
+- les prix candidats sont hors taxes ; « portee » dit ce que couvre le prix : un prix de fourniture seule n'inclut ni la pose ni la main-d'œuvre, qui restent des composants distincts ;
 - « quantity » est la consommation par unité d'ouvrage, exprimée dans l'unité du prix candidat (par exemple 1,05 m3 de béton par m3 d'ouvrage, 6 h de main-d'œuvre par m3) : c'est une hypothèse, justifie-la brièvement dans « justification » (ratio usuel à confirmer, fiche technique, métré…) ;
 - « lossRate » : pertes en pourcentage si elles sont pertinentes, sinon null ;
 - un candidat de nature « ouvrage » (prix complet d'un ouvrage comparable) peut constituer seul le sous-détail (catégorie sous_traitance, quantité 1) s'il correspond exactement au poste ;
 - aucun composant superflu ; réponds pour chaque poste demandé avec son « lineId ».
 Réponds en français.`;
-
-/** Date AAAA-MM-JJ écrite à la française (JJ/MM/AAAA). */
-const frenchDate = (iso: string) => iso.slice(0, 10).split("-").reverse().join("/");
 
 /** Nombre décimal positif renvoyé par le modèle, ou null s'il est illisible. */
 function decimal(value: string | null, places: number): string | null {
@@ -93,7 +91,7 @@ export const sousDetailHandler: JobHandler = {
 
       const candidates = new Map<string, PriceCandidate[]>();
       for (const line of lines) {
-        candidates.set(line.id, await findCandidates(db, { text: `${line.designation} ${line.description ?? ""}`, currency: dpgf!.currency, country: project!.country, limit: 20 }));
+        candidates.set(line.id, await findCandidates(db, { text: `${line.designation} ${line.description ?? ""}`, currency: dpgf!.currency, country: project!.country, city: project!.city, limit: 20, purpose: "sous_detail" }));
       }
       const request = lines.map((line) => {
         const section = sections.find((s) => s.id === line.cctpSectionId);
@@ -105,7 +103,20 @@ export const sousDetailHandler: JobHandler = {
           unite: line.unit,
           quantite: line.quantity,
           articleCctp: section ? `${section.number} ${section.title} : ${blocksText((section.content ?? []) as CctpBlock[]).slice(0, 1500)}` : null,
-          prixCandidats: (candidates.get(line.id) ?? []).map((c) => ({ id: c.id, designation: c.designation, nature: c.kind, unite: c.unit, prixUnitaire: c.unitPrice, devise: c.currency, date: c.priceDate, verifie: c.verified })),
+          // Coût hors taxes : un prix TTC publié est ramené HT avec le taux de TVA qu'il inclut.
+          prixCandidats: (candidates.get(line.id) ?? []).map((c) => ({
+            id: c.id,
+            designation: c.designation,
+            nature: c.kind,
+            portee: c.scope,
+            unite: c.unit,
+            prixUnitaireHT: c.unitPriceHt,
+            devise: c.currency,
+            date: c.period ?? c.priceDate,
+            zone: c.zone,
+            fiabilite: c.reliability,
+            verifie: c.verified,
+          })),
         };
       });
       const output = await callAgent({
@@ -164,11 +175,11 @@ export const sousDetailHandler: JobHandler = {
               designation: component.designation.trim() || price?.designation || "Composant",
               unit: price?.unit ?? (component.unit.trim() || "u"),
               quantity,
-              unitCost: price ? price.unitPrice : null,
+              unitCost: price ? price.unitPriceHt : null,
               lossRate: decimal(component.lossRate, 4),
               isHypothesis: true,
               priceItemId: price?.id ?? null,
-              sourceNote: [component.justification.trim(), price ? `Prix : ${price.designation}, relevé le ${frenchDate(price.priceDate)}` : "Prix à trouver dans la bibliothèque"].filter(Boolean).join(". "),
+              sourceNote: [component.justification.trim(), price ? candidateNote(price) : "Prix à trouver dans la bibliothèque"].filter(Boolean).join(". "),
               details: price && normalizeUnit(price.unit) !== normalizeUnit(component.unit) ? { uniteProposee: component.unit } : {},
             });
           }

@@ -3,6 +3,7 @@ import type { JobKind } from "../../shared/enums.js";
 import { cctpHandler } from "./handlers/cctp.js";
 import { dpgfHandler } from "./handlers/dpgf.js";
 import { planAnalysisHandler } from "./handlers/plan-analysis.js";
+import { priceImportHandler } from "./handlers/price-import.js";
 import { sousDetailHandler } from "./handlers/sous-detail.js";
 import type { JobHandler } from "./types.js";
 
@@ -11,6 +12,7 @@ const handlers: Partial<Record<JobKind, JobHandler>> = {
   generation_cctp: cctpHandler,
   generation_dpgf: dpgfHandler,
   sous_detail: sousDetailHandler,
+  import_prix: priceImportHandler,
 };
 
 export function handlerFor(kind: JobKind): JobHandler {

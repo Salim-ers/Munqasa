@@ -83,14 +83,15 @@ Prérequis de l'agent des sous-détails : une bibliothèque de prix renseignée 
 
 ## Mission d'amélioration complète (octobre 2026)
 
-Audit et plan : `docs/AUDIT-MISSION-2026-10.md`. Moteur documentaire : `docs/DOCUMENTS.md`.
+Audit et plan : `docs/AUDIT-MISSION-2026-10.md`. Moteur documentaire : `docs/DOCUMENTS.md`. Bibliothèque de
+prix : `docs/BIBLIOTHEQUE-PRIX.md`.
 
 | Phase | Contenu | État | Vérification |
 | --- | --- | --- | --- |
 | A | Audit de l'existant, des sorties d'exemple (CCTP, DPGF, PLAN METRIKA) et des risques ; tests de non-régression des exports avant refonte | fait | tests de non-régression (contenu du CCTP Word, formules de la DPGF) |
 | B | Identité documentaire : charte réelle du site, polices du site embarquées, logos jour et nuit, arche, thèmes clair et sombre | fait | rendu contrôlé visuellement sur le CCTP réel (38 pages), Word relu dans LibreOffice |
 | C | Moteur d'export : CCTP, DPGF, BPU (prix en lettres), DQE, estimation, sous-détails, note de métrés, rapports d'analyse et de contrôle, bibliothèque de prix, versions figées, dossier ZIP ; menu « Télécharger » sur chaque document | fait | 14 tests d'export (contenu identique Word et PDF, formules Excel, gros CCTP de 240 articles) + parcours navigateur |
-| D | Bibliothèques de prix Maroc et France sourcées, mise à jour périodique | à venir | |
+| D | Bibliothèques de prix sourcées : 7 392 prix de fournitures au Maroc (84 matériaux, 88 zones, ministère, ODbL), 39 prix d'ouvrages de rénovation (ADEME) et 74 ratios d'opération (Caisse des Dépôts) en France ; provenance, licence, période, fourchette, fiabilité, HT ou TTC ; lots contrôlés avec quarantaine, publication, rejet et annulation ; actualisation manuelle et planifiée par empreintes ; interface par pays avec filtres, fiche, série publiée, comparaison, doublons ; rapprochement des postes de DPGF ; prix TTC ramenés HT dans les sous-détails | fait | 16 tests (lecteurs, quarantaine, annulation, proximité, conversion HT, filtres, rapprochement DPGF, actualisation, planification), valeurs recoupées avec les classeurs d'origine, parcours navigateur avec les 7 505 références chargées |
 | E | Agents : texte vectoriel des plans, vérification des cotes, métré renforcé, CCTP par ouvrage, rapprochement des prix | à venir | |
 | F | Audit automatique, chaîne « Générer le dossier », niveaux de validation | à venir | |
 | G et H | Tests de bout en bout, bilan | à venir | |
@@ -127,8 +128,10 @@ Voir `docs/ARCHITECTURE.md`, section « Phases ».
 7. **Tâche planifiée** : générer un secret long (`openssl rand -hex 32`) et le déclarer dans Vercel sous
    `CRON_SECRET`. Vercel l'envoie automatiquement à chaque exécution quotidienne ; la page *Système* indique
    s'il est présent.
-8. **Prix et chiffrage** : importer vos prix (bordereaux, devis fournisseurs, anciennes DPGF) dans
-   *Bibliothèque de prix*, les vérifier, puis saisir frais généraux, aléas et marge dans *Paramètres* > *Chiffrage*.
+8. **Prix et chiffrage** : dans *Bibliothèque de prix* > *Sources publiques*, charger les trois sources (un clic
+   chacune) et examiner les deux valeurs en quarantaine ; importer ensuite vos prix (bordereaux, devis
+   fournisseurs, anciennes DPGF), les vérifier, puis saisir frais généraux, aléas et marge dans *Paramètres* >
+   *Chiffrage*. Les prix de main-d'œuvre et de matériel ne figurent dans aucune source publique : ils viennent de vous.
 9. **Clé de session** : `BETTER_AUTH_SECRET` doit être longue et aléatoire (64 caractères hexadécimaux). Elle chiffre
    aussi la double authentification : après son remplacement et le redéploiement, celle-ci est réinitialisée
    automatiquement au déploiement ; se reconnecter avec le mot de passe et la réactiver (nouveau code QR,

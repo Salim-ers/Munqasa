@@ -81,7 +81,7 @@ describe("DPGF depuis le CCTP", () => {
     ]);
     expect(all[1]).toMatchObject({ unit: "ens", quantity: "1.0000", quantitySource: "Forfait", status: "non_chiffre" });
     expect(all[3]).toMatchObject({ unit: "m3", quantity: "10.2000", quantitySource: "Métré : 1 mesure(s), dont 1 vérifiée(s)" });
-    expect(issues.map((i) => i.message)).toContain("2 poste(s) sans prix unitaire : à chiffrer (sous-détails ou saisie).");
+    expect(issues.map((i) => i.message)).toContain("2 poste(s) sans prix unitaire : à chiffrer (sous-détails, bibliothèque ou saisie).");
   });
 
   it("calcule montants, taxe et totaux en décimal exact", async () => {

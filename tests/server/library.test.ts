@@ -235,7 +235,7 @@ describe("Agent des sous-détails de prix", () => {
     const beton = (await poste("2.1")).breakdown!;
     expect(beton.components.map((c) => c.priceItemId).sort()).toEqual([betonPrice.id, acier.id, macon.id].sort());
     expect(beton.components.every((c) => c.isHypothesis && c.sourceNote?.startsWith("Ratio usuel à confirmer. Prix : "))).toBe(true);
-    expect(beton.components.find((c) => c.priceItemId === betonPrice.id)!.sourceNote).toBe(`Ratio usuel à confirmer. Prix : Béton C25/30 prêt à l’emploi pour semelles, relevé le ${today.split("-").reverse().join("/")}`);
+    expect(beton.components.find((c) => c.priceItemId === betonPrice.id)!.sourceNote).toBe(`Ratio usuel à confirmer. Prix : Béton C25/30 prêt à l’emploi pour semelles, Casablanca, relevé le ${today.split("-").reverse().join("/")}`);
     // Béton 1,05 × 980 × 1,05 + acier 1,05 × 14,50 × 1,05 + maçon 2,5 × 65 = 1 258,93625 ;
     // frais généraux 10 % et aléas 2 % du déboursé : 1 410,0086 ; marge 8 % : 1 522,81.
     expect(beton).toMatchObject({ status: "a_valider", overheadRate: "10.0000", marginRate: "8.0000", computedUnitPrice: "1522.8100" });

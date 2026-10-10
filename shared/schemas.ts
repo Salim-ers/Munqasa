@@ -15,10 +15,13 @@ import {
   PROJECT_STATUSES,
   PRICE_KINDS,
   PRICE_ORIGINS,
+  PRICE_SCOPES,
   PROSPECT_STATUSES,
   REFERENCE_KINDS,
   REFERENCE_SCOPES,
+  RELIABILITY_LEVELS,
   SECTORS,
+  TAX_BASES,
 } from "./enums.js";
 import { TRADE_KEYS } from "./trades.js";
 
@@ -336,8 +339,27 @@ export const priceItemInput = z.object({
   sourceRef: optionalText(300),
   priceDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide."),
   commercialConditions: optionalText(2000),
+  description: optionalText(3000),
+  priceScope: z.enum(PRICE_SCOPES).nullable().optional(),
+  taxBasis: z.enum(TAX_BASES).nullable().optional(),
+  /** Taux de TVA inclus, obligatoire pour un prix TTC (contrôlé par le serveur et le formulaire). */
+  vatRate: optionalRate,
+  reliability: z.enum(RELIABILITY_LEVELS).nullable().optional(),
+  sourceUrl: z
+    .string()
+    .trim()
+    .max(500)
+    .refine((v) => v === "" || /^https?:\/\/\S+$/i.test(v), "Adresse web invalide (http ou https).")
+    .transform((v) => (v === "" ? null : v))
+    .nullable()
+    .optional(),
 });
 export type PriceItemInput = z.input<typeof priceItemInput>;
+
+/** Un prix TTC sans taux de TVA ne peut pas être ramené hors taxes : il est refusé. */
+export function priceTaxIssue(data: { taxBasis?: string | null; vatRate?: string | null }): string | null {
+  return data.taxBasis === "TTC" && !data.vatRate ? "Indiquez le taux de TVA inclus dans ce prix TTC." : null;
+}
 
 export const supplierInput = z.object({
   name: requiredText(200),
@@ -377,6 +399,20 @@ export const priceImportRequest = priceFile.extend({
     tradeFamily: optionalText(60),
     supplierId: optionalUuid,
   }),
+});
+
+/** Rapprochement des postes d'une DPGF avec la bibliothèque (postes non chiffrés par défaut). */
+export const priceMatchRequest = z.object({
+  lineIds: z.array(z.string().uuid()).max(500).optional(),
+  onlyUnpriced: z.boolean().optional().default(true),
+});
+
+/** Prix de la bibliothèque retenus pour des postes de DPGF. */
+export const applyPricesRequest = z.object({
+  assignments: z
+    .array(z.object({ lineId: z.string().uuid(), priceItemId: z.string().uuid() }))
+    .min(1, "Choisissez au moins un prix.")
+    .max(500),
 });
 
 /** Lancement de l'agent des sous-détails : postes d'une DPGF, accord d'envoi. */

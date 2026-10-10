@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Calculator, Check, Download, FolderPlus, History, ListPlus, Plus, RotateCcw, Save, ShieldCheck, Trash2 } from "lucide-react";
+import { ArrowLeft, Calculator, Check, Download, FolderPlus, History, Library, ListPlus, Plus, RotateCcw, Save, ShieldCheck, Trash2 } from "lucide-react";
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -17,6 +17,7 @@ import { api, ApiError, errorMessage } from "../../lib/api";
 import { cn } from "../../lib/cn";
 import { formatDateTime, formatMoney, formatNumber } from "../../lib/format";
 import type { DpgfDetail, DpgfLine } from "../../lib/types";
+import { PriceMatchDialog } from "./PriceMatchDialog";
 
 const documentTone = { brouillon: "neutral", en_generation: "accent", a_valider: "warning", valide: "success", archive: "neutral" } as const;
 const lineTone = { non_chiffre: "neutral", a_verifier: "warning", valide: "success" } as const;
@@ -88,6 +89,7 @@ export function DpgfView({ projectId, dpgfId, onBack }: { projectId: string; dpg
   const [deleting, setDeleting] = useState<DpgfLine | null>(null);
   const [deletingDoc, setDeletingDoc] = useState(false);
   const [versionNote, setVersionNote] = useState<string | null>(null);
+  const [matching, setMatching] = useState(false);
   const refresh = () => void queryClient.invalidateQueries({ queryKey: ["project", projectId] });
 
   const patchLine = async (id: string, body: Record<string, unknown>) => {
@@ -144,6 +146,9 @@ export function DpgfView({ projectId, dpgfId, onBack }: { projectId: string; dpg
           <Calculator className="size-3.5" aria-hidden="true" />
           Sous-détails
         </Link>
+        <Button variant="secondary" size="sm" icon={<Library className="size-3.5" />} onClick={() => setMatching(true)}>
+          Prix de la bibliothèque
+        </Button>
         <DownloadMenu
           groups={[
             documentGroup("DPGF", "dpgf", dpgfId, ["xlsx", "pdf"]),
@@ -335,6 +340,7 @@ export function DpgfView({ projectId, dpgfId, onBack }: { projectId: string; dpg
       </div>
 
       <AddLineDialog target={adding} dpgfId={dpgfId} onOpenChange={(v) => !v && setAdding(null)} onSaved={refresh} />
+      <PriceMatchDialog dpgfId={dpgfId} currency={currency} open={matching} onOpenChange={setMatching} onApplied={refresh} />
       <Modal
         open={versionNote !== null}
         onOpenChange={(v) => !v && setVersionNote(null)}

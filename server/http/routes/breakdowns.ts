@@ -15,6 +15,7 @@ import { createJob } from "../../jobs/runner.js";
 import { auditAction } from "../../services/audit.js";
 import { defaultRates, recomputeBreakdown, resultOf } from "../../services/breakdowns.js";
 import { lineAmount } from "../../services/dpgf.js";
+import { exclTax } from "../../services/pricing.js";
 import { checkBreakdowns, checkDpgf, replaceIssues } from "../../services/quality.js";
 import { readSetting } from "../../services/settings.js";
 import { sameUnit } from "../../services/units.js";
@@ -54,14 +55,26 @@ function assertEditable(b: { locked: boolean }) {
   if (b.locked) conflict("Ce sous-détail est validé : rouvrez-le avant de le modifier.");
 }
 
-/** Coût d'un composant : celui du prix de la bibliothèque s'il est relié, sinon la valeur saisie. */
+/**
+ * Coût d'un composant : celui du prix de la bibliothèque s'il est relié (hors taxes : un prix TTC est
+ * ramené HT avec le taux de TVA qu'il inclut), sinon la valeur saisie.
+ */
 async function resolveCost(priceItemId: string | null, unitCost: string | null, currency: string) {
-  if (!priceItemId) return { unitCost, priceItemId: null, unit: null as string | null };
+  if (!priceItemId) return { unitCost, priceItemId: null, unit: null as string | null, note: "Saisie" };
   const db = await getDb();
   const [item] = await db.select().from(schema.priceItem).where(eq(schema.priceItem.id, priceItemId));
   if (!item) throw new ValidationError({ priceItemId: "Prix introuvable dans la bibliothèque." });
   if (item.currency !== currency) throw new ValidationError({ priceItemId: `Ce prix est en ${item.currency}, le sous-détail en ${currency}.` });
-  return { unitCost: item.unitPrice, priceItemId: item.id, unit: item.unit };
+  if (item.kind === "ratio") throw new ValidationError({ priceItemId: "Un ratio d’opération ne chiffre pas un composant de sous-détail." });
+  const ht = exclTax(item.unitPrice, item.taxBasis, item.vatRate);
+  if (ht === null) throw new ValidationError({ priceItemId: "Ce prix TTC n’indique pas le taux de TVA qu’il inclut : il ne peut pas être ramené hors taxes." });
+  const converted = item.taxBasis === "TTC";
+  return {
+    unitCost: converted ? ht : item.unitPrice,
+    priceItemId: item.id,
+    unit: item.unit,
+    note: converted ? `Prix de la bibliothèque, TTC ramené HT avec la TVA de ${Number(item.vatRate)} % qu’il inclut` : "Prix de la bibliothèque",
+  };
 }
 
 export const breakdownRoutes = new Hono<AdminEnv>()
@@ -181,7 +194,7 @@ export const breakdownRoutes = new Hono<AdminEnv>()
         lossRate: data.lossRate,
         priceItemId: cost.priceItemId,
         isHypothesis: false,
-        sourceNote: data.sourceNote ?? (cost.priceItemId ? "Prix de la bibliothèque" : "Saisie"),
+        sourceNote: data.sourceNote ?? cost.note,
       })
       .returning();
     await recomputeBreakdown(db, id);
@@ -207,7 +220,7 @@ export const breakdownRoutes = new Hono<AdminEnv>()
       .update(comp)
       .set({
         ...data,
-        ...(cost ? { unitCost: cost.unitCost, priceItemId: cost.priceItemId, ...(cost.unit ? { unit: cost.unit } : {}), sourceNote: data.sourceNote ?? (cost.priceItemId ? "Prix de la bibliothèque" : "Saisie") } : {}),
+        ...(cost ? { unitCost: cost.unitCost, priceItemId: cost.priceItemId, ...(cost.unit ? { unit: cost.unit } : {}), sourceNote: data.sourceNote ?? cost.note } : {}),
         // Une consommation modifiée par l'administrateur n'est plus une hypothèse de l'agent.
         ...("quantity" in data ? { isHypothesis: false } : {}),
       })

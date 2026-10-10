@@ -132,7 +132,9 @@ describe("prospects", () => {
 
 let projectA = "";
 let projectB = "";
-const deadlineA = new Date(Date.now() + 2 * DAY + 3600 * 1000).toISOString();
+// Remise à midi (heure du Maroc) dans deux jours : le décompte en jours ne dépend pas de l'heure du test.
+const moroccoToday = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Casablanca" }).format(new Date());
+const deadlineA = new Date(Date.parse(`${moroccoToday}T11:00:00Z`) + 2 * DAY).toISOString();
 
 describe("affaires", () => {
   it("exige les champs obligatoires", async () => {

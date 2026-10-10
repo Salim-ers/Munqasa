@@ -174,8 +174,26 @@ export async function checkDpgf(db: Database, dpgfId: string): Promise<IssueDraf
     }
   }
 
+  // Prix repris de la bibliothèque : à vérifier, ancien, archivé ou de fiabilité faible.
+  const priceIds = [...new Set(postes.map((p) => p.priceItemId).filter((v): v is string => Boolean(v)))];
+  if (priceIds.length) {
+    const prices = await db.select().from(schema.priceItem).where(inArray(schema.priceItem.id, priceIds));
+    const { stalePriceMonths } = await readSetting("alertes");
+    const stale = new Date();
+    stale.setMonth(stale.getMonth() - stalePriceMonths);
+    const staleDate = stale.toISOString().slice(0, 10);
+    for (const p of postes) {
+      const price = prices.find((x) => x.id === p.priceItemId);
+      if (!price) continue;
+      if (price.archivedAt) issues.push({ severity: "majeure", category: "source_manquante", message: `Prix de bibliothèque archivé : ${price.designation}, poste ${label(p)}`, targets: target(p.id) });
+      if (price.verificationStatus === "a_verifier") issues.push({ severity: "mineure", category: "source_manquante", message: `Prix de bibliothèque à vérifier : ${price.designation}, poste ${label(p)}`, targets: target(p.id) });
+      if (price.priceDate < staleDate) issues.push({ severity: "mineure", category: "version", message: `Prix de bibliothèque de plus de ${stalePriceMonths} mois : ${price.designation}, ${price.period ?? price.priceDate.split("-").reverse().join("/")}, poste ${label(p)}`, targets: target(p.id) });
+      if (price.reliability === "faible") issues.push({ severity: "mineure", category: "reserve", message: `Prix de bibliothèque de fiabilité faible : ${price.designation}, poste ${label(p)}`, targets: target(p.id) });
+    }
+  }
+
   const unpriced = postes.filter((p) => p.unitPrice === null).length;
-  if (unpriced) issues.push({ severity: "information", category: "completude", message: `${unpriced} poste(s) sans prix unitaire : à chiffrer (sous-détails ou saisie).`, targets: [] });
+  if (unpriced) issues.push({ severity: "information", category: "completude", message: `${unpriced} poste(s) sans prix unitaire : à chiffrer (sous-détails, bibliothèque ou saisie).`, targets: [] });
   return issues;
 }
 
