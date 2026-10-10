@@ -95,7 +95,39 @@ prix : `docs/BIBLIOTHEQUE-PRIX.md`. Lecture des plans et métré : `docs/METRE-T
 | D | Bibliothèques de prix sourcées : 7 392 prix de fournitures au Maroc (84 matériaux, 88 zones, ministère, ODbL), 39 prix d'ouvrages de rénovation (ADEME) et 74 ratios d'opération (Caisse des Dépôts) en France ; provenance, licence, période, fourchette, fiabilité, HT ou TTC ; lots contrôlés avec quarantaine, publication, rejet et annulation ; actualisation manuelle et planifiée par empreintes ; interface par pays avec filtres, fiche, série publiée, comparaison, doublons ; rapprochement des postes de DPGF ; prix TTC ramenés HT dans les sous-détails | fait | 16 tests (lecteurs, quarantaine, annulation, proximité, conversion HT, filtres, rapprochement DPGF, actualisation, planification), valeurs recoupées avec les classeurs d'origine, parcours navigateur avec les 7 505 références chargées |
 | E | Agents : texte vectoriel des plans transmis à l'agent et contrôle de chaque cote relevée, échelle et indice lus, règles de lot ; métré tracé cote par cote (origine de chaque entrée, concordance, déductions explicites, quantités brute et nette, confiance déterministe) ; CCTP garantissant un article par ouvrage ; bilan des prix de bibliothèque à la fin de la DPGF ; note de métrés et rapport d'analyse enrichis | fait | tests sur un PDF vectoriel (cotes retrouvées ou absentes, échelle, indice, confiance, déductions, correction manuelle), tests unitaires du texte vectoriel et de la confiance, couche texte vérifiée sur le plan d'exemple (149 à 370 textes par page, échelles 1/50 et 1/75 lues) |
 | F | Chaîne « Générer le dossier » en un traitement (plans, métré, CCTP, DPGF, sous-détails, contrôle) avec progression réelle et reprise exacte ; contrôle indépendant qui recalcule tout, corrige et journalise les erreurs calculables, rejoue tous les contrôles et date son empreinte ; cinq niveaux de validation calculés sur l'état réel ; déclaration de validation professionnelle liée aux versions des documents ; onglet Dossier et rapport de contrôle enrichi | fait | 5 tests sur base réelle (génération complète, motifs des étapes écartées, corrections automatiques, progression jusqu'à la validation professionnelle et retour en arrière après modification), parcours navigateur de la génération simulée, ordinateur et téléphone sans débordement |
-| G et H | Tests de bout en bout, bilan | à venir | |
+| G | Parcours navigateur des nouvelles fonctions (source publique chargée, quarantaine examinée, fiche et comparaison, rapprochement DPGF, génération du dossier), contrôle sans débordement de l'onglet Dossier sur téléphone ; tests sur les fichiers d'exemple de l'affaire TAL-2026-0001 (texte vectoriel et échelles des 12 planches de PLAN METRIKA, import de la DPGF d'exemple), exécutés quand leurs chemins sont fournis, ces documents privés n'étant pas versionnés | fait | 164 tests serveur, 2 tests sur les fichiers d'exemple, 19 parcours navigateur, aucune erreur dans le navigateur |
+| H | Bilan de la mission | fait | section « Bilan de la mission » ci-dessous |
+
+## Bilan de la mission
+
+**Ce qui fonctionne et a été vérifié**
+
+- Documents à l'identité Talab (CCTP, DPGF, BPU, DQE, estimation, sous-détails, note de métrés, rapports,
+  bibliothèque, dossier ZIP), en Word, Excel et PDF, versions claire et sombre, prise en charge de l'arabe.
+- Bibliothèque de prix : 7 392 prix de fournitures au Maroc (84 matériaux, 88 zones), 39 prix d'ouvrages de
+  rénovation et 74 ratios d'opération en France, tous sourcés (producteur, licence, ressource, période, méthode,
+  fourchette, fiabilité, HT ou TTC) ; actualisation par lots contrôlés avec quarantaine et annulation ;
+  rapprochement des postes de DPGF ; prix TTC toujours ramenés HT pour chiffrer.
+- Lecture des plans appuyée sur le texte vectoriel des PDF, chaque cote contrôlée ; métré tracé cote par cote,
+  déductions explicites, confiance déterministe ; règles de lot.
+- CCTP couvrant chaque ouvrage du métré ; DPGF avec bilan des prix disponibles ; sous-détails chiffrés
+  uniquement avec la bibliothèque.
+- Chaîne « Générer le dossier » en un traitement, contrôle indépendant qui corrige les erreurs calculables,
+  cinq niveaux de validation et déclaration de validation professionnelle.
+- Migrations toutes additives (0004 à 0006), appliquées sur Neon au déploiement ; aucune donnée supprimée.
+
+**Limites connues, dites telles quelles**
+
+- Couverture des prix : aucune source publique marocaine accessible ne publie de prix d'ouvrages posés ; seuls
+  les matériaux le sont. Les prix ADEME datent de 2009 à 2018 et ne sont pas actualisés : aucun indice n'est
+  appliqué, ils restent signalés comme anciens. L'objectif de plusieurs centaines de références vérifiées par pays
+  n'est atteint que pour les fournitures marocaines. La main-d'œuvre et le matériel viennent de vos propres prix.
+- Contrôle des cotes : le serveur vérifie qu'une valeur relevée est bien écrite sur la page, pas sa position par
+  rapport à l'élément ; une cote présente ailleurs sur la planche est donc comptée comme retrouvée.
+- Le contrôle indépendant est déterministe : il recalcule et rejoue les contrôles, sans relecture par un second
+  modèle.
+- Comptes clients et espaces partagés : non réalisés, l'accès restant réservé à votre seul compte comme demandé.
+- Formats DXF et IFC : lecture non disponible ; les plans se lisent en PDF ou en image.
 
 ## Étapes C à E
 

@@ -410,6 +410,62 @@ test.describe.serial("administration", () => {
     await expect(page.getByText("Affaire créée")).toHaveCount(0);
   });
 
+  test("charge une source publique de prix, examine la quarantaine et consulte une fiche", async () => {
+    await page.goto("/administration/bibliotheque");
+    await page.getByRole("button", { name: "Sources publiques" }).first().click();
+    const sources = page.getByRole("dialog", { name: "Sources publiques de prix" });
+    await sources.getByRole("button", { name: /Charger 74 références/ }).click();
+    await expect(sources.getByText(/2 valeurs attendent votre décision/)).toBeVisible({ timeout: 60_000 });
+    await sources.getByRole("button", { name: "Examiner" }).click();
+    const review = page.getByRole("dialog", { name: "Valeurs en quarantaine" });
+    await expect(review.getByText("Région Nouvelle-Calédonie, 2021").first()).toBeVisible();
+    await review.getByText(/Tout sélectionner sur cette page/).click();
+    await review.getByRole("button", { name: "Écarter la sélection" }).click();
+    await expect(page.getByText("Valeurs écartées : la valeur publiée reste celle d’avant.")).toBeVisible();
+    await expect(review.getByText("Plus rien en attente")).toBeVisible();
+    await review.getByRole("button", { name: "Fermer" }).click();
+    await expect(review).toBeHidden();
+    await sources.getByRole("button", { name: "Fermer" }).click();
+    await expect(sources).toBeHidden();
+
+    await page.getByRole("radio", { name: "France, EUR" }).click();
+    const ratio = page.getByRole("row", { name: /Prix de revient médian d’une opération de construction de logements sociaux, au m² de surface utile/ }).first();
+    await expect(ratio).toBeVisible();
+    await ratio.click();
+    const fiche = page.getByRole("dialog", { name: /Prix de revient médian/ });
+    await expect(fiche.getByText("Ratio d’opération", { exact: true })).toBeVisible();
+    await expect(fiche.getByRole("link", { name: /Licence Ouverte/ })).toBeVisible();
+    await fiche.getByRole("tab", { name: "Comparaison" }).click();
+    await expect(fiche.getByText(/déclinaisons\. Ce prix est/)).toBeVisible();
+    await page.keyboard.press("Escape");
+  });
+
+  test("rapproche les postes de la DPGF avec la bibliothèque, sans rien appliquer d'office", async () => {
+    await page.goto(`${projectUrl}?onglet=dpgf`);
+    await page.getByRole("button", { name: /DPGF, lot 01 Gros œuvre/ }).first().click();
+    await page.getByRole("button", { name: "Prix de la bibliothèque" }).click();
+    const dialog = page.getByRole("dialog", { name: "Prix de la bibliothèque" });
+    await dialog.getByRole("radio", { name: "Tous les postes" }).click();
+    // Bibliothèque marocaine sans prix d'ouvrage posé : chaque poste reste à chiffrer, et c'est dit.
+    await expect(dialog.getByText("Prix non disponible dans la bibliothèque : à chiffrer par sous-détail ou par saisie.").first()).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Appliquer" })).toBeDisabled();
+    await page.keyboard.press("Escape");
+  });
+
+  test("génère le dossier complet et affiche son niveau de validation", async () => {
+    await page.goto(`${projectUrl}?onglet=dossier`);
+    await expect(page.getByText("Niveau du dossier")).toBeVisible();
+    await page.getByRole("button", { name: "Générer le dossier" }).first().click();
+    const dialog = page.getByRole("dialog", { name: "Générer le dossier" });
+    await dialog.getByLabel("Taux de TVA de la DPGF, en %").fill("20");
+    await dialog.getByText(/J’accepte que les pages des plans choisis/).click();
+    await dialog.getByRole("button", { name: "Générer le dossier" }).click();
+    await expect(page.getByText(/Dernier contrôle le/)).toBeVisible({ timeout: 120_000 });
+    await expect(page.getByText("Contrôle indépendant : Contrôles qualité et niveau de validation")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Niveau du dossier" }).or(page.getByText("Niveau du dossier")).first()).toBeVisible();
+    await expect(page.getByText(/Reste à faire :/).first()).toBeVisible();
+  });
+
   test("s'affiche sans débordement sur téléphone", async () => {
     await page.setViewportSize({ width: 390, height: 844 });
     const project = new URL(projectUrl).pathname;
