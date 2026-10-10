@@ -15,6 +15,7 @@ import { cn } from "../../lib/cn";
 import { formatFullDateTime, formatMoney, formatRelative } from "../../lib/format";
 import type { ProjectDetail } from "../../lib/types";
 import { DeadlinesTab } from "./DeadlinesTab";
+import { DossierTab } from "./DossierTab";
 import { FilesTab } from "./FilesTab";
 import { HistoryTab } from "./HistoryTab";
 import { CctpTab } from "../cctp/CctpTab";
@@ -25,7 +26,7 @@ import { MetreTab } from "./MetreTab";
 import { OverviewTab } from "./OverviewTab";
 import { ProjectFormDialog } from "./ProjectFormDialog";
 
-const TABS = ["synthese", "lots", "echeances", "documents", "metre", "cctp", "dpgf", "sousdetails", "historique"] as const;
+const TABS = ["synthese", "dossier", "lots", "echeances", "documents", "metre", "cctp", "dpgf", "sousdetails", "historique"] as const;
 type Tab = (typeof TABS)[number];
 
 export function ProjectDetailPage() {
@@ -148,6 +149,7 @@ export function ProjectDetailPage() {
         }
         items={[
           { value: "synthese", label: "Synthèse" },
+          { value: "dossier", label: "Dossier" },
           { value: "lots", label: "Lots", count: data?.lots.length },
           { value: "echeances", label: "Échéances", count: data ? data.deadlines.length + (project?.submissionDeadline ? 1 : 0) : undefined },
           { value: "documents", label: "Documents", count: data ? fileCount : undefined },
@@ -162,6 +164,9 @@ export function ProjectDetailPage() {
           <>
             <TabPanel value="synthese">
               <OverviewTab detail={data} onEdit={() => setEditing(true)} />
+            </TabPanel>
+            <TabPanel value="dossier">
+              <DossierTab projectId={id} lots={data.lots} />
             </TabPanel>
             <TabPanel value="lots">
               <LotsTab projectId={id} lots={data.lots} />

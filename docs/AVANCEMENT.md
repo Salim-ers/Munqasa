@@ -84,7 +84,8 @@ Prérequis de l'agent des sous-détails : une bibliothèque de prix renseignée 
 ## Mission d'amélioration complète (octobre 2026)
 
 Audit et plan : `docs/AUDIT-MISSION-2026-10.md`. Moteur documentaire : `docs/DOCUMENTS.md`. Bibliothèque de
-prix : `docs/BIBLIOTHEQUE-PRIX.md`. Lecture des plans et métré : `docs/METRE-TRACABILITE.md`.
+prix : `docs/BIBLIOTHEQUE-PRIX.md`. Lecture des plans et métré : `docs/METRE-TRACABILITE.md`. Dossier, contrôle et niveaux de validation :
+`docs/DOSSIER.md`.
 
 | Phase | Contenu | État | Vérification |
 | --- | --- | --- | --- |
@@ -93,7 +94,7 @@ prix : `docs/BIBLIOTHEQUE-PRIX.md`. Lecture des plans et métré : `docs/METRE-T
 | C | Moteur d'export : CCTP, DPGF, BPU (prix en lettres), DQE, estimation, sous-détails, note de métrés, rapports d'analyse et de contrôle, bibliothèque de prix, versions figées, dossier ZIP ; menu « Télécharger » sur chaque document | fait | 14 tests d'export (contenu identique Word et PDF, formules Excel, gros CCTP de 240 articles) + parcours navigateur |
 | D | Bibliothèques de prix sourcées : 7 392 prix de fournitures au Maroc (84 matériaux, 88 zones, ministère, ODbL), 39 prix d'ouvrages de rénovation (ADEME) et 74 ratios d'opération (Caisse des Dépôts) en France ; provenance, licence, période, fourchette, fiabilité, HT ou TTC ; lots contrôlés avec quarantaine, publication, rejet et annulation ; actualisation manuelle et planifiée par empreintes ; interface par pays avec filtres, fiche, série publiée, comparaison, doublons ; rapprochement des postes de DPGF ; prix TTC ramenés HT dans les sous-détails | fait | 16 tests (lecteurs, quarantaine, annulation, proximité, conversion HT, filtres, rapprochement DPGF, actualisation, planification), valeurs recoupées avec les classeurs d'origine, parcours navigateur avec les 7 505 références chargées |
 | E | Agents : texte vectoriel des plans transmis à l'agent et contrôle de chaque cote relevée, échelle et indice lus, règles de lot ; métré tracé cote par cote (origine de chaque entrée, concordance, déductions explicites, quantités brute et nette, confiance déterministe) ; CCTP garantissant un article par ouvrage ; bilan des prix de bibliothèque à la fin de la DPGF ; note de métrés et rapport d'analyse enrichis | fait | tests sur un PDF vectoriel (cotes retrouvées ou absentes, échelle, indice, confiance, déductions, correction manuelle), tests unitaires du texte vectoriel et de la confiance, couche texte vérifiée sur le plan d'exemple (149 à 370 textes par page, échelles 1/50 et 1/75 lues) |
-| F | Audit automatique, chaîne « Générer le dossier », niveaux de validation | à venir | |
+| F | Chaîne « Générer le dossier » en un traitement (plans, métré, CCTP, DPGF, sous-détails, contrôle) avec progression réelle et reprise exacte ; contrôle indépendant qui recalcule tout, corrige et journalise les erreurs calculables, rejoue tous les contrôles et date son empreinte ; cinq niveaux de validation calculés sur l'état réel ; déclaration de validation professionnelle liée aux versions des documents ; onglet Dossier et rapport de contrôle enrichi | fait | 5 tests sur base réelle (génération complète, motifs des étapes écartées, corrections automatiques, progression jusqu'à la validation professionnelle et retour en arrière après modification), parcours navigateur de la génération simulée, ordinateur et téléphone sans débordement |
 | G et H | Tests de bout en bout, bilan | à venir | |
 
 ## Étapes C à E

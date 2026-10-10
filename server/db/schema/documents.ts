@@ -3,6 +3,7 @@
  * ouvrage (work_item) ← métré (measurement) ← plan ; ouvrage → prescription CCTP → ligne DPGF → sous-détail.
  */
 import { type AnyPgColumn, boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import type { AuditSummary } from "../../../shared/dossier.js";
 import type { MeasureDeduction, MeasureInputSource } from "../../../shared/metre.js";
 import { createdAt, fine, id, money, percent, qty, updatedAt } from "./columns.js";
 import { componentCategoryEnum, countryEnum, currencyEnum, designPhaseEnum, documentStatusEnum, documentTypeEnum, dpgfLineKindEnum, lineStatusEnum, marginModeEnum, measureConfidenceEnum, measureMethodEnum, measureSourceEnum, rateBaseEnum, sectionStatusEnum, validationStatusEnum } from "./enums.js";
@@ -256,4 +257,39 @@ export const documentVersion = pgTable(
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("document_version_unique_idx").on(t.documentType, t.documentId, t.version), index("document_version_project_idx").on(t.projectId)],
+);
+
+/** Contrôle indépendant d'un dossier : corrections appliquées aux erreurs calculables, anomalies restantes. */
+export const dossierAudit = pgTable(
+  "dossier_audit",
+  {
+    id: id(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    jobId: uuid("job_id"),
+    summary: jsonb("summary").$type<AuditSummary>().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("dossier_audit_project_idx").on(t.projectId, t.createdAt)],
+);
+
+/**
+ * Déclaration de validation d'un dossier par un professionnel : nom, qualité, texte de la déclaration et
+ * versions des documents validés. La plateforme ne certifie pas la qualification du signataire.
+ */
+export const dossierValidation = pgTable(
+  "dossier_validation",
+  {
+    id: id(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    signedBy: text("signed_by").notNull(),
+    qualification: text("qualification").notNull(),
+    statement: text("statement").notNull(),
+    documents: jsonb("documents").$type<Array<{ type: string; id: string; title: string; version: number }>>().notNull().default([]),
+    createdAt: createdAt(),
+  },
+  (t) => [index("dossier_validation_project_idx").on(t.projectId, t.createdAt)],
 );

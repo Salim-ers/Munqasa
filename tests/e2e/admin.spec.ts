@@ -418,6 +418,7 @@ test.describe.serial("administration", () => {
       "/administration/dashboard",
       "/administration/affaires",
       project,
+      `${project}?onglet=dossier`,
       `${project}?onglet=metre`,
       `${project}?onglet=cctp`,
       `${project}?onglet=dpgf`,

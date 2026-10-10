@@ -5,11 +5,12 @@
  * - contrôle qualité : points relevés par les contrôles automatiques sur chaque document, avec leur
  *   statut et les motifs de mise de côté. Ce rapport ne vaut ni certification ni validation structurelle.
  */
-import { asc, eq, inArray } from "drizzle-orm";
+import { asc, desc, eq, inArray } from "drizzle-orm";
 import { DRAWING_KIND_LABELS, type IssueCategory, ISSUE_SEVERITY_LABELS, VALIDATION_STATUS_LABELS } from "../../../shared/enums.js";
 import { DIMENSION_CHECK_LABELS, type DimensionCheck } from "../../../shared/metre.js";
 import type { PlanExtraction } from "../../ai/schemas.js";
 import { type Database, schema } from "../../db/index.js";
+import { dossierStatus } from "../../services/dossier.js";
 import { baseMeta, type ExportContext, exportContext } from "../context.js";
 import type { Block, DocModel, Row } from "../model.js";
 
@@ -162,6 +163,8 @@ export async function controlModel(db: Database, projectId: string): Promise<{ c
   const open = issues.filter((i) => i.status === "ouverte");
   const blocking = open.filter((i) => i.severity === "bloquante").length;
   const major = open.filter((i) => i.severity === "majeure").length;
+  const status = await dossierStatus(db, projectId);
+  const [lastAudit] = await db.select().from(schema.dossierAudit).where(eq(schema.dossierAudit.projectId, projectId)).orderBy(desc(schema.dossierAudit.createdAt)).limit(1);
 
   const blocks: Block[] = [
     {
@@ -180,17 +183,41 @@ export async function controlModel(db: Database, projectId: string): Promise<{ c
         ["Mesures du métré", `${measures.length} mesure(s), ${measures.filter((m) => m.status === "verifie").length} vérifiée(s), ${measures.filter((m) => m.status === "a_verifier").length} à vérifier`],
       ],
     },
+    { type: "heading", level: 1, text: "Contrôle indépendant et niveau du dossier" },
+    {
+      type: "keyValues",
+      rows: [
+        ["Niveau du dossier", status.levelLabel],
+        ...status.criteria.filter((c) => !c.met && c.detail).slice(0, 1).map((c): [string, string] => ["Reste à faire", c.detail!]),
+        ["Dernier contrôle", lastAudit ? `${lastAudit.createdAt.toLocaleString("fr-FR", { timeZone: "Africa/Casablanca", dateStyle: "long", timeStyle: "short" })}, ${status.audit?.upToDate ? "à jour" : "dossier modifié depuis"}` : "jamais lancé"],
+        ["Corrections de calcul", lastAudit ? `${lastAudit.summary.fixes.length} au dernier contrôle` : "aucune"],
+        ...(status.validation ? [["Validation professionnelle", `${status.validation.signedBy}, ${status.validation.qualification}${status.validation.current ? "" : ", déclaration à renouveler"}`] as [string, string]] : []),
+      ],
+    },
+    ...(lastAudit && lastAudit.summary.fixes.length
+      ? [
+          {
+            type: "table" as const,
+            dense: true,
+            columns: [
+              { label: "Élément corrigé", width: 30 },
+              { label: "Correction", width: "*" as const },
+            ],
+            rows: lastAudit.summary.fixes.slice(0, 60).map((f) => ({ cells: [f.target, f.note] })),
+          },
+        ]
+      : []),
   ];
   const groups = new Map<string, typeof issues>();
   for (const issue of issues) {
     const key = issue.documentId ? `${issue.documentType}:${issue.documentId}` : "affaire";
     groups.set(key, [...(groups.get(key) ?? []), issue]);
   }
-  const typeLabel: Record<string, string> = { cctp: "CCTP", dpgf: "DPGF", sous_detail: "Sous-détails", devis: "Devis" };
+  const typeLabel: Record<string, string> = { cctp: "CCTP", dpgf: "DPGF", sous_detail: "Sous-détails", devis: "Devis", metre: "Métré", dossier: "Dossier" };
   const order = { bloquante: 0, majeure: 1, mineure: 2, information: 3 } as const;
   for (const [key, list] of groups) {
     const [type, id] = key.split(":");
-    const title = key === "affaire" ? "Affaire" : `${typeLabel[type!] ?? type} : ${titles.get(id!) ?? "document"}`;
+    const title = key === "affaire" ? "Affaire" : type === "metre" || type === "dossier" ? typeLabel[type]! : `${typeLabel[type!] ?? type} : ${titles.get(id!) ?? "document"}`;
     blocks.push({ type: "heading", level: 2, text: title });
     blocks.push({
       type: "table",

@@ -12,6 +12,7 @@ import { AiBudgetError } from "../services/openai.js";
 import { StorageNotConfiguredError } from "../services/storage.js";
 import { agentRoutes, metreRoutes } from "./routes/agents.js";
 import { breakdownRoutes } from "./routes/breakdowns.js";
+import { dossierRoutes } from "./routes/dossier.js";
 import { exportRoutes } from "./routes/exports.js";
 import { cctpRoutes, qualityRoutes } from "./routes/cctp.js";
 import { dpgfRoutes } from "./routes/dpgf.js";
@@ -61,6 +62,7 @@ function adminApi() {
   admin.route("/", dpgfRoutes);
   admin.route("/library", libraryRoutes);
   admin.route("/", breakdownRoutes);
+  admin.route("/", dossierRoutes);
   admin.route("/exports", exportRoutes);
   return admin;
 }

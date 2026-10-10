@@ -300,6 +300,25 @@ export const dpgfGenerationRequest = z.object({
   consent: z.literal(true, { error: "Confirmez l’envoi du CCTP et du métré à l’API OpenAI." }),
 });
 
+/** « Générer le dossier » : plans à lire, options du CCTP, de la DPGF et des sous-détails, accord d'envoi. */
+export const dossierGenerationRequest = z.object({
+  fileIds: z.array(z.string().uuid()).max(30),
+  lotId: optionalUuid,
+  detailLevel: z.enum(CCTP_LEVELS),
+  referenceIds: z.array(z.string().uuid()).max(300),
+  vatRate: optionalRate,
+  instructions: optionalText(3000),
+  withSousDetails: z.boolean(),
+  consent: z.literal(true, { error: "Confirmez l’envoi des plans et des informations de l’affaire à l’API OpenAI." }),
+});
+
+/** Déclaration de validation d'un dossier par un professionnel. */
+export const dossierValidationRequest = z.object({
+  signedBy: requiredText(150),
+  qualification: requiredText(200),
+  statement: z.literal(true, { error: "Cochez la déclaration pour valider le dossier." }),
+});
+
 export const DPGF_LINE_KIND_LIST = ["chapitre", "sous_chapitre", "poste"] as const;
 
 export const dpgfLineInput = z.object({
