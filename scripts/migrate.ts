@@ -9,6 +9,12 @@ import { existsSync } from "node:fs";
 
 if (existsSync(".env.local")) process.loadEnvFile(".env.local");
 
+// Prévisualisation Vercel : la base de production n'est migrée que par un déploiement de production.
+if (process.env.VERCEL_ENV === "preview") {
+  console.log("Prévisualisation : migrations ignorées.");
+  process.exit(0);
+}
+
 // Déploiement Vercel sans base configurée : rien à migrer (l'API refusera de démarrer sans DATABASE_URL).
 if (process.env.VERCEL && !process.env.DATABASE_URL) {
   console.log("DATABASE_URL absente : migrations ignorées.");

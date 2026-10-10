@@ -1,7 +1,8 @@
 /**
- * Au déploiement (buildCommand de vercel.json), après les migrations : crée le compte administrateur à
- * partir de ADMIN_PASSWORD s'il n'existe pas encore (voir server/services/admin-bootstrap.ts).
- * N'interrompt jamais le build et n'affiche jamais le mot de passe.
+ * Au déploiement (buildCommand de vercel.json), après les migrations :
+ * - crée le compte administrateur à partir de ADMIN_PASSWORD s'il n'existe pas encore ;
+ * - réinitialise la double authentification si elle est devenue illisible (BETTER_AUTH_SECRET remplacée).
+ * Voir server/services/admin-bootstrap.ts. N'interrompt jamais le build et n'affiche jamais le mot de passe.
  *
  *   npm run admin:bootstrap
  */
@@ -9,17 +10,18 @@ import { existsSync } from "node:fs";
 
 if (existsSync(".env.local")) process.loadEnvFile(".env.local");
 
-if (!process.env.ADMIN_PASSWORD?.trim()) {
-  console.log("Compte administrateur : ADMIN_PASSWORD absente, rien à faire.");
+// Une prévisualisation ne touche jamais au compte de production (ni création, ni réinitialisation).
+if (process.env.VERCEL_ENV === "preview") {
+  console.log("Prévisualisation : compte administrateur non vérifié.");
   process.exit(0);
 }
 if (process.env.VERCEL && !process.env.DATABASE_URL) {
-  console.log("Compte administrateur : DATABASE_URL absente, création reportée.");
+  console.log("Compte administrateur : DATABASE_URL absente, rien à vérifier.");
   process.exit(0);
 }
 
 try {
-  const { bootstrapAdmin } = await import("../server/services/admin-bootstrap.js");
+  const { bootstrapAdmin, checkSecondFactor } = await import("../server/services/admin-bootstrap.js");
   const result = await bootstrapAdmin();
   const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   const messages: Record<typeof result, string> = {
@@ -33,8 +35,11 @@ try {
     autre_compte: "⚠ Un compte différent de ADMIN_EMAIL existe déjà : rien n'a été modifié.",
   };
   console.log(messages[result]);
+  if ((await checkSecondFactor()) === "reinitialisee") {
+    console.log("✓ Double authentification réinitialisée : la clé de session a changé. Connectez-vous avec votre mot de passe, elle vous sera redemandée.");
+  }
 } catch (error) {
-  // Le site doit pouvoir se déployer même si la création échoue (cause dans les journaux du build).
-  console.error("⚠ Compte administrateur : création impossible.", error instanceof Error ? error.message : "");
+  // Le site doit pouvoir se déployer même si la vérification échoue (cause dans les journaux du build).
+  console.error("⚠ Compte administrateur : vérification impossible.", error instanceof Error ? error.message : "");
 }
 process.exit(0);

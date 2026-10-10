@@ -115,3 +115,7 @@ Voir `docs/ARCHITECTURE.md`, section « Phases ».
    s'il est présent.
 8. **Prix et chiffrage** : importer vos prix (bordereaux, devis fournisseurs, anciennes DPGF) dans
    *Bibliothèque de prix*, les vérifier, puis saisir frais généraux, aléas et marge dans *Paramètres* > *Chiffrage*.
+9. **Clé de session** : `BETTER_AUTH_SECRET` doit être longue et aléatoire (64 caractères hexadécimaux). Elle chiffre
+   aussi la double authentification : après son remplacement et le redéploiement, celle-ci est réinitialisée
+   automatiquement au déploiement ; se reconnecter avec le mot de passe et la réactiver (nouveau code QR,
+   nouveaux codes de secours).

@@ -1,11 +1,14 @@
 /**
  * Création du compte administrateur au déploiement (ADMIN_PASSWORD), sur une vraie base PostgreSQL :
- * création, correction tant que le compte n'est pas activé, puis variable ignorée.
+ * création, correction tant que le compte n'est pas activé, puis variable ignorée. Double
+ * authentification réinitialisée quand la clé de session a changé.
  */
+import { symmetricEncrypt } from "better-auth/crypto";
+import { eq } from "drizzle-orm";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { schema } from "../../server/db/index.js";
 import { resetEnvCache } from "../../server/env.js";
-import { bootstrapAdmin } from "../../server/services/admin-bootstrap.js";
+import { bootstrapAdmin, checkSecondFactor } from "../../server/services/admin-bootstrap.js";
 import { ADMIN_EMAIL, setupTestServer, TestBrowser, totpFromUri } from "./helpers.js";
 
 let ctx: Awaited<ReturnType<typeof setupTestServer>>;
@@ -86,5 +89,33 @@ describe("compte administrateur créé au déploiement", () => {
     expect((await browser.request("/api/admin/system/status")).json.adminPassword).toBe(true);
     withPassword(undefined);
     expect((await browser.request("/api/admin/system/status")).json.adminPassword).toBe(false);
+  });
+});
+
+describe("double authentification après un changement de clé de session", () => {
+  it("laisse intacte une double authentification lisible", async () => {
+    expect(await checkSecondFactor()).toBe("lisible");
+    expect((await ctx.db.select().from(schema.user))[0]!.twoFactorEnabled).toBe(true);
+  });
+
+  it("réinitialise une double authentification chiffrée avec une autre clé et ferme les sessions", async () => {
+    // BETTER_AUTH_SECRET remplacée : le secret enregistré a été chiffré avec l'ancienne clé.
+    const [row] = await ctx.db.select().from(schema.twoFactor);
+    const stale = await symmetricEncrypt({ key: "ancienne-cle-de-session-0123456789abcdef", data: "JBSWY3DPEHPK3PXP" });
+    await ctx.db.update(schema.twoFactor).set({ secret: stale }).where(eq(schema.twoFactor.id, row!.id));
+
+    expect(await checkSecondFactor()).toBe("reinitialisee");
+    expect(await ctx.db.select().from(schema.twoFactor)).toHaveLength(0);
+    expect((await ctx.db.select().from(schema.user))[0]!.twoFactorEnabled).toBe(false);
+    expect(await ctx.db.select().from(schema.session)).toHaveLength(0);
+    expect((await ctx.db.select().from(schema.auditLog)).map((e) => e.action)).toContain("compte.2fa_reinitialisee_cle_changee");
+
+    // Le mot de passe reste exigé, puis la double authentification est de nouveau demandée.
+    expect((await signIn("Mauvais-mot-de-passe-9", "198.51.100.78")).res.status).toBe(401);
+    const { browser, res } = await signIn("Mot-de-passe-corrige-2", "198.51.100.79");
+    expect(res.status).toBe(200);
+    expect((await browser.request("/api/admin/me")).json.secondFactorRequired).toBe(true);
+    expect((await browser.request("/api/admin/dashboard")).status).toBe(403);
+    expect(await checkSecondFactor()).toBe("aucune");
   });
 });

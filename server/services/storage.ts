@@ -35,16 +35,26 @@ function contentDisposition(fileName: string, inline: boolean): string {
   return `${inline ? "inline" : "attachment"}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
 }
 
-async function createS3Driver(): Promise<StorageDriver> {
-  const env = getEnv();
-  const { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand, DeleteObjectCommand } = await import("@aws-sdk/client-s3");
-  const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
-  const client = new S3Client({
+/**
+ * Client S3 pour R2. Les sommes de contrôle ne sont calculées que si l'opération l'exige : par défaut, le
+ * kit AWS signe dans l'URL de téléversement la somme d'un corps vide, et R2 refuserait tout fichier réel.
+ */
+export function s3ClientOptions(env: Pick<ReturnType<typeof getEnv>, "S3_REGION" | "S3_ENDPOINT" | "S3_ACCESS_KEY_ID" | "S3_SECRET_ACCESS_KEY">) {
+  return {
     region: env.S3_REGION ?? "auto",
     endpoint: env.S3_ENDPOINT,
     credentials: { accessKeyId: env.S3_ACCESS_KEY_ID!, secretAccessKey: env.S3_SECRET_ACCESS_KEY! },
     forcePathStyle: true,
-  });
+    requestChecksumCalculation: "WHEN_REQUIRED" as const,
+    responseChecksumValidation: "WHEN_REQUIRED" as const,
+  };
+}
+
+async function createS3Driver(): Promise<StorageDriver> {
+  const env = getEnv();
+  const { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand, DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+  const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
+  const client = new S3Client(s3ClientOptions(env));
   const Bucket = env.S3_BUCKET!;
   return {
     kind: "s3",
