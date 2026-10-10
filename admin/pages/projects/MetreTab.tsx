@@ -4,6 +4,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { DRAWING_KIND_LABELS, MEASURE_SOURCE_LABELS, VALIDATION_STATUS_LABELS } from "../../../shared/enums";
 import { workItemInput } from "../../../shared/schemas";
+import { documentGroup, DownloadMenu } from "../../components/DownloadMenu";
 import { JobProgress } from "../../components/JobProgress";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
@@ -63,9 +64,17 @@ export function MetreTab({ projectId, lots }: { projectId: string; lots: Lot[] }
           title="Lecture des plans"
           subtitle="L’agent relève les éléments de gros œuvre de chaque page et propose le métré."
           action={
-            <Button size="sm" icon={<ScanLine className="size-3.5" />} onClick={() => setLaunching(true)}>
-              Lancer la lecture
-            </Button>
+            <div className="flex flex-wrap justify-end gap-2">
+              <DownloadMenu
+                groups={[
+                  documentGroup("Note de métrés", "metre", projectId, ["xlsx", "docx", "pdf"]),
+                  documentGroup("Rapport d’analyse des plans", "analyse", projectId, ["docx", "pdf"]),
+                ]}
+              />
+              <Button size="sm" icon={<ScanLine className="size-3.5" />} onClick={() => setLaunching(true)}>
+                Lancer la lecture
+              </Button>
+            </div>
           }
         />
         {analyses.length ? (

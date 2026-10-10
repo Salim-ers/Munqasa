@@ -7,6 +7,7 @@ import { COUNTRY_LABELS, CURRENCIES, PRICE_KIND_LABELS, PRICE_ORIGIN_LABELS, VAL
 import { priceItemInput } from "../../../shared/schemas";
 import type { AlertSettings } from "../../../shared/settings";
 import { TRADE_FAMILIES, tradeLabel } from "../../../shared/trades";
+import { DownloadMenu } from "../../components/DownloadMenu";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -174,6 +175,19 @@ export function LibraryPage() {
         description="Vos prix, chacun avec sa provenance, sa date et sa zone. L’agent des sous-détails ne chiffre qu’avec ces prix ; un prix à vérifier ou ancien reste signalé par le contrôle qualité."
         actions={
           <>
+            <DownloadMenu
+              size="md"
+              label="Exporter"
+              groups={[
+                {
+                  title: "Prix affichés, filtres compris",
+                  items: (["xlsx", "csv", "pdf"] as const).map((format) => {
+                    const params = new URLSearchParams(Object.entries({ q, nature: kind, pays: country, statut: status, archives: archived ? "1" : "" }).filter(([, v]) => v) as Array<[string, string]>).toString();
+                    return { label: format === "xlsx" ? "Excel" : format === "csv" ? "CSV" : "PDF", href: `/api/admin/exports/bibliotheque/${format}${params ? `?${params}` : ""}` };
+                  }),
+                },
+              ]}
+            />
             <Button variant="secondary" icon={<Store className="size-4" />} onClick={() => setSuppliers(true)}>
               Fournisseurs
             </Button>

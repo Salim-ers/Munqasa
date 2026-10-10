@@ -8,6 +8,7 @@ import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { EmptyState, Skeleton } from "../../components/ui/Feedback";
 import { PageHeader } from "../../components/ui/PageHeader";
+import { documentGroup, dossierGroup, DownloadMenu } from "../../components/DownloadMenu";
 import { TabPanel, Tabs } from "../../components/ui/Tabs";
 import { api, ApiError, errorMessage } from "../../lib/api";
 import { cn } from "../../lib/cn";
@@ -105,6 +106,7 @@ export function ProjectDetailPage() {
                 </select>
                 <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-3.5 -translate-y-1/2 text-ink-3" aria-hidden="true" />
               </div>
+              <DownloadMenu size="md" label="Dossier" groups={[dossierGroup(id), documentGroup("Rapport de contrôle qualité", "controle", id, ["pdf", "docx"])]} />
               <Button variant="secondary" icon={<Pencil className="size-4" />} onClick={() => setEditing(true)}>
                 Modifier
               </Button>

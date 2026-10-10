@@ -192,10 +192,15 @@ test.describe.serial("administration", () => {
     await page.getByRole("button", { name: "Valider", exact: true }).first().click();
     await expect(page.getByText(/1 validé\(s\)/)).toBeVisible();
 
-    const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Exporter en Word" }).click()]);
+    await page.getByRole("button", { name: "Télécharger" }).click();
+    const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: "Télécharger en Word" }).click()]);
     expect(download.suggestedFilename()).toMatch(/\.docx$/);
     const { readFileSync } = await import("node:fs");
     expect(readFileSync(await download.path()).subarray(0, 2).toString()).toBe("PK");
+    await page.getByRole("button", { name: "Télécharger" }).click();
+    const [pdf] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: "Télécharger en PDF" }).click()]);
+    expect(pdf.suggestedFilename()).toMatch(/\.pdf$/);
+    expect(readFileSync(await pdf.path()).subarray(0, 5).toString()).toBe("%PDF-");
   });
 
   test("établit la DPGF depuis le CCTP, la chiffre et l'exporte en Excel", async () => {
@@ -219,8 +224,12 @@ test.describe.serial("administration", () => {
     await expect(row.getByText(/12\s755,10\sMAD/)).toBeVisible();
     await expect(page.getByText(/15\s306,12\sMAD/)).toBeVisible();
 
-    const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Exporter en Excel" }).click()]);
+    await page.getByRole("button", { name: "Télécharger" }).click();
+    const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: "DPGF, Excel" }).click()]);
     expect(download.suggestedFilename()).toMatch(/\.xlsx$/);
+    await page.getByRole("button", { name: "Télécharger" }).click();
+    const [bpu] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: "Bordereau des prix (BPU), PDF" }).click()]);
+    expect(bpu.suggestedFilename()).toMatch(/BPU.*\.pdf$/);
   });
 
   test("importe des prix, établit les sous-détails avec l'agent et reporte le prix validé dans la DPGF", async () => {
@@ -273,7 +282,8 @@ test.describe.serial("administration", () => {
     await page.getByRole("button", { name: "Reporter 1 prix validé(s)" }).click();
     await page.getByRole("dialog", { name: "Reporter les prix validés ?" }).getByRole("button", { name: "Reporter" }).click();
     await expect(page.getByText("1 prix reporté(s) dans la DPGF.")).toBeVisible();
-    const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Exporter en Excel" }).click()]);
+    await page.getByRole("button", { name: "Télécharger les sous-détails" }).click();
+    const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: "Télécharger en Excel" }).click()]);
     expect(download.suggestedFilename()).toMatch(/Sous-détails.*\.xlsx$/);
 
     await page.getByRole("link", { name: "Ouvrir la DPGF" }).click();

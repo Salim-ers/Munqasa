@@ -8,15 +8,14 @@ import { dpgfGenerationRequest, dpgfLineInput, dpgfUpdate } from "../../../share
 import { modelFor } from "../../ai/client.js";
 import type { AdminEnv } from "../../auth/guard.js";
 import { getDb, schema } from "../../db/index.js";
-import { dpgfToXlsx } from "../../exports/dpgf-xlsx.js";
 import { createJob } from "../../jobs/runner.js";
 import { auditAction } from "../../services/audit.js";
 import { computeTotals, lineAmount, renumber } from "../../services/dpgf.js";
 import { checkDpgf, hasBlockingIssues, replaceIssues } from "../../services/quality.js";
-import { readSetting } from "../../services/settings.js";
 import { listVersions, snapshotDpgf } from "../../services/versions.js";
 import { body, conflict, notFound, patchBody, uuidParam, ValidationError } from "../validate.js";
 import { serializeJob } from "./agents.js";
+import { exportResponse } from "./exports.js";
 
 const d = schema.dpgf;
 const l = schema.dpgfLine;
@@ -250,39 +249,5 @@ export const dpgfRoutes = new Hono<AdminEnv>()
     await auditAction(c, "dpgf.suppression", "project", doc.projectId, { document: doc.title });
     return c.json({ ok: true });
   })
-  .get("/dpgf/:id/export.xlsx", async (c) => {
-    const id = uuidParam(c);
-    const db = await getDb();
-    const doc = await loadDpgf(id);
-    const lines = await db.select().from(l).where(eq(l.dpgfId, id)).orderBy(asc(l.position));
-    const [[row], [lot], [company], identity] = await Promise.all([
-      db.select({ project: schema.project, client: schema.client }).from(schema.project).leftJoin(schema.client, eq(schema.client.id, schema.project.clientId)).where(eq(schema.project.id, doc.projectId)),
-      doc.lotId ? db.select().from(schema.projectLot).where(eq(schema.projectLot.id, doc.lotId)) : Promise.resolve([]),
-      db.select().from(schema.companyProfile).orderBy(desc(schema.companyProfile.isDefault)).limit(1),
-      readSetting("identite_documentaire"),
-    ]);
-    const buffer = await dpgfToXlsx({
-      title: doc.title,
-      status: doc.status,
-      version: doc.currentVersion,
-      currency: doc.currency,
-      vatRate: doc.vatRate,
-      project: { reference: row!.project.reference, name: row!.project.name },
-      client: row!.client?.name ?? null,
-      lot: lot ? `${lot.code} ${lot.name}` : null,
-      company: company?.legalName ?? null,
-      identity,
-      lines,
-      totals: computeTotals(lines, doc.vatRate),
-      date: new Date(),
-    });
-    await auditAction(c, "dpgf.export", "project", doc.projectId, { document: doc.title, format: "xlsx" });
-    const name = `${row!.project.reference} ${doc.title}`.replace(/[^\p{L}\p{N} ._-]+/gu, " ").trim();
-    return new Response(new Uint8Array(buffer), {
-      headers: {
-        "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "content-disposition": `attachment; filename="dpgf.xlsx"; filename*=UTF-8''${encodeURIComponent(`${name}.xlsx`)}`,
-        "cache-control": "private, no-store",
-      },
-    });
-  });
+  .get("/dpgf/:id/export.xlsx", async (c) => exportResponse(c, "dpgf", uuidParam(c), "xlsx"))
+  .get("/dpgf/:id/export.pdf", async (c) => exportResponse(c, "dpgf", uuidParam(c), "pdf"));

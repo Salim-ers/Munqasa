@@ -149,3 +149,22 @@ export function evaluateFormula(expression: string, inputs: Record<string, strin
   if (stack.length !== 1) throw new FormulaError("Formule invalide.");
   return stack[0]!.toDecimalPlaces(4).toFixed(4);
 }
+
+/**
+ * Même formule écrite pour Excel, valeurs en clair (« 42.5*0.6*0.4 ») : le tableur recalcule la quantité
+ * et chacun voit le détail du calcul. Grammaire fermée : seuls nombres, opérateurs et parenthèses sortent.
+ * Renvoie null si la formule ou une valeur est invalide (la cellule garde alors la quantité calculée).
+ */
+export function formulaToExcel(expression: string, inputs: Record<string, string>): string | null {
+  try {
+    evaluateFormula(expression, inputs);
+    return tokenize(expression)
+      .map((t) => {
+        if (t.type === "name") return `(${String(inputs[t.value]).trim().replace(/\s/g, "").replace(",", ".")})`;
+        return t.value;
+      })
+      .join("");
+  } catch {
+    return null;
+  }
+}

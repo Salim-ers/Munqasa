@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
-import { CircleCheck, CircleDashed, CircleX, Clock, Cpu, Database, Download, HardDrive, KeyRound, PlugZap, ScrollText } from "lucide-react";
+import { CircleCheck, CircleDashed, CircleX, Clock, Cpu, Database, Download, FileText, HardDrive, KeyRound, PlugZap, ScrollText } from "lucide-react";
 import type { ReactNode } from "react";
 import { useSearchParams } from "react-router";
 import { Badge } from "../components/ui/Badge";
@@ -73,7 +73,7 @@ function ServiceRow({ icon, label, state, detail, result }: { icon: ReactNode; l
 
 function ConnectionsTab() {
   const status = useQuery({ queryKey: ["system-status"], queryFn: ({ signal }) => api<SystemStatus>("/system/status", { signal }) });
-  const test = useMutation({ mutationFn: () => api<{ database: TestResult; storage: TestResult; openai: TestResult }>("/system/connections/test", { body: {} }) });
+  const test = useMutation({ mutationFn: () => api<{ database: TestResult; storage: TestResult; openai: TestResult; documents: TestResult }>("/system/connections/test", { body: {} }) });
   const s = status.data;
   const prod = s?.environment === "production";
   return (
@@ -116,6 +116,7 @@ function ConnectionsTab() {
               result={test.data?.storage}
             />
             <ServiceRow icon={<Cpu />} label="API OpenAI" state={s.openai ? "ok" : "missing"} detail={s.openai ? "Clé présente côté serveur" : "Variable OPENAI_API_KEY absente"} result={test.data?.openai} />
+            <ServiceRow icon={<FileText />} label="Moteur documentaire" state="ok" detail="Word, Excel et PDF aux couleurs de Talab Solutions" result={test.data?.documents} />
             <ServiceRow icon={<Clock />} label="Tâche planifiée" state={s.cron ? "ok" : "missing"} detail={s.cron ? "Rappels quotidiens à 6 h (UTC)" : "Variable CRON_SECRET absente"} />
           </ul>
         )}

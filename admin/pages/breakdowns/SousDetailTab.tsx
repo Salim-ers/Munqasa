@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRightLeft, Calculator, Download, Sparkles, TableProperties } from "lucide-react";
+import { ArrowRightLeft, Calculator, Sparkles, TableProperties } from "lucide-react";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { toast } from "sonner";
+import { darkGroup, documentGroup, DownloadMenu } from "../../components/DownloadMenu";
 import { JobProgress } from "../../components/JobProgress";
 import { QualityPanel } from "../../components/QualityPanel";
 import { Badge } from "../../components/ui/Badge";
@@ -148,13 +149,7 @@ export function SousDetailTab({ projectId }: { projectId: string }) {
               <Button variant="secondary" icon={<Calculator className="size-4" />} loading={applyRates.isPending} disabled={withBreakdown === validated} onClick={() => applyRates.mutate()}>
                 Appliquer les taux des paramètres
               </Button>
-              <a
-                href={`/api/admin/dpgf/${dpgf.id}/breakdowns/export.xlsx`}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-line-strong bg-surface px-4 text-[0.8125rem] font-semibold text-ink hover:bg-surface-2"
-              >
-                <Download className="size-4" aria-hidden="true" />
-                Exporter en Excel
-              </a>
+              <DownloadMenu size="md" align="start" label="Télécharger les sous-détails" groups={[documentGroup(undefined, "sous_details", dpgf.id, ["xlsx", "pdf"]), darkGroup("sous_details", dpgf.id, ["pdf"])]} />
               <Link to={`?onglet=dpgf&dpgf=${dpgf.id}`} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-[0.8125rem] font-semibold text-ink-2 hover:bg-surface-2 hover:text-ink">
                 <TableProperties className="size-4" aria-hidden="true" />
                 Ouvrir la DPGF

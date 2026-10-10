@@ -11,7 +11,6 @@ import { pricingSettings } from "../../../shared/settings.js";
 import { modelFor } from "../../ai/client.js";
 import type { AdminEnv } from "../../auth/guard.js";
 import { getDb, schema } from "../../db/index.js";
-import { breakdownsToXlsx } from "../../exports/breakdowns-xlsx.js";
 import { createJob } from "../../jobs/runner.js";
 import { auditAction } from "../../services/audit.js";
 import { defaultRates, recomputeBreakdown, resultOf } from "../../services/breakdowns.js";
@@ -21,6 +20,7 @@ import { readSetting } from "../../services/settings.js";
 import { sameUnit } from "../../services/units.js";
 import { body, conflict, notFound, patchBody, uuidParam, ValidationError } from "../validate.js";
 import { serializeJob } from "./agents.js";
+import { exportResponse } from "./exports.js";
 
 const bd = schema.priceBreakdown;
 const comp = schema.priceBreakdownComponent;
@@ -271,40 +271,5 @@ export const breakdownRoutes = new Hono<AdminEnv>()
     await auditAction(c, "sous_detail.prix_reportes", "project", dpgf.projectId, { document: dpgf.title, postes: applied });
     return c.json({ applied });
   })
-  .get("/dpgf/:id/breakdowns/export.xlsx", async (c) => {
-    const dpgfId = uuidParam(c);
-    const db = await getDb();
-    const [dpgf] = await db.select().from(schema.dpgf).where(eq(schema.dpgf.id, dpgfId));
-    if (!dpgf) notFound("DPGF introuvable.");
-    const [project] = await db.select().from(schema.project).where(eq(schema.project.id, dpgf.projectId));
-    const lines = await db
-      .select()
-      .from(schema.dpgfLine)
-      .where(and(eq(schema.dpgfLine.dpgfId, dpgfId), eq(schema.dpgfLine.kind, "poste")))
-      .orderBy(asc(schema.dpgfLine.position));
-    const breakdowns = lines.length ? await db.select().from(bd).where(inArray(bd.dpgfLineId, lines.map((l) => l.id))) : [];
-    const components = breakdowns.length ? await db.select().from(comp).where(inArray(comp.breakdownId, breakdowns.map((b) => b.id))).orderBy(asc(comp.position)) : [];
-    const buffer = await breakdownsToXlsx({
-      title: dpgf.title,
-      currency: dpgf.currency,
-      project: { reference: project!.reference, name: project!.name },
-      identity: await readSetting("identite_documentaire"),
-      postes: lines
-        .map((line) => {
-          const b = breakdowns.find((x) => x.dpgfLineId === line.id);
-          if (!b) return null;
-          const own = components.filter((x) => x.breakdownId === b.id);
-          return { code: line.code, designation: line.designation, unit: line.unit, breakdown: b, components: own, result: resultOf(b, own) };
-        })
-        .filter((v): v is NonNullable<typeof v> => v !== null),
-    });
-    await auditAction(c, "sous_detail.export", "project", dpgf.projectId, { document: dpgf.title, format: "xlsx" });
-    const name = `${project!.reference} Sous-détails ${dpgf.title}`.replace(/[^\p{L}\p{N} ._-]+/gu, " ").trim();
-    return new Response(new Uint8Array(buffer), {
-      headers: {
-        "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "content-disposition": `attachment; filename="sous-details.xlsx"; filename*=UTF-8''${encodeURIComponent(`${name}.xlsx`)}`,
-        "cache-control": "private, no-store",
-      },
-    });
-  });
+  .get("/dpgf/:id/breakdowns/export.xlsx", async (c) => exportResponse(c, "sous_details", uuidParam(c), "xlsx"))
+  .get("/dpgf/:id/breakdowns/export.pdf", async (c) => exportResponse(c, "sous_details", uuidParam(c), "pdf"));

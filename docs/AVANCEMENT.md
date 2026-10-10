@@ -81,6 +81,20 @@ Limites connues de cette étape, à traiter plus tard :
 Prérequis de l'agent de lecture des plans en production : le compartiment R2 (les plans doivent pouvoir être déposés).
 Prérequis de l'agent des sous-détails : une bibliothèque de prix renseignée ; sans prix, il ne peut rien chiffrer.
 
+## Mission d'amélioration complète (octobre 2026)
+
+Audit et plan : `docs/AUDIT-MISSION-2026-10.md`. Moteur documentaire : `docs/DOCUMENTS.md`.
+
+| Phase | Contenu | État | Vérification |
+| --- | --- | --- | --- |
+| A | Audit de l'existant, des sorties d'exemple (CCTP, DPGF, PLAN METRIKA) et des risques ; tests de non-régression des exports avant refonte | fait | tests de non-régression (contenu du CCTP Word, formules de la DPGF) |
+| B | Identité documentaire : charte réelle du site, polices du site embarquées, logos jour et nuit, arche, thèmes clair et sombre | fait | rendu contrôlé visuellement sur le CCTP réel (38 pages), Word relu dans LibreOffice |
+| C | Moteur d'export : CCTP, DPGF, BPU (prix en lettres), DQE, estimation, sous-détails, note de métrés, rapports d'analyse et de contrôle, bibliothèque de prix, versions figées, dossier ZIP ; menu « Télécharger » sur chaque document | fait | 14 tests d'export (contenu identique Word et PDF, formules Excel, gros CCTP de 240 articles) + parcours navigateur |
+| D | Bibliothèques de prix Maroc et France sourcées, mise à jour périodique | à venir | |
+| E | Agents : texte vectoriel des plans, vérification des cotes, métré renforcé, CCTP par ouvrage, rapprochement des prix | à venir | |
+| F | Audit automatique, chaîne « Générer le dossier », niveaux de validation | à venir | |
+| G et H | Tests de bout en bout, bilan | à venir | |
+
 ## Étapes C à E
 
 Voir `docs/ARCHITECTURE.md`, section « Phases ».

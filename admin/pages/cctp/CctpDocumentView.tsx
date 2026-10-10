@@ -3,6 +3,7 @@ import { ArrowLeft, Check, Download, History, ListChecks, Pencil, RotateCcw, Sav
 import { useState } from "react";
 import { toast } from "sonner";
 import { DOCUMENT_STATUS_LABELS, SECTION_STATUS_LABELS } from "../../../shared/enums";
+import { darkGroup, documentGroup, DownloadMenu } from "../../components/DownloadMenu";
 import { QualityPanel } from "../../components/QualityPanel";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
@@ -113,13 +114,7 @@ export function CctpDocumentView({ projectId, documentId, onBack }: { projectId:
           Documents du lot
         </Button>
         <span className="flex-1" />
-        <a
-          href={`/api/admin/cctp/${documentId}/export.docx`}
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 text-xs font-semibold text-ink hover:bg-surface-2"
-        >
-          <Download className="size-3.5" aria-hidden="true" />
-          Exporter en Word
-        </a>
+        <DownloadMenu groups={[documentGroup(undefined, "cctp", documentId, ["docx", "pdf"]), darkGroup("cctp", documentId, ["docx", "pdf"])]} />
         <Button variant="secondary" size="sm" icon={<Save className="size-3.5" />} onClick={() => setVersionOpen(true)}>
           Enregistrer une version
         </Button>
@@ -252,6 +247,9 @@ export function CctpDocumentView({ projectId, documentId, onBack }: { projectId:
                     </p>
                     <p className="text-ink-3">{[v.note, formatDateTime(v.createdAt)].filter(Boolean).join(", ")}</p>
                   </div>
+                  <a href={`/api/admin/exports/version/${v.id}/pdf`} download className="grid size-7 shrink-0 place-items-center rounded-lg text-ink-3 hover:bg-surface-2 hover:text-ink" aria-label={`Télécharger la version ${v.version} en PDF`}>
+                    <Download className="size-3.5" aria-hidden="true" />
+                  </a>
                 </li>
               ))}
             </ul>

@@ -5,20 +5,18 @@
  */
 import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { Hono } from "hono";
-import { COUNTRY_LABELS, DESIGN_PHASE_LABELS } from "../../../shared/enums.js";
 import { cctpGenerationRequest, cctpRewriteRequest, cctpSectionUpdate } from "../../../shared/schemas.js";
 import { modelFor } from "../../ai/client.js";
 import type { CctpBlock } from "../../ai/schemas.js";
 import type { AdminEnv } from "../../auth/guard.js";
 import { getDb, schema } from "../../db/index.js";
-import { cctpToDocx } from "../../exports/cctp-docx.js";
 import { createJob } from "../../jobs/runner.js";
 import { auditAction } from "../../services/audit.js";
 import { checkCctp, hasBlockingIssues, replaceIssues } from "../../services/quality.js";
-import { readSetting } from "../../services/settings.js";
 import { listVersions, snapshotCctp } from "../../services/versions.js";
 import { body, conflict, notFound, uuidParam, ValidationError } from "../validate.js";
 import { serializeJob } from "./agents.js";
+import { exportResponse } from "./exports.js";
 
 const doc = schema.cctpDocument;
 const sec = schema.cctpSection;
@@ -201,48 +199,8 @@ export const cctpRoutes = new Hono<AdminEnv>()
     await auditAction(c, "cctp.suppression", "project", document.projectId, { document: document.title });
     return c.json({ ok: true });
   })
-  .get("/cctp/:id/export.docx", async (c) => {
-    const id = uuidParam(c);
-    const db = await getDb();
-    const document = await loadDocument(id);
-    const sections = await db.select().from(sec).where(eq(sec.documentId, id)).orderBy(asc(sec.position));
-    const [[row], [lot], [company], identity] = await Promise.all([
-      db.select({ project: schema.project, client: schema.client }).from(schema.project).leftJoin(schema.client, eq(schema.client.id, schema.project.clientId)).where(eq(schema.project.id, document.projectId)),
-      document.lotId ? db.select().from(schema.projectLot).where(eq(schema.projectLot.id, document.lotId)) : Promise.resolve([]),
-      db.select().from(schema.companyProfile).orderBy(desc(schema.companyProfile.isDefault)).limit(1),
-      readSetting("identite_documentaire"),
-    ]);
-    const refIds = [...new Set(sections.flatMap((s) => s.referenceIds))];
-    const references = refIds.length ? await db.select().from(schema.technicalReference).where(inArray(schema.technicalReference.id, refIds)) : [];
-    const buffer = await cctpToDocx({
-      title: document.title,
-      status: document.status,
-      version: document.currentVersion,
-      project: {
-        reference: row!.project.reference,
-        name: row!.project.name,
-        city: row!.project.city,
-        country: COUNTRY_LABELS[row!.project.country],
-        phase: DESIGN_PHASE_LABELS[document.phase],
-      },
-      client: row!.client?.name ?? null,
-      lot: lot ? `${lot.code} ${lot.name}` : null,
-      company: company?.legalName ?? null,
-      identity,
-      sections: sections.map((s) => ({ number: s.number, title: s.title, kind: s.kind, content: s.content as CctpBlock[], referenceIds: s.referenceIds })),
-      references: references.map((r) => ({ id: r.id, code: r.code, title: r.title, version: r.version, verified: r.verificationStatus === "verifie" })),
-      date: new Date(),
-    });
-    await auditAction(c, "cctp.export", "project", document.projectId, { document: document.title, format: "docx" });
-    const name = `${row!.project.reference} ${document.title}`.replace(/[^\p{L}\p{N} ._-]+/gu, " ").trim();
-    return new Response(new Uint8Array(buffer), {
-      headers: {
-        "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "content-disposition": `attachment; filename="cctp.docx"; filename*=UTF-8''${encodeURIComponent(`${name}.docx`)}`,
-        "cache-control": "private, no-store",
-      },
-    });
-  });
+  .get("/cctp/:id/export.docx", async (c) => exportResponse(c, "cctp", uuidParam(c), "docx"))
+  .get("/cctp/:id/export.pdf", async (c) => exportResponse(c, "cctp", uuidParam(c), "pdf"));
 
 /** Anomalies du contrôle qualité : mise de côté motivée, réouverture. */
 export const qualityRoutes = new Hono<AdminEnv>()

@@ -10,6 +10,9 @@ import { getEnv } from "../../env.js";
 import { auditAction } from "../../services/audit.js";
 import { listModels } from "../../services/openai.js";
 import { getStorage, storageConfigured } from "../../services/storage.js";
+import { renderPdf } from "../../documents/render-pdf.js";
+import { readPdfText } from "../../services/pdf-text.js";
+import { readSetting } from "../../services/settings.js";
 
 /** Tables exportées : toutes les données métier, jamais les secrets d'authentification. */
 const EXPORT_TABLES = {
@@ -77,7 +80,7 @@ export const systemRoutes = new Hono<AdminEnv>()
   .post("/connections/test", async (c) => {
     const env = getEnv();
     const db = await getDb();
-    const [database, storage, openai] = await Promise.all([
+    const [database, storage, openai, documents] = await Promise.all([
       timed(async () => {
         await db.execute(sql`select 1`);
         return env.DATABASE_URL ? "Neon" : "PostgreSQL local";
@@ -92,9 +95,38 @@ export const systemRoutes = new Hono<AdminEnv>()
         return store.kind === "s3" ? "Compartiment S3" : "Dossier local";
       }),
       env.OPENAI_API_KEY ? timed(async () => `${(await listModels()).length} modèles disponibles`) : Promise.resolve({ ok: false as const, ms: 0, error: "Clé non configurée." }),
+      // Moteur documentaire : polices et logos embarqués, rendu PDF puis relecture de son texte.
+      timed(async () => {
+        const pdf = await renderPdf(
+          {
+            meta: {
+              kind: "controle",
+              typeLabel: "Essai du moteur documentaire",
+              shortLabel: "Essai",
+              title: "Essai du moteur documentaire",
+              project: { reference: "ESSAI", name: "Essai", location: null, phase: null },
+              client: null,
+              lot: null,
+              version: null,
+              date: new Date(),
+              status: "Essai",
+              company: null,
+              footerText: "Talab Solutions",
+              orientation: "portrait",
+              toc: false,
+            },
+            blocks: [{ type: "paragraph", content: ["Béton armé, 12,50 m², ≤ 0,5 %."] }],
+          },
+          await readSetting("identite_documentaire"),
+          { theme: "clair" },
+        );
+        const pages = await readPdfText(pdf);
+        if (!pages.some((p) => p.items.some((i) => i.text.includes("Béton armé")))) throw new Error("Texte illisible dans le PDF produit.");
+        return `PDF de ${pages.length} pages, ${Math.round(pdf.length / 1024)} Ko`;
+      }),
     ]);
-    await auditAction(c, "systeme.test_connexions", "system", null, { base: database.ok, stockage: storage.ok, openai: openai.ok });
-    return c.json({ database, storage, openai });
+    await auditAction(c, "systeme.test_connexions", "system", null, { base: database.ok, stockage: storage.ok, openai: openai.ok, documents: documents.ok });
+    return c.json({ database, storage, openai, documents });
   })
   .get("/audit", async (c) => {
     const db = await getDb();
