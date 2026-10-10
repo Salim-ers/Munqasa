@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { companyProfileInput } from "../../../shared/schemas.js";
 import { SETTINGS, type SettingKey } from "../../../shared/settings.js";
+import { supportsReasoning } from "../../ai/client.js";
 import type { AdminEnv } from "../../auth/guard.js";
 import { getDb, schema } from "../../db/index.js";
 import { getEnv } from "../../env.js";
@@ -121,7 +122,14 @@ export const aiRoutes = new Hono<AdminEnv>()
     }
     await assertBudget();
     const started = Date.now();
-    const response = await getOpenAI().responses.create({ model, input: "Réponds uniquement : OK", max_output_tokens: 16, store: settings.storeResponses });
+    // Un modèle à raisonnement compte sa réflexion dans la limite de sortie : effort minimal et marge suffisante.
+    const response = await getOpenAI().responses.create({
+      model,
+      input: "Réponds uniquement : OK",
+      max_output_tokens: supportsReasoning(model) ? 512 : 16,
+      ...(supportsReasoning(model) ? { reasoning: { effort: "low" as const } } : {}),
+      store: settings.storeResponses,
+    });
     await recordUsage(model, response.usage);
     await auditAction(c, "ia.test_connexion", "ai", model);
     return c.json({ ok: true, model, latencyMs: Date.now() - started, output: response.output_text.slice(0, 50) });

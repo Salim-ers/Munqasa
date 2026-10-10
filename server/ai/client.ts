@@ -53,7 +53,7 @@ export interface AiProvider {
 }
 
 /** Modèles de raisonnement : l'effort de réflexion se règle, la température non. */
-function supportsReasoning(model: string): boolean {
+export function supportsReasoning(model: string): boolean {
   return /^(o[1-9]|gpt-5|gpt-6)/i.test(model);
 }
 
