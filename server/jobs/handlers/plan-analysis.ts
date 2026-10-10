@@ -1,18 +1,37 @@
 /**
  * Agent « Lecture des plans et métré » :
  * 1. préparation : pages à lire (PDF découpé page par page, images) ;
- * 2. une étape par page : relevé structuré (cartouche, éléments de gros œuvre, cotes lisibles) ;
- * 3. métré : ouvrages et mesures proposés, quantités calculées par le serveur à partir des cotes relevées.
+ * 2. une étape par page : texte vectoriel du PDF lu par le serveur (plans issus de la CAO), relevé structuré
+ *    par l'agent (cartouche, indice, éléments, cotes lisibles), puis contrôle de chaque cote relevée dans ce
+ *    texte vectoriel, échelle lue telle qu'écrite ;
+ * 3. métré : ouvrages et mesures proposés, chaque entrée citant les cotes relevées dont elle vient ;
+ *    quantités brutes, déductions et quantités nettes calculées par le serveur ; confiance déterministe.
  * Rien n'est inventé : une cote illisible n'est pas relevée, une entrée manquante empêche la mesure.
  */
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { PDFDocument } from "pdf-lib";
+import { type DimensionCheck, type DimensionRef, measureConfidence } from "../../../shared/metre.js";
 import { aiFiles, callAgent } from "../../ai/client.js";
+import { lotRuleText } from "../../ai/lot-rules.js";
 import { metreProposal, type PlanExtraction, planExtraction } from "../../ai/schemas.js";
 import { schema } from "../../db/index.js";
-import { evaluateFormula, FormulaError } from "../../services/formula.js";
+import { FormulaError } from "../../services/formula.js";
+import { analyseInput, computeMeasure } from "../../services/metre.js";
+import { readPdfText, type TextItem } from "../../services/pdf-text.js";
+import { checkDimension, numberTokens, resolveScale, scalesIn, textExcerpt } from "../../services/plan-text.js";
 import { getStorage } from "../../services/storage.js";
 import { type JobHandler, RetriableStepError } from "../types.js";
+
+/** Relevé enregistré : celui de l'agent, complété par le contrôle de chaque cote dans le texte vectoriel. */
+type ExtractedElement = PlanExtraction["elements"][number];
+type CheckedElement = Omit<ExtractedElement, "dimensions"> & {
+  dimensions: Array<ExtractedElement["dimensions"][number] & { check: DimensionCheck }>;
+  countCheck: DimensionCheck | null;
+};
+export type StoredExtraction = Omit<PlanExtraction, "elements"> & {
+  elements: CheckedElement[];
+  verification: { textItems: number; dimensions: number; found: number; notFound: Array<{ element: string; dimension: string; value: string; unit: string }>; scale: string };
+};
 
 /** Au-delà, un fichier n'est pas transmis à l'analyse (limite de l'API et de la mémoire). */
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
@@ -65,15 +84,16 @@ async function loadPdf(bytes: Uint8Array): Promise<PDFDocument> {
   }
 }
 
-const READER_INSTRUCTIONS = `Tu es métreur-projeteur en bâtiment, spécialiste du gros œuvre. Tu lis UNE page de plan et tu relèves uniquement ce qui y figure réellement.
+const READER_INSTRUCTIONS = `Tu es métreur-projeteur en bâtiment. Tu lis UNE page de plan et tu relèves uniquement ce qui y figure réellement, pour le lot indiqué dans la demande.
 Relève :
-- le cartouche : titre, numéro de planche, nature du plan, niveau, échelle telle qu'écrite ;
-- les éléments de gros œuvre visibles (terrassements, fondations, longrines, dallages, voiles, murs, poteaux, poutres, dalles, escaliers, acrotères, ouvertures dans les éléments porteurs, réseaux enterrés) avec leurs cotes lisibles, leur nombre s'il est lisible ou indiqué, leur matériau s'il est écrit ;
-- les notes et légendes utiles au gros œuvre.
+- le cartouche : titre, numéro de planche, nature du plan, niveau, échelle telle qu'écrite, indice ou révision tel qu'écrit ;
+- les éléments du lot visibles sur la page, avec leurs cotes lisibles, leur nombre s'il est lisible ou indiqué, leur matériau s'il est écrit ;
+- les notes et légendes utiles au lot.
 Règles strictes :
 - n'invente aucune cote, quantité ni matériau ; une dimension illisible n'est pas relevée ;
 - pour chaque dimension, indique la source : « cote_lue » (cote dimensionnelle lue), « texte_lu » (inscrite dans un texte ou une légende), « deduit » (calculée par différence de cotes lues, à expliquer dans la note) ;
-- exprime les valeurs avec leur unité telle qu'elle apparaît (m, cm, mm) sans conversion ;
+- exprime les valeurs avec leur unité telle qu'elle apparaît (m, cm, mm) sans conversion, en recopiant les chiffres exactement comme ils sont écrits ;
+- quand le texte vectoriel de la page est fourni, il reproduit exactement les textes et cotes du plan : relève les valeurs à partir de ce texte quand elles y figurent ;
 - note dans « uncertainties » tout ce qui est illisible, ambigu ou contradictoire ;
 - si la page n'est pas un plan exploitable, mets « readable » à false et laisse les éléments vides.
 Réponds en français.`;
@@ -82,7 +102,9 @@ const METREUR_INSTRUCTIONS = `Tu es économiste de la construction. À partir de
 Règles strictes :
 - chaque ouvrage a un code (GO-01, GO-02…), une désignation précise, une unité (m3, m2, ml, u, kg), et ses caractéristiques avec leur source (planche et élément) ;
 - chaque quantité est une formule simple : variables nommées (lettres, chiffres, _), opérateurs + - * / et parenthèses, sans fonction ni unité ;
-- chaque entrée de la formule vient des relevés (cote lue, texte lu ou déduite par différence de cotes), convertie en mètres, avec sa source ; « drawingId » est l'identifiant de la planche d'origine fourni dans les relevés ;
+- chaque entrée de la formule vient des relevés, convertie en mètres ; « dimensionIds » liste les identifiants des cotes relevées utilisées (« id » de chaque cote, « countId » pour un nombre d'éléments) ; si la valeur n'est pas la simple conversion d'une seule cote (somme, différence, moitié…), explique le calcul dans « derivation », sinon mets « derivation » à null ; « drawingId » est l'identifiant de la planche d'origine ;
+- les cotes dont le contrôle « check » vaut « non_retrouvee » sont absentes du texte vectoriel de leur page : utilise-les seulement à défaut d'autre cote, et signale-le dans « warnings » ;
+- les vides et déductions (ouvertures, trémies, réservations) sont des formules distinctes dans « deductions », avec les mêmes variables ; la formule principale donne la quantité brute ;
 - si une entrée manque, ne la devine pas : ne crée pas la mesure et explique le manque dans « warnings » ;
 - regroupe les éléments identiques (même section, même hauteur) avec une variable de nombre n ;
 - n'additionne jamais des unités différentes ; pas de quantité forfaitaire.
@@ -166,7 +188,23 @@ export const planAnalysisHandler: JobHandler = {
       const { drawing, file } = row;
       const bytes = await readFile(file.storageKey);
       const files = await aiFiles();
-      const prompt = `Planche : ${file.originalName}, page ${drawing.pageNumber}${file.pageCount ? ` sur ${file.pageCount}` : ""}. Relève son contenu selon les règles.`;
+      // Texte vectoriel de la page : absent d'un plan scanné, illisible pour certains PDF.
+      let textItems: TextItem[] | null = null;
+      if (file.mimeType === "application/pdf") {
+        try {
+          const [page] = await readPdfText(bytes, { pages: [drawing.pageNumber] });
+          textItems = page && page.items.length ? page.items : null;
+        } catch {
+          textItems = null;
+        }
+      }
+      const numbers = textItems ? numberTokens(textItems) : null;
+      const textScales = textItems ? scalesIn(textItems.map((i) => i.text).join("  ")) : [];
+      const lots = input.lotId ? await db.select({ tradeFamily: schema.projectLot.tradeFamily }).from(schema.projectLot).where(eq(schema.projectLot.id, input.lotId)) : [];
+      const label = `Planche : ${file.originalName}, page ${drawing.pageNumber}${file.pageCount ? ` sur ${file.pageCount}` : ""}. Relève son contenu selon les règles.\n${lotRuleText(lots[0]?.tradeFamily)}`;
+      const prompt = textItems
+        ? `${label}\n\nTexte vectoriel exact de la page, extrait du PDF :\n${textExcerpt(textItems)}`
+        : `${label}\n\nCette page n’a pas de texte vectoriel (plan scanné ou image) : lis les cotes sur l’image et signale toute lecture incertaine.`;
       let uploaded: string | null = null;
       try {
         let content: Array<Record<string, unknown>>;
@@ -203,24 +241,49 @@ export const planAnalysisHandler: JobHandler = {
           input: [{ role: "user", content }] as never,
           schema: planExtraction,
           schemaName: "releve_plan",
-          summary: prompt,
+          summary: label,
           maxOutputTokens: 12_000,
           effort: "medium",
         });
+        // Contrôle de chaque cote relevée dans le texte vectoriel de la page.
+        const elements: CheckedElement[] = extraction.elements.map((e) => ({
+          ...e,
+          dimensions: e.dimensions.map((d) => ({ ...d, check: checkDimension(d.value, d.source, numbers) })),
+          countCheck: e.count === null ? null : numbers?.has(String(e.count)) ? "couche_texte" : "denombree",
+        }));
+        const dims = elements.flatMap((e) => e.dimensions.map((d) => ({ element: e.designation, dimension: d.name, value: d.value, unit: d.unit, check: d.check })));
+        const scale = resolveScale(textScales, extraction.sheet.scale);
+        const stored: StoredExtraction = {
+          ...extraction,
+          elements,
+          verification: {
+            textItems: textItems?.length ?? 0,
+            dimensions: dims.filter((d) => d.check !== "deduite").length,
+            found: dims.filter((d) => d.check === "couche_texte").length,
+            notFound: dims.filter((d) => d.check === "non_retrouvee").map(({ element, dimension, value, unit }) => ({ element, dimension, value, unit })),
+            scale: scale.reason,
+          },
+        };
         await db
           .update(schema.drawing)
           .set({
-            extraction,
+            extraction: stored,
             title: extraction.sheet.title,
             sheetNumber: extraction.sheet.number,
             kind: extraction.sheet.kind,
             level: extraction.sheet.level,
             scaleText: extraction.sheet.scale,
+            revision: extraction.sheet.revision,
+            scaleRatio: scale.ratio !== null ? String(scale.ratio) : null,
+            textLayer: textItems ? { items: textItems.length, numbers: numbers!.size, scales: textScales } : null,
             status: "a_verifier",
           })
           .where(eq(schema.drawing.id, drawingId));
-        if (!extraction.sheet.readable) await ctx.log(`${file.originalName} p.${drawing.pageNumber} : page non exploitable.`);
-        return { result: { drawingId, elements: extraction.elements.length, readable: extraction.sheet.readable } };
+        const where = `${file.originalName} p.${drawing.pageNumber}`;
+        if (!extraction.sheet.readable) await ctx.log(`${where} : page non exploitable.`);
+        else if (textItems) await ctx.log(`${where} : ${stored.verification.found} cote(s) sur ${stored.verification.dimensions} retrouvée(s) dans le texte vectoriel, ${scale.reason}.`);
+        else await ctx.log(`${where} : page sans texte vectoriel, cotes lues sur l’image seulement.`);
+        return { result: { drawingId, elements: extraction.elements.length, readable: extraction.sheet.readable, found: stored.verification.found, notFound: stored.verification.notFound.length } };
       } finally {
         if (uploaded) await files.deleteFile(uploaded);
       }
@@ -228,14 +291,38 @@ export const planAnalysisHandler: JobHandler = {
 
     if (name === "metre") {
       const prepared = (ctx.results.get("preparation") ?? { drawingIds: [] }) as { drawingIds: string[] };
-      const drawings: DrawingRow[] = prepared.drawingIds.length
+      const loaded: DrawingRow[] = prepared.drawingIds.length
         ? await db.select().from(schema.drawing).where(inArray(schema.drawing.id, prepared.drawingIds))
         : [];
+      // Ordre des pages préparées : les identifiants des cotes restent stables d'une lecture à l'autre.
+      const drawings = prepared.drawingIds.map((id) => loaded.find((d) => d.id === id)).filter((d): d is DrawingRow => Boolean(d));
+      const index = new Map<string, DimensionRef>();
       const readings = drawings
         .filter((d) => d.extraction && (d.extraction as PlanExtraction).sheet.readable)
-        .map((d) => {
-          const e = d.extraction as PlanExtraction;
-          return { drawingId: d.id, title: e.sheet.title, number: e.sheet.number, kind: e.sheet.kind, level: e.sheet.level, scale: e.sheet.scale, elements: e.elements, notes: e.notes };
+        .map((d, si) => {
+          const e = d.extraction as StoredExtraction;
+          return {
+            drawingId: d.id,
+            title: e.sheet.title,
+            number: e.sheet.number,
+            kind: e.sheet.kind,
+            level: e.sheet.level,
+            scale: e.sheet.scale,
+            revision: e.sheet.revision ?? null,
+            vectorText: Boolean(d.textLayer),
+            elements: e.elements.map((el, ei) => {
+              const dimensions = el.dimensions.map((dim, di) => {
+                const id = `${si + 1}.${ei + 1}.${di + 1}`;
+                const check: DimensionCheck = dim.check ?? (d.textLayer ? "non_retrouvee" : "sans_couche_texte");
+                index.set(id, { id, drawingId: d.id, element: el.designation, name: dim.name, value: dim.value, unit: dim.unit, source: dim.source, check });
+                return { id, name: dim.name, value: dim.value, unit: dim.unit, source: dim.source, check };
+              });
+              const countId = el.count === null ? null : `${si + 1}.${ei + 1}.n`;
+              if (countId) index.set(countId, { id: countId, drawingId: d.id, element: el.designation, name: "nombre", value: String(el.count), unit: "u", source: "cote_lue", check: el.countCheck ?? "denombree" });
+              return { category: el.category, designation: el.designation, location: el.location, count: el.count, countId, material: el.material, dimensions, note: el.note };
+            }),
+            notes: e.notes,
+          };
         });
       if (readings.length === 0) {
         await ctx.log("Aucun relevé exploitable : métré non établi.");
@@ -250,7 +337,7 @@ export const planAnalysisHandler: JobHandler = {
         projectId,
         jobId: ctx.job.id,
         instructions: METREUR_INSTRUCTIONS,
-        input: `Lot : ${lot ? `${lot.code} ${lot.name}` : "gros œuvre"}.\nRelevés des planches (JSON) :\n${JSON.stringify(readings)}`,
+        input: `Lot : ${lot ? `${lot.code} ${lot.name}` : "gros œuvre"}.\n${lotRuleText(lot?.tradeFamily)}\nRelevés des planches (JSON) :\n${JSON.stringify(readings)}`,
         schema: metreProposal,
         schemaName: "metre",
         summary: `Métré à partir de ${readings.length} planche(s)`,
@@ -295,26 +382,41 @@ export const planAnalysisHandler: JobHandler = {
             .returning({ id: schema.workItem.id });
           for (const m of item.measurements) {
             const inputs = Object.fromEntries(m.inputs.map((i) => [i.name, i.value]));
-            let quantity: string | null = null;
+            const inputSources = m.inputs.map((i) => analyseInput(i, index));
+            const confidence = measureConfidence(inputSources);
+            let result: ReturnType<typeof computeMeasure> | null = null;
             let error: string | null = null;
             try {
-              quantity = evaluateFormula(m.formula, inputs);
+              result = computeMeasure(m.formula, inputs, m.deductions);
             } catch (cause) {
               error = cause instanceof FormulaError ? cause.message : "Calcul impossible.";
               warnings.push(`${item.code} « ${m.label} » : ${error}`);
             }
+            const weak = inputSources.filter((s) => s.dimensions.length === 0 || s.mismatch || s.dimensions.some((d) => d.check === "non_retrouvee"));
+            if (weak.length) {
+              warnings.push(
+                `${item.code} « ${m.label} » : confiance faible, ${weak
+                  .map((s) => (s.dimensions.length === 0 ? `${s.name} sans cote relevée` : s.mismatch ? `${s.name} : ${s.mismatch}` : `${s.name} : cote absente du texte vectoriel`))
+                  .join(", ")}.`,
+              );
+            }
             const sources = m.inputs.map((i) => `${i.name} = ${i.value} (${i.source})`).join(" ; ");
+            const firstDrawing = inputSources.flatMap((s) => s.dimensions)[0]?.drawingId ?? null;
             await tx.insert(schema.measurement).values({
               projectId,
               lotId: lot?.id ?? null,
               workItemId: created!.id,
-              drawingId: m.drawingId && validDrawings.has(m.drawingId) ? m.drawingId : null,
+              drawingId: m.drawingId && validDrawings.has(m.drawingId) ? m.drawingId : firstDrawing,
               zoneRef: m.zone,
               label: m.label,
               method: m.method,
               formula: m.formula,
               inputs,
-              quantity,
+              quantity: result?.net ?? null,
+              grossQuantity: result?.gross ?? null,
+              deductions: result?.deductions ?? m.deductions.map((d) => ({ label: d.label, formula: d.formula, quantity: null })),
+              inputSources,
+              confidence,
               unit: m.unit,
               source: "proposition_ia",
               status: "a_verifier",

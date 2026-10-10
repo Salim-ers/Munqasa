@@ -7,6 +7,7 @@
  */
 import { asc, eq, inArray } from "drizzle-orm";
 import { DRAWING_KIND_LABELS, type IssueCategory, ISSUE_SEVERITY_LABELS, VALIDATION_STATUS_LABELS } from "../../../shared/enums.js";
+import { DIMENSION_CHECK_LABELS, type DimensionCheck } from "../../../shared/metre.js";
 import type { PlanExtraction } from "../../ai/schemas.js";
 import { type Database, schema } from "../../db/index.js";
 import { baseMeta, type ExportContext, exportContext } from "../context.js";
@@ -45,7 +46,7 @@ export async function analysisModel(db: Database, projectId: string): Promise<{ 
       title: `${files.length} fichier(s), ${drawings.length} planche(s), ${read.length} lue(s)`,
       content: [
         drawings.length
-          ? "Chaque élément relevé indique la source de ses dimensions : cote lue sur le plan, texte lu, ou valeur déduite. Une valeur déduite reste une hypothèse."
+          ? "Chaque élément relevé indique la source de ses dimensions : cote lue sur le plan, texte lu, ou valeur déduite, et pour un PDF vectoriel si la cote figure bien dans le texte de la page. Une valeur déduite ou absente du texte vectoriel reste une hypothèse à vérifier."
           : "Aucune planche n’a encore été analysée : déposez les plans de l’affaire puis lancez la lecture des plans.",
       ],
     },
@@ -62,11 +63,22 @@ export async function analysisModel(db: Database, projectId: string): Promise<{ 
         { label: "Niveau", width: 11 },
         { label: "Échelle", width: 9 },
         { label: "Éléments", width: 9, align: "right" },
+        { label: "Cotes contrôlées", width: 12, align: "right" },
       ],
       rows: drawings.map((d) => {
-        const e = d.extraction as PlanExtraction | null;
+        const e = d.extraction as (PlanExtraction & { verification?: { dimensions: number; found: number } }) | null;
+        const v = e?.verification;
         return {
-          cells: [`${fileName(d.sourceFileId)}, page ${d.pageNumber}`, d.sheetNumber ?? "", d.title ?? (e ? "" : "non lue"), DRAWING_KIND_LABELS[d.kind], d.level ?? "", d.scaleText ?? "", { text: String(e?.elements?.length ?? 0), align: "right" }],
+          cells: [
+            `${fileName(d.sourceFileId)}, page ${d.pageNumber}`,
+            [d.sheetNumber, d.revision ? `ind. ${d.revision}` : null].filter(Boolean).join("\n"),
+            d.title ?? (e ? "" : "non lue"),
+            DRAWING_KIND_LABELS[d.kind],
+            d.level ?? "",
+            d.scaleRatio ? `1/${Number(d.scaleRatio)}` : (d.scaleText ?? ""),
+            { text: String(e?.elements?.length ?? 0), align: "right" },
+            { text: !e ? "" : d.textLayer && v ? `${v.found} sur ${v.dimensions}` : "sans texte vectoriel", align: "right", tone: d.textLayer && v && v.found < v.dimensions ? "primary" : undefined },
+          ],
         };
       }),
     });
@@ -80,7 +92,9 @@ export async function analysisModel(db: Database, projectId: string): Promise<{ 
       rows: [
         ["Fichier", `${fileName(d.sourceFileId)}, page ${d.pageNumber}`],
         ["Nature", DRAWING_KIND_LABELS[d.kind]],
-        ["Échelle", d.scaleText ?? "non lue"],
+        ["Échelle", [d.scaleRatio ? `1/${Number(d.scaleRatio)}` : (d.scaleText ?? "non lue"), (e as { verification?: { scale: string } }).verification?.scale].filter(Boolean).join(", ")],
+        ...(d.revision ? ([["Indice", d.revision]] as Array<[string, string]>) : []),
+        ["Texte vectoriel", d.textLayer ? `${d.textLayer.items} textes lus dans le PDF` : "absent, plan scanné ou image : cotes non contrôlables"],
         ["Statut", VALIDATION_STATUS_LABELS[d.status]],
       ],
     });
@@ -89,7 +103,12 @@ export async function analysisModel(db: Database, projectId: string): Promise<{ 
         cells: [
           [el.designation, el.material].filter(Boolean).join("\n"),
           el.location ?? "",
-          el.dimensions.map((dim) => `${dim.name} ${dim.value} ${dim.unit} (${DIMENSION_SOURCE[dim.source] ?? dim.source})`).join("\n") || "aucune cote",
+          el.dimensions
+            .map((dim) => {
+              const check = (dim as { check?: DimensionCheck }).check;
+              return `${dim.name} ${dim.value} ${dim.unit} (${DIMENSION_SOURCE[dim.source] ?? dim.source}${check && check !== "deduite" ? `, ${DIMENSION_CHECK_LABELS[check].toLowerCase()}` : ""})`;
+            })
+            .join("\n") || "aucune cote",
           { text: el.count !== null ? String(el.count) : "", align: "right" },
           { text: CONFIDENCE[el.confidence] ?? el.confidence, tone: el.confidence === "faible" ? "primary" : undefined },
         ],

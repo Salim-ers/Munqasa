@@ -3,14 +3,18 @@
  * 1. préparation : document DPGF rattaché au CCTP, une étape par chapitre du CCTP ;
  * 2. une étape par chapitre : postes proposés (désignation, unité, article du CCTP, ouvrage du métré) ;
  *    la quantité vient du métré, vaut 1 pour un forfait, ou reste « à métrer » ; aucun prix n'est proposé ;
- * 3. contrôle : qualité (quantités, liens, unités, doublons), numérotation, version figée.
+ * 3. contrôle : qualité (quantités, liens, unités, doublons), numérotation, bilan des prix d'ouvrage
+ *    applicables dans la bibliothèque pour chaque poste (proposés à l'économiste, jamais appliqués d'office),
+ *    version figée.
  */
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { callAgent } from "../../ai/client.js";
 import { type CctpBlock, dpgfChapter } from "../../ai/schemas.js";
 import { schema } from "../../db/index.js";
 import { metreQuantity, renumber } from "../../services/dpgf.js";
+import { findCandidates } from "../../services/pricing.js";
 import { blocksText, checkDpgf, replaceIssues } from "../../services/quality.js";
+import { sameUnit } from "../../services/units.js";
 import { snapshotDpgf } from "../../services/versions.js";
 import type { JobHandler, StepContext } from "../types.js";
 
@@ -175,9 +179,27 @@ export const dpgfHandler: JobHandler = {
       const dpgfId = await dpgfOf(ctx);
       await renumber(db, dpgfId);
       const issues = await replaceIssues(db, { projectId, documentType: "dpgf", documentId: dpgfId }, await checkDpgf(db, dpgfId));
+      // Prix d'ouvrage de même unité disponibles dans la bibliothèque : un bilan, rien n'est appliqué.
+      const [doc] = await db.select().from(schema.dpgf).where(eq(schema.dpgf.id, dpgfId));
+      const [project] = await db.select().from(schema.project).where(eq(schema.project.id, projectId));
+      const postes = await db
+        .select()
+        .from(schema.dpgfLine)
+        .where(and(eq(schema.dpgfLine.dpgfId, dpgfId), eq(schema.dpgfLine.kind, "poste")));
+      let withPrice = 0;
+      for (const line of postes) {
+        if (!line.unit) continue;
+        const candidates = await findCandidates(db, { text: `${line.designation} ${line.description ?? ""}`, currency: doc!.currency, country: project!.country, city: project!.city, limit: 10, purpose: "ligne" });
+        if (candidates.some((c) => sameUnit(c.unit, line.unit))) withPrice++;
+      }
+      await ctx.log(
+        withPrice
+          ? `${withPrice} poste(s) sur ${postes.length} avec au moins un prix d’ouvrage applicable dans la bibliothèque : à examiner avec « Prix de la bibliothèque ».`
+          : `Aucun prix d’ouvrage applicable dans la bibliothèque pour ces ${postes.length} poste(s) : chiffrage par sous-détail ou par saisie.`,
+      );
       await db.update(schema.dpgf).set({ status: "a_valider" }).where(eq(schema.dpgf.id, dpgfId));
       const version = await snapshotDpgf(db, dpgfId, "Établie par l’agent");
-      return { result: { dpgfId, issues, version } };
+      return { result: { dpgfId, issues, version, libraryMatches: withPrice } };
     }
     return {};
   },
@@ -187,10 +209,10 @@ export const dpgfHandler: JobHandler = {
       .select({ result: schema.generationStep.result })
       .from(schema.generationStep)
       .where(and(eq(schema.generationStep.jobId, job.id), eq(schema.generationStep.name, "controle")));
-    const r = (step?.result ?? {}) as { dpgfId?: string; issues?: number };
+    const r = (step?.result ?? {}) as { dpgfId?: string; issues?: number; libraryMatches?: number };
     const postes = r.dpgfId ? (await db.select({ id: schema.dpgfLine.id }).from(schema.dpgfLine).where(and(eq(schema.dpgfLine.dpgfId, r.dpgfId), eq(schema.dpgfLine.kind, "poste")))).length : 0;
     return {
-      title: `DPGF établie : ${postes} poste(s), ${r.issues ?? 0} point(s) à vérifier`,
+      title: `DPGF établie : ${postes} poste(s), ${r.issues ?? 0} point(s) à vérifier${r.libraryMatches ? `, ${r.libraryMatches} avec un prix proposé par la bibliothèque` : ""}`,
       link: job.projectId ? `/administration/affaires/${job.projectId}?onglet=dpgf${r.dpgfId ? `&dpgf=${r.dpgfId}` : ""}` : null,
     };
   },

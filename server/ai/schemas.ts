@@ -20,6 +20,13 @@ export const ELEMENT_CATEGORIES = [
   "acrotere",
   "ouverture",
   "reseau",
+  "facade",
+  "couverture",
+  "menuiserie",
+  "cloison",
+  "revetement",
+  "equipement",
+  "voirie",
   "autre",
 ] as const;
 
@@ -32,6 +39,8 @@ export const planExtraction = z.object({
     kind: z.enum(DRAWING_KINDS),
     level: z.string().nullable(),
     scale: z.string().nullable(),
+    /** Indice ou révision du plan, tel qu'écrit dans le cartouche. */
+    revision: z.string().nullable(),
     readable: z.boolean(),
   }),
   elements: z.array(
@@ -73,7 +82,19 @@ export const metreProposal = z.object({
           label: z.string(),
           method: z.enum(MEASURE_METHODS),
           formula: z.string(),
-          inputs: z.array(z.object({ name: z.string(), value: z.string(), source: z.string() })),
+          inputs: z.array(
+            z.object({
+              name: z.string(),
+              value: z.string(),
+              source: z.string(),
+              /** Identifiants des cotes relevées dont vient la valeur (« 1.2.3 ») ; vide si aucune. */
+              dimensionIds: z.array(z.string()),
+              /** Calcul ou conversion qui mène des cotes à la valeur, ou null si elle est reprise telle quelle. */
+              derivation: z.string().nullable(),
+            }),
+          ),
+          /** Déductions explicites (vides, trémies), avec les mêmes variables que la formule. */
+          deductions: z.array(z.object({ label: z.string(), formula: z.string() })),
           unit: z.string(),
           drawingId: z.string().nullable(),
           zone: z.string().nullable(),

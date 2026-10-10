@@ -47,6 +47,7 @@ import {
   TAX_BASES,
   VALIDATION_STATUSES,
 } from "../../../shared/enums.js";
+import { MEASURE_CONFIDENCES } from "../../../shared/metre.js";
 
 export const countryEnum = pgEnum("country_code", COUNTRIES);
 export const currencyEnum = pgEnum("currency_code", CURRENCIES);
@@ -61,6 +62,7 @@ export const drawingKindEnum = pgEnum("drawing_kind", DRAWING_KINDS);
 export const validationStatusEnum = pgEnum("validation_status", VALIDATION_STATUSES);
 export const measureMethodEnum = pgEnum("measure_method", MEASURE_METHODS);
 export const measureSourceEnum = pgEnum("measure_source", MEASURE_SOURCES);
+export const measureConfidenceEnum = pgEnum("measure_confidence", MEASURE_CONFIDENCES);
 export const referenceKindEnum = pgEnum("reference_kind", REFERENCE_KINDS);
 export const referenceScopeEnum = pgEnum("reference_scope", REFERENCE_SCOPES);
 export const priceOriginEnum = pgEnum("price_origin", PRICE_ORIGINS);

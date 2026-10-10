@@ -124,7 +124,7 @@ const builders: Record<string, (input: string) => unknown> = {
     };
   },
   releve_plan: () => ({
-    sheet: { title: "Plan de fondations", number: "GO-01", kind: "plan_niveau", level: "Fondations", scale: "1/100", readable: true },
+    sheet: { title: "Plan de fondations", number: "GO-01", kind: "plan_niveau", level: "Fondations", scale: "1/100", revision: "B", readable: true },
     elements: [
       {
         category: "fondation",
@@ -160,10 +160,11 @@ const builders: Record<string, (input: string) => unknown> = {
               method: "volume",
               formula: "L * l * h",
               inputs: [
-                { name: "L", value: "42.50", source: "cote lue, SF1" },
-                { name: "l", value: "0.60", source: "cote lue, SF1" },
-                { name: "h", value: "0.40", source: "texte lu, SF1" },
+                { name: "L", value: "42.50", source: "cote lue, SF1", dimensionIds: ["1.1.1"], derivation: null },
+                { name: "l", value: "0.60", source: "cote lue, SF1", dimensionIds: ["1.1.2"], derivation: "60 cm convertis en mètres" },
+                { name: "h", value: "0.40", source: "texte lu, SF1", dimensionIds: ["1.1.3"], derivation: "40 cm convertis en mètres" },
               ],
+              deductions: [],
               unit: "m3",
               drawingId,
               zone: "Pourtour",
@@ -193,4 +194,9 @@ export const fakeProvider: AiProvider = {
 /** Tests : ajout ou remplacement d'une sortie simulée. */
 export function setFakeBuilder(schemaName: string, build: (input: string) => unknown): void {
   builders[schemaName] = build;
+}
+
+/** Tests : sortie simulée actuelle d'un schéma, pour la rétablir après l'avoir remplacée. */
+export function fakeBuilder(schemaName: string): ((input: string) => unknown) | undefined {
+  return builders[schemaName];
 }

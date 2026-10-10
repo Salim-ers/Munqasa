@@ -51,6 +51,10 @@ export const drawing = pgTable(
     level: text("level"),
     /** Échelle telle qu'écrite sur le plan (ex. « 1/100 »). */
     scaleText: text("scale_text"),
+    /** Indice ou révision du plan, tel qu'écrit dans le cartouche. */
+    revision: text("revision"),
+    /** Couche texte vectorielle de la page : nombre de textes, de nombres, échelles lues. */
+    textLayer: jsonb("text_layer").$type<{ items: number; numbers: number; scales: number[] } | null>(),
     /** Échelle numérique, seulement si lue ou confirmée (100 pour 1/100). */
     scaleRatio: numeric("scale_ratio", { precision: 12, scale: 4 }),
     /** Étalonnage : correspondance pixels / mètres établie sur une cote connue. */

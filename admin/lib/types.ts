@@ -193,7 +193,8 @@ export interface DrawingElement {
   location: string | null;
   count: number | null;
   material: string | null;
-  dimensions: Array<{ name: string; value: string; unit: string; source: "cote_lue" | "texte_lu" | "deduit" }>;
+  dimensions: Array<{ name: string; value: string; unit: string; source: "cote_lue" | "texte_lu" | "deduit"; check?: import("../../shared/metre").DimensionCheck }>;
+  countCheck?: import("../../shared/metre").DimensionCheck | null;
   confidence: "elevee" | "moyenne" | "faible";
   note: string | null;
 }
@@ -208,6 +209,10 @@ export interface Drawing {
   kind: import("../../shared/enums").DrawingKind;
   level: string | null;
   scaleText: string | null;
+  revision: string | null;
+  scaleRatio: string | null;
+  textLayer: { items: number; numbers: number; scales: number[] } | null;
+  verification: { textItems: number; dimensions: number; found: number; notFound: Array<{ element: string; dimension: string; value: string; unit: string }>; scale: string } | null;
   status: import("../../shared/enums").ValidationStatus;
   analysed: boolean;
   readable: boolean | null;
@@ -227,6 +232,10 @@ export interface Measurement {
   formula: string | null;
   inputs: Record<string, string>;
   quantity: string | null;
+  grossQuantity: string | null;
+  deductions: import("../../shared/metre").MeasureDeduction[];
+  inputSources: import("../../shared/metre").MeasureInputSource[];
+  confidence: import("../../shared/metre").MeasureConfidence | null;
   unit: string;
   source: import("../../shared/enums").MeasureSource;
   status: import("../../shared/enums").ValidationStatus;

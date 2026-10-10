@@ -6,6 +6,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { setAiProviderForTests } from "../../server/ai/client.js";
 import { fakeProvider } from "../../server/ai/fake.js";
+import { coverWorkItems } from "../../server/jobs/handlers/cctp.js";
 import { runJob, setJobKickerForTests } from "../../server/jobs/runner.js";
 import { adminSession, setupTestServer, TestBrowser } from "./helpers.js";
 
@@ -144,5 +145,31 @@ describe("rédaction du CCTP", () => {
   it("refuse de supprimer une référence citée", async () => {
     expect((await admin.request(`/api/admin/references/${refs["NF EN 206/CN"]}`, { method: "DELETE" })).status).toBe(409);
     expect((await admin.request(`/api/admin/references/${refs["NF DTU 13.3"]}`, { method: "DELETE" })).status).toBe(200);
+  });
+});
+
+describe("plan du CCTP : un article par ouvrage", () => {
+  it("ajoute au chapitre de mise en œuvre un article pour chaque ouvrage oublié, sans doublon de numéro", () => {
+    const outline = {
+      title: "CCTP",
+      chapters: [
+        { number: "1", title: "Généralités", articles: [{ number: "1.1", title: "Objet", intent: "Objet.", workItemCodes: [] }] },
+        { number: "3", title: "Mise en œuvre", articles: [{ number: "3.1", title: "Semelles", intent: "Semelles.", workItemCodes: ["GO-01"] }, { number: "3.3", title: "Voiles", intent: "Voiles.", workItemCodes: ["GO-03"] }] },
+        { number: "4", title: "Contrôles", articles: [{ number: "4.1", title: "Essais", intent: "Essais.", workItemCodes: [] }] },
+      ],
+    };
+    const added = coverWorkItems(outline, [
+      { code: "GO-01", designation: "Semelles" },
+      { code: "GO-02", designation: "Longrines" },
+      { code: "GO-03", designation: "Voiles" },
+      { code: null, designation: "Sans code" },
+    ]);
+    expect(added).toEqual(["GO-02"]);
+    expect(outline.chapters[1]!.articles.map((a) => [a.number, a.workItemCodes.join()])).toEqual([
+      ["3.1", "GO-01"],
+      ["3.3", "GO-03"],
+      ["3.4", "GO-02"],
+    ]);
+    expect(coverWorkItems(outline, [{ code: "GO-02", designation: "Longrines" }])).toEqual([]);
   });
 });

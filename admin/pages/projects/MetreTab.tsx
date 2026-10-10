@@ -3,6 +3,7 @@ import { Check, ChevronDown, Eye, Layers3, Pencil, Plus, RotateCcw, ScanLine, Sp
 import { type FormEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { DRAWING_KIND_LABELS, MEASURE_SOURCE_LABELS, VALIDATION_STATUS_LABELS } from "../../../shared/enums";
+import { DIMENSION_CHECK_LABELS, type DimensionCheck, MEASURE_CONFIDENCE_LABELS, type MeasureInputSource } from "../../../shared/metre";
 import { workItemInput } from "../../../shared/schemas";
 import { documentGroup, DownloadMenu } from "../../components/DownloadMenu";
 import { JobProgress } from "../../components/JobProgress";
@@ -22,6 +23,19 @@ import { PlanAnalysisDialog } from "../agents/PlanAnalysisDialog";
 import { MeasurementDialog } from "./MeasurementDialog";
 
 const statusTone = { a_verifier: "warning", verifie: "success", rejete: "neutral" } as const;
+const confidenceTone = { elevee: "success", moyenne: "accent", faible: "warning" } as const;
+const checkTone: Record<DimensionCheck, string> = { couche_texte: "text-success", non_retrouvee: "text-warning", sans_couche_texte: "text-ink-3", deduite: "text-ink-3", denombree: "text-ink-3" };
+
+/** Échelle affichée : celle retenue par le serveur, sinon celle écrite sur le plan. */
+const scaleOf = (d: Drawing) => (d.scaleRatio ? `1/${Number(d.scaleRatio)}` : d.scaleText);
+
+/** Origine d'une entrée, en une phrase. */
+function sourceText(s: MeasureInputSource): string {
+  if (s.origin === "saisie") return "valeur saisie";
+  if (s.dimensions.length === 0) return "aucune cote relevée citée";
+  const dims = s.dimensions.map((d) => `${d.name} ${d.value} ${d.unit}, ${d.element}, ${DIMENSION_CHECK_LABELS[d.check].toLowerCase()}`).join(" ; ");
+  return s.derivation ? `${dims} ; calcul : ${s.derivation}` : dims;
+}
 
 /** Somme des mesures retenues (non rejetées), par unité. */
 function totals(item: WorkItem): string {
@@ -62,7 +76,7 @@ export function MetreTab({ projectId, lots }: { projectId: string; lots: Lot[] }
       <Card className="p-5">
         <CardHeader
           title="Lecture des plans"
-          subtitle="L’agent relève les éléments de gros œuvre de chaque page et propose le métré."
+          subtitle="L’agent relève les éléments du lot choisi sur chaque page, contrôle les cotes dans le texte vectoriel des PDF et propose le métré."
           action={
             <div className="flex flex-wrap justify-end gap-2">
               <DownloadMenu
@@ -109,8 +123,14 @@ export function MetreTab({ projectId, lots }: { projectId: string; lots: Lot[] }
                       <>
                         <Badge>{DRAWING_KIND_LABELS[d.kind]}</Badge>
                         {d.level ? <Badge>{d.level}</Badge> : null}
-                        {d.scaleText ? <Badge>{d.scaleText}</Badge> : null}
+                        {scaleOf(d) ? <Badge>{scaleOf(d)}</Badge> : null}
+                        {d.revision ? <Badge>{`Indice ${d.revision}`}</Badge> : null}
                         <Badge tone="accent">{d.elementCount} élément(s)</Badge>
+                        {d.verification && d.textLayer ? (
+                          <Badge tone={d.verification.notFound.length ? "warning" : "success"}>{`${d.verification.found} cote(s) sur ${d.verification.dimensions} contrôlée(s)`}</Badge>
+                        ) : d.analysed && !d.textLayer ? (
+                          <Badge>Sans texte vectoriel</Badge>
+                        ) : null}
                         {d.readable === false ? <Badge tone="warning">Non exploitable</Badge> : null}
                         {d.uncertainties.length ? <Badge tone="warning">{d.uncertainties.length} incertitude(s)</Badge> : null}
                       </>
@@ -247,10 +267,36 @@ function WorkItemRow({
                       </p>
                     </div>
                     <span className="text-xs font-semibold text-ink tabular">{m.quantity !== null ? `${formatNumber(m.quantity)} ${m.unit}` : "Non calculée"}</span>
+                    {m.confidence ? <Badge tone={confidenceTone[m.confidence]}>{`Confiance ${MEASURE_CONFIDENCE_LABELS[m.confidence].toLowerCase()}`}</Badge> : null}
                     <Badge tone={statusTone[m.status]} dot>
                       {VALIDATION_STATUS_LABELS[m.status]}
                     </Badge>
                   </div>
+                  {m.deductions.length ? (
+                    <p className="mt-1 text-2xs text-ink-2 tabular">
+                      {[
+                        m.grossQuantity !== null ? `Brut ${formatNumber(m.grossQuantity)} ${m.unit}` : null,
+                        ...m.deductions.map((d) => `moins ${d.label} ${d.quantity !== null ? `${formatNumber(d.quantity)} ${m.unit}` : "non calculée"}`),
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </p>
+                  ) : null}
+                  {m.inputSources.length ? (
+                    <details className="mt-1.5 text-2xs text-ink-3">
+                      <summary className="cursor-pointer font-semibold text-ink-2">Origine des valeurs</summary>
+                      <ul className="mt-1 grid gap-1">
+                        {m.inputSources.map((s) => (
+                          <li key={s.name} className="leading-relaxed">
+                            <span className="font-mono text-ink-2">{`${s.name} = ${s.value}`}</span>
+                            {" : "}
+                            <span className={cn(s.mismatch || s.dimensions.some((d) => d.check === "non_retrouvee") ? "text-warning" : s.dimensions.every((d) => d.check === "couche_texte") && s.dimensions.length ? "text-success" : "")}>{sourceText(s)}</span>
+                            {s.mismatch ? <span className="block text-warning">{s.mismatch}</span> : null}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  ) : null}
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
                     <span className="text-2xs text-ink-3">{MEASURE_SOURCE_LABELS[m.source]}</span>
                     <span className="flex-1" />
@@ -372,11 +418,26 @@ function DrawingDialog({ drawing, onOpenChange }: { drawing: Drawing | null; onO
       open={drawing !== null}
       onOpenChange={onOpenChange}
       title={drawing?.title ?? drawing?.fileName ?? "Planche"}
-      description={drawing ? [drawing.fileName, `page ${drawing.pageNumber}`, drawing.scaleText, drawing.level].filter(Boolean).join(", ") : undefined}
+      description={drawing ? [drawing.fileName, `page ${drawing.pageNumber}`, scaleOf(drawing), drawing.revision ? `indice ${drawing.revision}` : null, drawing.level].filter(Boolean).join(", ") : undefined}
       size="lg"
     >
       {drawing ? (
         <div className="grid gap-4">
+          {drawing.analysed ? (
+            <div className="rounded-xl border border-line bg-surface-2 p-3 text-2xs leading-relaxed text-ink-2">
+              {drawing.textLayer
+                ? `Texte vectoriel : ${drawing.textLayer.items} textes lus dans le PDF. ${drawing.verification ? `${drawing.verification.found} cote(s) relevée(s) sur ${drawing.verification.dimensions} retrouvée(s) dans ce texte. ` : ""}`
+                : "Page sans texte vectoriel, plan scanné ou image : les cotes relevées n’ont pas pu être contrôlées. "}
+              {drawing.verification ? `Échelle : ${drawing.verification.scale}.` : null}
+              {drawing.verification?.notFound.length ? (
+                <ul className="mt-1.5 grid gap-0.5 text-warning">
+                  {drawing.verification.notFound.map((n, i) => (
+                    <li key={i}>{`Absente du texte vectoriel : ${n.dimension} ${n.value} ${n.unit}, ${n.element}`}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
           {drawing.uncertainties.length ? (
             <div className="flex gap-2.5 rounded-xl border border-warning/25 bg-warning-soft p-3 text-2xs leading-relaxed text-ink-2">
               <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden="true" />
@@ -397,12 +458,19 @@ function DrawingDialog({ drawing, onOpenChange }: { drawing: Drawing | null; onO
                     <p className="text-xs font-semibold text-ink">{e.designation}</p>
                     {e.count ? <Badge>{e.count} u</Badge> : null}
                     <Badge tone={e.confidence === "elevee" ? "success" : e.confidence === "moyenne" ? "warning" : "danger"}>
-                      Confiance {e.confidence === "elevee" ? "élevée" : e.confidence}
+                      Confiance de lecture {e.confidence === "elevee" ? "élevée" : e.confidence}
                     </Badge>
                   </div>
                   <p className="mt-0.5 text-2xs text-ink-3">{[e.location, e.material].filter(Boolean).join(", ")}</p>
                   {e.dimensions.length ? (
-                    <p className="mt-1.5 text-2xs text-ink-2 tabular">{e.dimensions.map((d) => `${d.name} ${d.value} ${d.unit} (${SOURCE_LABELS[d.source]})`).join(" ; ")}</p>
+                    <ul className="mt-1.5 grid gap-0.5 text-2xs text-ink-2 tabular">
+                      {e.dimensions.map((d, j) => (
+                        <li key={j}>
+                          {`${d.name} ${d.value} ${d.unit}, ${SOURCE_LABELS[d.source]}`}
+                          {d.check ? <span className={checkTone[d.check]}>{`, ${DIMENSION_CHECK_LABELS[d.check].toLowerCase()}`}</span> : null}
+                        </li>
+                      ))}
+                    </ul>
                   ) : null}
                   {e.note ? <p className="mt-1 text-2xs text-ink-3">{e.note}</p> : null}
                 </li>

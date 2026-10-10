@@ -1,10 +1,12 @@
 /**
- * Note de métrés : chaque ouvrage, chacune de ses mesures avec sa formule, ses valeurs, sa planche et son
- * statut ; la quantité retenue additionne les mesures non rejetées de même unité (règle de la DPGF). Dans
- * Excel, chaque quantité est une vraie formule écrite avec ses valeurs, et chaque total une somme.
+ * Note de métrés : chaque ouvrage, chacune de ses mesures avec sa formule, ses valeurs, ses déductions, sa
+ * planche (indice compris), l'origine de ses valeurs et sa confiance, et son statut ; la quantité retenue
+ * additionne les mesures non rejetées de même unité (règle de la DPGF). Dans Excel, chaque quantité est une
+ * vraie formule écrite avec ses valeurs, déductions soustraites, et chaque total une somme.
  */
 import { asc, eq, inArray } from "drizzle-orm";
 import { MEASURE_METHOD_LABELS, MEASURE_SOURCE_LABELS, VALIDATION_STATUS_LABELS } from "../../../shared/enums.js";
+import { MEASURE_CONFIDENCE_LABELS } from "../../../shared/metre.js";
 import { formulaToExcel } from "../../../shared/formula.js";
 import { type Database, schema } from "../../db/index.js";
 import { Dec } from "../../services/decimal.js";
@@ -35,7 +37,7 @@ export async function loadMetre(db: Database, projectId: string, lotId: string |
   const sheets = new Map(
     drawings.map((d) => {
       const file = files.find((f) => f.id === d.sourceFileId)?.name;
-      return [d.id, [d.sheetNumber, d.title, file ? `${file}, page ${d.pageNumber}` : `page ${d.pageNumber}`].filter(Boolean).join(", ")];
+      return [d.id, [d.sheetNumber, d.title, d.revision ? `indice ${d.revision}` : null, file ? `${file}, page ${d.pageNumber}` : `page ${d.pageNumber}`].filter(Boolean).join(", ")];
     }),
   );
   const grouped = items.map((item) => {
@@ -71,6 +73,24 @@ const values = (m: Measurement) => {
     .map(([k, v]) => `${k} = ${v}`)
     .join(" ; ");
 };
+
+/** Déductions d'une mesure, en une ligne. */
+const deductionsText = (m: Measurement) => m.deductions.map((d) => `${d.label} : ${d.formula}${d.quantity !== null ? ` = ${quantity(d.quantity)}` : ""}`).join(" ; ");
+
+/** Contrôle des cotes citées par les entrées d'une mesure proposée. */
+function traceText(m: Measurement): string | null {
+  if (m.source !== "proposition_ia" || m.inputSources.length === 0) return null;
+  const dims = m.inputSources.flatMap((s) => s.dimensions);
+  const found = dims.filter((d) => d.check === "couche_texte").length;
+  const typed = m.inputSources.filter((s) => s.origin === "saisie").length;
+  return [
+    m.confidence ? `Confiance ${MEASURE_CONFIDENCE_LABELS[m.confidence].toLowerCase()}` : "Confiance non évaluée, valeur saisie",
+    dims.length ? `${found} cote(s) sur ${dims.length} retrouvée(s) dans le texte vectoriel` : null,
+    typed ? `${typed} valeur(s) saisie(s)` : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
 
 function meta(data: MetreData) {
   return baseMeta(data.ctx, {
@@ -134,10 +154,14 @@ export function metreModel(data: MetreData): DocModel {
       cells: [
         [m.label, m.notes].filter(Boolean).join("\n"),
         [MEASURE_METHOD_LABELS[m.method], m.formula].filter(Boolean).join(" : "),
-        values(m),
-        { text: m.quantity !== null ? `${quantity(m.quantity)} ${m.unit}` : "non calculée", align: "right", tone: m.quantity === null ? "primary" : undefined },
-        { text: VALIDATION_STATUS_LABELS[m.status], tone: m.status === "verifie" ? undefined : "primary" },
-        [m.drawingId ? data.sheets.get(m.drawingId) : null, m.zoneRef, MEASURE_SOURCE_LABELS[m.source]].filter(Boolean).join("\n"),
+        [values(m), m.deductions.length ? `Déductions : ${deductionsText(m)}` : null].filter(Boolean).join("\n"),
+        {
+          text: m.quantity !== null ? [m.deductions.length && m.grossQuantity !== null ? `brut ${quantity(m.grossQuantity)}` : null, `${quantity(m.quantity)} ${m.unit}`].filter(Boolean).join("\n") : "non calculée",
+          align: "right",
+          tone: m.quantity === null ? "primary" : undefined,
+        },
+        { text: [VALIDATION_STATUS_LABELS[m.status], m.confidence ? `Confiance ${MEASURE_CONFIDENCE_LABELS[m.confidence].toLowerCase()}` : null].filter(Boolean).join("\n"), tone: m.status === "verifie" ? undefined : "primary" },
+        [m.drawingId ? data.sheets.get(m.drawingId) : null, m.zoneRef, MEASURE_SOURCE_LABELS[m.source], traceText(m)].filter(Boolean).join("\n"),
       ],
     }));
     blocks.push({
@@ -176,6 +200,9 @@ export async function metreWorkbook(data: MetreData, theme: DocTheme): Promise<B
       { header: "Statut", width: 11 },
       { header: "Planche", width: 26 },
       { header: "Sources et notes", width: 44 },
+      { header: "Déductions", width: 30 },
+      { header: "Quantité brute", width: 13, align: "right" },
+      { header: "Confiance et contrôle", width: 34 },
     ],
   });
   const { sheet, firstRow } = target;
@@ -186,7 +213,7 @@ export async function metreWorkbook(data: MetreData, theme: DocTheme): Promise<B
     head.getCell(1).value = item.code ?? "";
     head.getCell(2).value = item.designation;
     head.getCell(7).value = item.unit ?? "";
-    styleRow(head, 10, "group", pal);
+    styleRow(head, 13, "group", pal);
     const totalRow = r + measures.length + 1;
     const start = r + 1;
     r++;
@@ -198,18 +225,26 @@ export async function metreWorkbook(data: MetreData, theme: DocTheme): Promise<B
       row.getCell(4).value = measure.formula ?? "";
       row.getCell(5).value = values(measure);
       const excel = measure.formula ? formulaToExcel(measure.formula, measure.inputs ?? {}) : null;
-      row.getCell(6).value = excel
-        ? { formula: `ROUND(${excel},4)`, result: measure.quantity !== null ? Number(measure.quantity) : 0 }
-        : measure.quantity !== null
-          ? Number(measure.quantity)
-          : null;
+      // Déductions soustraites dans la formule elle-même : le calcul reste lisible et vérifiable dans Excel.
+      const deducted = measure.deductions.map((d) => formulaToExcel(d.formula, measure.inputs ?? {}));
+      const exact = excel !== null && deducted.every((d) => d !== null);
+      row.getCell(6).value =
+        exact && measure.quantity !== null
+          ? { formula: `ROUND(${excel}${deducted.map((d) => `-(${d})`).join("")},4)`, result: Number(measure.quantity) }
+          : measure.quantity !== null
+            ? Number(measure.quantity)
+            : null;
       row.getCell(7).value = measure.unit;
       row.getCell(8).value = VALIDATION_STATUS_LABELS[measure.status];
       row.getCell(9).value = [measure.drawingId ? data.sheets.get(measure.drawingId) : null, measure.zoneRef].filter(Boolean).join(", ");
       row.getCell(10).value = [MEASURE_SOURCE_LABELS[measure.source], measure.notes].filter(Boolean).join("\n");
-      styleRow(row, 10, "item", pal);
+      row.getCell(11).value = deductionsText(measure);
+      row.getCell(12).value = measure.grossQuantity !== null ? Number(measure.grossQuantity) : null;
+      row.getCell(13).value = traceText(measure) ?? "";
+      styleRow(row, 13, "item", pal);
       row.getCell(6).numFmt = QTY_FORMAT;
-      for (const c of [2, 5, 9, 10]) row.getCell(c).alignment = { wrapText: true, vertical: "top" };
+      row.getCell(12).numFmt = QTY_FORMAT;
+      for (const c of [2, 5, 9, 10, 11, 13]) row.getCell(c).alignment = { wrapText: true, vertical: "top" };
       r++;
     }
     const total = sheet.getRow(totalRow);
@@ -219,7 +254,7 @@ export async function metreWorkbook(data: MetreData, theme: DocTheme): Promise<B
       ? { formula: `IF(COUNTIFS(H${start}:H${totalRow - 1},"<>Rejeté",F${start}:F${totalRow - 1},"<>")=0,"",SUMIFS(F${start}:F${totalRow - 1},H${start}:H${totalRow - 1},"<>Rejeté"))`, result: retained !== null ? Number(retained) : "" }
       : "";
     total.getCell(7).value = item.unit ?? "";
-    styleRow(total, 10, "subtotal", pal);
+    styleRow(total, 13, "subtotal", pal);
     total.getCell(6).numFmt = QTY_FORMAT;
     totals.push({ code: item.code ?? "", designation: item.designation, unit: item.unit ?? "", row: totalRow, count: measures.length });
     r = totalRow + 2;

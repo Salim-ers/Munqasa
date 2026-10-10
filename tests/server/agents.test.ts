@@ -7,7 +7,7 @@ import { eq } from "drizzle-orm";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { AiConfigError, type AiProvider, AiRetriableError, setAiProviderForTests } from "../../server/ai/client.js";
-import { fakeProvider } from "../../server/ai/fake.js";
+import { fakeBuilder, fakeProvider, setFakeBuilder } from "../../server/ai/fake.js";
 import { schema } from "../../server/db/index.js";
 import { createJob, jobToken, runJob, setJobKickerForTests } from "../../server/jobs/runner.js";
 import { adminSession, setupTestServer, TestBrowser } from "./helpers.js";
@@ -17,10 +17,21 @@ let admin: TestBrowser;
 let projectId = "";
 let fileId = "";
 
+/** PDF vectoriel : la première page porte les cotes de la semelle, l'échelle et l'indice ; les suivantes non. */
 async function makePdf(pages: number): Promise<Uint8Array<ArrayBuffer>> {
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
-  for (let i = 1; i <= pages; i++) pdf.addPage([842, 595]).drawText(`Plan de fondations, page ${i}`, { x: 50, y: 500, size: 18, font });
+  for (let i = 1; i <= pages; i++) {
+    const page = pdf.addPage([842, 595]);
+    page.drawText(`Plan de fondations, page ${i}`, { x: 50, y: 500, size: 18, font });
+    if (i === 1) {
+      page.drawText("SF1", { x: 120, y: 300, size: 10, font });
+      page.drawText("42.50", { x: 300, y: 280, size: 10, font });
+      page.drawText("60", { x: 90, y: 300, size: 10, font, rotate: { type: "degrees", angle: 90 } as never });
+      page.drawText("Ht 40 cm", { x: 150, y: 260, size: 10, font });
+      page.drawText("ECH. 1/100   Indice B", { x: 600, y: 60, size: 9, font });
+    }
+  }
   return new Uint8Array(await pdf.save());
 }
 
@@ -126,6 +137,99 @@ describe("lecture des plans et métré", () => {
     expect(job.status).toBe("termine");
     expect(job.steps[0].log.map((l: { message: string }) => l.message)).toEqual(["abime.pdf : PDF illisible (protégé ou endommagé) : exportez-le de nouveau."]);
     expect(job.steps.filter((st: { name: string }) => st.name.startsWith("page:"))).toHaveLength(2);
+  });
+
+  it("contrôle chaque cote relevée dans le texte vectoriel, lit l'échelle et l'indice, et calcule la confiance du métré", async () => {
+    const drawings = (await admin.request(`/api/admin/projects/${projectId}/drawings`)).json.items as Array<{
+      pageNumber: number;
+      revision: string | null;
+      scaleRatio: string | null;
+      textLayer: { items: number; scales: number[] } | null;
+      verification: { dimensions: number; found: number; notFound: Array<{ value: string }>; scale: string };
+      elements: Array<{ dimensions: Array<{ value: string; check: string }> }>;
+    }>;
+    const [first, second] = [drawings.find((d) => d.pageNumber === 1)!, drawings.find((d) => d.pageNumber === 2)!];
+    expect(first).toMatchObject({ revision: "B", scaleRatio: "100.0000" });
+    expect(first.textLayer!.scales).toEqual([100]);
+    expect(first.verification).toMatchObject({ dimensions: 3, found: 3, notFound: [], scale: "échelle 1/100 lue dans le texte vectoriel" });
+    expect(first.elements[0]!.dimensions.map((d) => d.check)).toEqual(["couche_texte", "couche_texte", "couche_texte"]);
+    // Page 2 : mêmes cotes annoncées par le lecteur, absentes du texte de la page.
+    expect(second.verification.found).toBe(0);
+    expect(second.verification.notFound.map((d) => d.value)).toEqual(["42.50", "60", "40"]);
+    // Échelle de la page 2 : seulement celle lue sur l'image du cartouche.
+    expect(second.scaleRatio).toBe("100.0000");
+    expect(second.verification.scale).toBe("échelle 1/100 lue sur l’image du cartouche");
+
+    const metre = (await admin.request(`/api/admin/projects/${projectId}/metre`)).json;
+    const measure = metre.workItems.flatMap((w: { measurements: unknown[] }) => w.measurements).find((m: { status: string }) => m.status === "a_verifier");
+    expect(measure).toMatchObject({ confidence: "elevee", quantity: "10.2000", grossQuantity: "10.2000", deductions: [] });
+    expect(measure.inputSources.map((x: { name: string; origin: string; computed: boolean; mismatch: string | null; dimensions: Array<{ check: string; value: string }> }) => [x.name, x.origin, x.computed, x.mismatch, x.dimensions.map((d) => `${d.value} ${d.check}`)])).toEqual([
+      ["L", "plan", false, null, ["42.50 couche_texte"]],
+      ["l", "plan", false, null, ["60 couche_texte"]],
+      ["h", "plan", false, null, ["40 couche_texte"]],
+    ]);
+  });
+
+  it("met en confiance faible une mesure appuyée sur des cotes absentes du texte vectoriel et soustrait les déductions", async () => {
+    const original = fakeBuilder("metre")!;
+    setFakeBuilder("metre", (input) => {
+      const ids = [...input.matchAll(/"drawingId":"([0-9a-f-]{36})"/g)].map((x) => x[1]!);
+      return {
+        workItems: [
+          {
+            code: "GO-02",
+            designation: "Béton armé pour semelles, planche 2",
+            unit: "m3",
+            location: null,
+            attributes: [],
+            measurements: [
+              {
+                label: "Semelle relevée page 2",
+                method: "volume",
+                formula: "L * l * h",
+                inputs: [
+                  { name: "L", value: "42.50", source: "page 2", dimensionIds: ["2.1.1"], derivation: null },
+                  { name: "l", value: "0.65", source: "page 2", dimensionIds: ["2.1.2"], derivation: null },
+                  { name: "h", value: "0.40", source: "page 2", dimensionIds: [], derivation: null },
+                ],
+                deductions: [{ label: "Réservation", formula: "1 * l * h" }],
+                unit: "m3",
+                drawingId: ids[1] ?? null,
+                zone: null,
+                note: null,
+              },
+            ],
+          },
+        ],
+        warnings: [],
+      };
+    });
+    try {
+      const res = await admin.request(`/api/admin/projects/${projectId}/analyses`, { body: { fileIds: [fileId], consent: true } });
+      const job = (await admin.request(`/api/admin/agents/jobs/${res.json.job.id}`)).json.job;
+      const metreLog = job.steps.find((st: { name: string }) => st.name === "metre").log.map((l: { message: string }) => l.message);
+      expect(metreLog.some((m: string) => m.startsWith("GO-02 « Semelle relevée page 2 » : confiance faible"))).toBe(true);
+      const metre = (await admin.request(`/api/admin/projects/${projectId}/metre`)).json;
+      const item = metre.workItems.find((w: { code: string }) => w.code === "GO-02");
+      const [measure] = item.measurements;
+      // 42,50 × 0,65 × 0,40 = 11,05 ; réservation 1 × 0,65 × 0,40 = 0,26 ; net 10,79.
+      expect(measure).toMatchObject({ confidence: "faible", grossQuantity: "11.0500", quantity: "10.7900" });
+      expect(measure.deductions).toEqual([{ label: "Réservation", formula: "1 * l * h", quantity: "0.2600" }]);
+      const sources = measure.inputSources as Array<{ name: string; mismatch: string | null; dimensions: Array<{ check: string }> }>;
+      expect(sources.find((x) => x.name === "L")!.dimensions[0]!.check).toBe("non_retrouvee");
+      expect(sources.find((x) => x.name === "l")!.mismatch).toBe("0.65 ne correspond pas à la cote 60 cm, soit 0.6 m");
+      expect(sources.find((x) => x.name === "h")!.dimensions).toEqual([]);
+
+      // Une valeur corrigée à la main devient une saisie : la confiance calculée sur les cotes ne s'applique plus.
+      const patched = await admin.request(`/api/admin/measurements/${measure.id}`, { method: "PATCH", body: { inputs: [{ name: "L", value: "42.50" }, { name: "l", value: "0.60" }, { name: "h", value: "0.40" }] } });
+      expect(patched.json.measurement).toMatchObject({ confidence: null, quantity: "9.9600", grossQuantity: "10.2000" });
+      expect(patched.json.measurement.inputSources.map((x: { name: string; origin: string }) => `${x.name}:${x.origin}`)).toEqual(["L:plan", "l:saisie", "h:plan"]);
+      const tooMuch = await admin.request(`/api/admin/measurements/${measure.id}`, { method: "PATCH", body: { deductions: [{ label: "Vide", formula: "L * l * h * 2" }] } });
+      expect(tooMuch.status).toBe(400);
+      expect(tooMuch.json.fields.deductions).toBe("Les déductions dépassent la quantité brute.");
+    } finally {
+      setFakeBuilder("metre", original);
+    }
   });
 
   it("ajoute un ouvrage et une mesure saisis", async () => {

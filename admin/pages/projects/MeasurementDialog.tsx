@@ -22,6 +22,7 @@ interface Values {
   drawingId: string;
   zoneRef: string;
   notes: string;
+  deductions: Array<{ label: string; formula: string }>;
 }
 
 function initial(measurement: Measurement | null | undefined, item: WorkItem | null): Values {
@@ -34,6 +35,7 @@ function initial(measurement: Measurement | null | undefined, item: WorkItem | n
     drawingId: measurement?.drawingId ?? "",
     zoneRef: measurement?.zoneRef ?? "",
     notes: measurement?.notes ?? "",
+    deductions: measurement ? measurement.deductions.map((d) => ({ label: d.label, formula: d.formula })) : [],
   };
 }
 
@@ -80,14 +82,26 @@ export function MeasurementDialog({
     });
   }, [variables]);
 
+  // Aperçu : quantité brute moins les déductions ; le serveur refait toujours le calcul.
   const preview = useMemo(() => {
-    if (!values.formula.trim()) return { value: null, error: null };
+    if (!values.formula.trim()) return { value: null, gross: null, error: null };
+    const inputs = Object.fromEntries(values.inputs.filter((i) => i.name && i.value).map((i) => [i.name, i.value]));
     try {
-      return { value: evaluateFormula(values.formula, Object.fromEntries(values.inputs.filter((i) => i.name && i.value).map((i) => [i.name, i.value]))), error: null };
+      const gross = evaluateFormula(values.formula, inputs);
+      let net = Number(gross);
+      for (const d of values.deductions.filter((x) => x.formula.trim())) {
+        try {
+          net -= Number(evaluateFormula(d.formula, inputs));
+        } catch (e) {
+          return { value: null, gross, error: `Déduction « ${d.label || "sans nom"} » : ${(e as Error).message}` };
+        }
+      }
+      if (net < 0) return { value: null, gross, error: "Les déductions dépassent la quantité brute." };
+      return { value: String(net), gross, error: null };
     } catch (e) {
-      return { value: null, error: (e as Error).message };
+      return { value: null, gross: null, error: (e as Error).message };
     }
-  }, [values.formula, values.inputs]);
+  }, [values.formula, values.inputs, values.deductions]);
 
   const save = useMutation({
     mutationFn: (data: unknown) => (measurement ? api(`/measurements/${measurement.id}`, { method: "PATCH", body: data }) : api(`/work-items/${item!.id}/measurements`, { body: data })),
@@ -105,7 +119,7 @@ export function MeasurementDialog({
   function submit(event: FormEvent) {
     event.preventDefault();
     setGeneral(null);
-    const data = { ...values, inputs: values.inputs.filter((i) => i.name.trim()), drawingId: values.drawingId || null };
+    const data = { ...values, inputs: values.inputs.filter((i) => i.name.trim()), deductions: values.deductions.filter((d) => d.label.trim() || d.formula.trim()), drawingId: values.drawingId || null };
     const parsed = measurementInput.safeParse(data);
     if (!parsed.success) {
       const next: Record<string, string> = {};
@@ -114,7 +128,7 @@ export function MeasurementDialog({
       if (Object.keys(next).some((k) => k.startsWith("inputs"))) setGeneral("Chaque entrée doit avoir un nom valide et une valeur.");
       return;
     }
-    if (preview.error) return setErrors({ formula: preview.error });
+    if (preview.error) return setErrors(preview.error.startsWith("Déduction") || preview.error.startsWith("Les déductions") ? { deductions: preview.error } : { formula: preview.error });
     setErrors({});
     save.mutate(parsed.data);
   }
@@ -189,10 +203,50 @@ export function MeasurementDialog({
             <Button size="sm" variant="ghost" icon={<Plus className="size-3.5" />} onClick={() => set("inputs", [...values.inputs, { name: "", value: "" }])}>
               Ajouter une entrée
             </Button>
-            <p className={preview.error ? "text-2xs text-danger" : "text-xs font-semibold text-ink tabular"} aria-live="polite">
-              {preview.error ? preview.error : preview.value ? `Quantité : ${formatNumber(preview.value)} ${values.unit}` : ""}
+            <p className={preview.error && !preview.gross ? "text-2xs text-danger" : "text-xs font-semibold text-ink tabular"} aria-live="polite">
+              {preview.error && !preview.gross ? preview.error : preview.gross ? `Quantité brute : ${formatNumber(preview.gross)} ${values.unit}` : ""}
             </p>
           </div>
+        </fieldset>
+        <fieldset className="grid gap-2 sm:col-span-2">
+          <legend className="mb-1 text-xs font-semibold text-ink-2">Déductions</legend>
+          <p className="-mt-1 text-2xs text-ink-3">Vides, trémies, réservations : une formule par déduction, avec les mêmes variables.</p>
+          {values.deductions.map((d, index) => (
+            <div key={index} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2">
+              <input
+                aria-label="Libellé de la déduction"
+                value={d.label}
+                placeholder="Porte P1"
+                onChange={(e) => set("deductions", values.deductions.map((x, i) => (i === index ? { ...x, label: e.target.value } : x)))}
+                className="h-10 rounded-xl border border-line-strong bg-surface px-3 text-xs text-ink outline-none focus:border-accent"
+              />
+              <input
+                aria-label={`Formule de ${d.label || "la déduction"}`}
+                value={d.formula}
+                placeholder="0.90 * 2.10"
+                spellCheck={false}
+                onChange={(e) => set("deductions", values.deductions.map((x, i) => (i === index ? { ...x, formula: e.target.value } : x)))}
+                className="h-10 rounded-xl border border-line-strong bg-surface px-3 font-mono text-xs text-ink outline-none focus:border-accent"
+              />
+              <button
+                type="button"
+                onClick={() => set("deductions", values.deductions.filter((_, i) => i !== index))}
+                className="grid size-10 place-items-center rounded-xl text-ink-3 hover:bg-surface-2 hover:text-danger"
+                aria-label={`Retirer ${d.label || "cette déduction"}`}
+              >
+                <X className="size-4" aria-hidden="true" />
+              </button>
+            </div>
+          ))}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Button size="sm" variant="ghost" icon={<Plus className="size-3.5" />} onClick={() => set("deductions", [...values.deductions, { label: "", formula: "" }])}>
+              Ajouter une déduction
+            </Button>
+            <p className={preview.error && preview.gross ? "text-2xs text-danger" : "text-xs font-semibold text-ink tabular"} aria-live="polite">
+              {preview.error && preview.gross ? preview.error : preview.value !== null ? `Quantité retenue : ${formatNumber(preview.value)} ${values.unit}` : ""}
+            </p>
+          </div>
+          {errors.deductions ? <p className="text-2xs text-danger">{errors.deductions}</p> : null}
         </fieldset>
         <SelectField
           label="Planche d’origine"

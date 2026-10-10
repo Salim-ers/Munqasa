@@ -172,9 +172,19 @@ describe("documents de la DPGF", () => {
 
 describe("métré et rapports", () => {
   it("note de métrés : formule Excel avec ses valeurs, total, PDF détaillé", async () => {
+    // Mesure avec déduction : la formule Excel la soustrait, le PDF montre le brut et la déduction.
+    const voile = (await admin.request(`/api/admin/projects/${projectId}/work-items`, { body: { code: "GO-03", designation: "Voile en béton armé", unit: "m2" } })).json.workItem;
+    const withDeduction = await admin.request(`/api/admin/work-items/${voile.id}/measurements`, {
+      body: { label: "Voile V1", method: "surface", formula: "L * h", inputs: [{ name: "L", value: "10" }, { name: "h", value: "2.5" }], deductions: [{ label: "Porte P1", formula: "0.9 * 2.1" }], unit: "m2" },
+    });
+    expect(withDeduction.json.measurement).toMatchObject({ grossQuantity: "25.0000", quantity: "23.1100", deductions: [{ label: "Porte P1", formula: "0.9 * 2.1", quantity: "1.8900" }] });
     const wb = await workbook((await get(`metre/${projectId}/xlsx`)).bytes);
     const f = formulas(wb.getWorksheet("Métré")!);
     expect(f).toContain("ROUND((42.5)*(0.6)*(0.4),4)");
+    expect(f).toContain("ROUND((10)*(2.5)-(0.9*2.1),4)");
+    const deductionText = await pdfText((await get(`metre/${projectId}/pdf`)).bytes);
+    expect(deductionText).toContain("Déductions : Porte P1");
+    expect(deductionText).toMatch(/brut 25/);
     expect(f.some((x) => x.includes("SUMIFS("))).toBe(true);
     expect(formulas(wb.getWorksheet("Récapitulatif")!).some((x) => x.startsWith("'Métré'!F"))).toBe(true);
     const text = await pdfText((await get(`metre/${projectId}/pdf`)).bytes);

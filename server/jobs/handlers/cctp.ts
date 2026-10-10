@@ -10,7 +10,7 @@
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { callAgent } from "../../ai/client.js";
 import { allowedReferences, projectContext } from "../../ai/context.js";
-import { type CctpBlock, type CctpDetailLevel, cctpChapter, cctpOutline } from "../../ai/schemas.js";
+import { type CctpBlock, type CctpDetailLevel, type CctpOutline, cctpChapter, cctpOutline } from "../../ai/schemas.js";
 import { schema } from "../../db/index.js";
 import { checkCctp, replaceIssues } from "../../services/quality.js";
 import { snapshotCctp } from "../../services/versions.js";
@@ -64,6 +64,27 @@ Règles strictes :
 Réponds en français.`;
 
 type SectionRow = typeof schema.cctpSection.$inferSelect;
+
+/**
+ * Complète le plan pour que chaque ouvrage du métré ait au moins un article : les articles manquants sont
+ * ajoutés au chapitre qui décrit déjà des ouvrages (à défaut, au dernier chapitre). Renvoie les codes ajoutés.
+ */
+export function coverWorkItems(outline: CctpOutline, ouvrages: Array<{ code: string | null; designation: string }>): string[] {
+  const covered = new Set(outline.chapters.flatMap((c) => c.articles.flatMap((a) => a.workItemCodes.map((code) => code.trim()))));
+  const missing = ouvrages.filter((o) => o.code && !covered.has(o.code));
+  if (missing.length === 0 || outline.chapters.length === 0) return [];
+  const target = [...outline.chapters].reverse().find((c) => c.articles.some((a) => a.workItemCodes.length > 0)) ?? outline.chapters[outline.chapters.length - 1]!;
+  const used = new Set(target.articles.map((a) => a.number));
+  let n = target.articles.length;
+  for (const o of missing) {
+    let number: string;
+    do number = `${target.number}.${++n}`;
+    while (used.has(number));
+    used.add(number);
+    target.articles.push({ number, title: o.designation, intent: `Décrire la mise en œuvre de l’ouvrage ${o.code}, ${o.designation}.`, workItemCodes: [o.code!] });
+  }
+  return missing.map((o) => o.code!);
+}
 
 /** Nettoyage d'une réponse : références limitées à la liste autorisée, blocs vides retirés. */
 function sanitizeBlocks(blocks: CctpBlock[], allowed: Set<string>): CctpBlock[] {
@@ -185,6 +206,9 @@ export const cctpHandler: JobHandler = {
 
       const [project] = await db.select().from(schema.project).where(eq(schema.project.id, projectId));
       const items = await db.select({ id: schema.workItem.id, code: schema.workItem.code }).from(schema.workItem).where(eq(schema.workItem.projectId, projectId));
+      // Un article par ouvrage au moins : un ouvrage du métré oublié par le plan reçoit son article de mise en œuvre.
+      const added = input.useMetre ? coverWorkItems(outline, context.ouvrages) : [];
+      if (added.length) await ctx.log(`${added.length} ouvrage(s) du métré sans article : article(s) ajouté(s) au plan (${added.join(", ")}).`);
       const documentId = await db.transaction(async (tx) => {
         const [doc] = await tx
           .insert(schema.cctpDocument)

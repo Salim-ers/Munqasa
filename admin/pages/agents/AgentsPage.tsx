@@ -68,7 +68,7 @@ export function AgentsPage() {
           <AgentCard
             icon={<ScanLine />}
             title="Lecture des plans et métré"
-            text="Lit chaque page de vos plans, relève les éléments de gros œuvre et leurs cotes lisibles, puis établit les ouvrages et leurs métrés."
+            text="Lit chaque page de vos plans, relève les éléments du lot et leurs cotes lisibles, les contrôle dans le texte vectoriel des PDF, puis établit les ouvrages et leurs métrés tracés cote par cote."
             input="Plans PDF ou images déposés dans l’affaire"
             output="Ouvrages et métrés à vérifier, avec la formule et la source de chaque cote"
             action={

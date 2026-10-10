@@ -3,23 +3,9 @@
  * ouvrage (work_item) ← métré (measurement) ← plan ; ouvrage → prescription CCTP → ligne DPGF → sous-détail.
  */
 import { type AnyPgColumn, boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import type { MeasureDeduction, MeasureInputSource } from "../../../shared/metre.js";
 import { createdAt, fine, id, money, percent, qty, updatedAt } from "./columns.js";
-import {
-  componentCategoryEnum,
-  countryEnum,
-  currencyEnum,
-  designPhaseEnum,
-  documentStatusEnum,
-  documentTypeEnum,
-  dpgfLineKindEnum,
-  lineStatusEnum,
-  marginModeEnum,
-  measureMethodEnum,
-  measureSourceEnum,
-  rateBaseEnum,
-  sectionStatusEnum,
-  validationStatusEnum,
-} from "./enums.js";
+import { componentCategoryEnum, countryEnum, currencyEnum, designPhaseEnum, documentStatusEnum, documentTypeEnum, dpgfLineKindEnum, lineStatusEnum, marginModeEnum, measureConfidenceEnum, measureMethodEnum, measureSourceEnum, rateBaseEnum, sectionStatusEnum, validationStatusEnum } from "./enums.js";
 import { priceItem, supplier } from "./library.js";
 import { project, projectLot } from "./projects.js";
 import { drawing } from "./sources.js";
@@ -76,6 +62,13 @@ export const measurement = pgTable(
     status: validationStatusEnum("status").notNull().default("a_verifier"),
     validatedAt: timestamp("validated_at", { withTimezone: true }),
     notes: text("notes"),
+    /** Confiance déterministe d'une mesure proposée (voir shared/metre.ts) ; absente pour une saisie. */
+    confidence: measureConfidenceEnum("confidence"),
+    /** Origine de chaque entrée : cotes relevées citées, contrôle dans le texte vectoriel, dérivation. */
+    inputSources: jsonb("input_sources").$type<MeasureInputSource[]>().notNull().default([]),
+    /** Déductions explicites (vides, trémies), soustraites de la quantité brute. */
+    deductions: jsonb("deductions").$type<MeasureDeduction[]>().notNull().default([]),
+    grossQuantity: qty("gross_quantity"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

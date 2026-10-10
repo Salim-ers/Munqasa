@@ -13,7 +13,8 @@ import { createJob, isStalled, kickJob, requestCancel, retryJob } from "../../jo
 import { handlerFor } from "../../jobs/registry.js";
 import type { JobRow, StepRow } from "../../jobs/types.js";
 import { auditAction } from "../../services/audit.js";
-import { evaluateFormula, FormulaError } from "../../services/formula.js";
+import { FormulaError } from "../../services/formula.js";
+import { computeMeasure, manualSources } from "../../services/metre.js";
 import { monthSpendUsd } from "../../services/openai.js";
 import { readSetting } from "../../services/settings.js";
 import { storageConfigured } from "../../services/storage.js";
@@ -148,11 +149,13 @@ export const agentRoutes = new Hono<AdminEnv>()
 const wi = schema.workItem;
 const m = schema.measurement;
 
-function computeQuantity(formula: string, inputs: Record<string, string>): string {
+/** Quantité brute, déductions et quantité nette d'une mesure saisie ; une erreur est rattachée au champ fautif. */
+function computeQuantity(formula: string, inputs: Record<string, string>, deductions: Array<{ label: string; formula: string }> = []) {
   try {
-    return evaluateFormula(formula, inputs);
+    return computeMeasure(formula, inputs, deductions);
   } catch (error) {
-    throw new ValidationError({ formula: error instanceof FormulaError ? error.message : "Formule invalide." });
+    const message = error instanceof FormulaError ? error.message : "Formule invalide.";
+    throw new ValidationError(/^Déduction|déductions/.test(message) ? { deductions: message } : { formula: message });
   }
 }
 
@@ -205,6 +208,10 @@ export const metreRoutes = new Hono<AdminEnv>()
           level: drawing.level,
           scaleText: drawing.scaleText,
           status: drawing.status,
+          revision: drawing.revision,
+          scaleRatio: drawing.scaleRatio,
+          textLayer: drawing.textLayer,
+          verification: (extraction as { verification?: unknown } | null)?.verification ?? null,
           analysed: Boolean(extraction),
           readable: extraction?.sheet?.readable ?? null,
           elementCount: extraction?.elements?.length ?? 0,
@@ -267,7 +274,7 @@ export const metreRoutes = new Hono<AdminEnv>()
     if (!item) notFound("Ouvrage introuvable.");
     const data = await body(c, measurementInput);
     const inputs = Object.fromEntries(data.inputs.map((i) => [i.name, i.value]));
-    const quantity = computeQuantity(data.formula, inputs);
+    const result = computeQuantity(data.formula, inputs, data.deductions ?? []);
     const [row] = await db
       .insert(m)
       .values({
@@ -280,7 +287,10 @@ export const metreRoutes = new Hono<AdminEnv>()
         method: data.method,
         formula: data.formula,
         inputs,
-        quantity,
+        quantity: result.net,
+        grossQuantity: result.gross,
+        deductions: result.deductions,
+        inputSources: manualSources(inputs, []),
         unit: data.unit,
         source: "saisie",
         status: "a_verifier",
@@ -298,12 +308,27 @@ export const metreRoutes = new Hono<AdminEnv>()
     const data = await patchBody(c, measurementInput);
     const inputs = data.inputs ? Object.fromEntries(data.inputs.map((i) => [i.name, i.value])) : current.inputs;
     const formula = data.formula ?? current.formula ?? "";
+    const deductions = data.deductions ?? current.deductions.map((d) => ({ label: d.label, formula: d.formula }));
     // Toute correction recalcule la quantité et repasse la mesure « à vérifier ».
-    const quantity = computeQuantity(formula, inputs);
-    const { inputs: _ignored, ...rest } = data;
+    const result = computeQuantity(formula, inputs, deductions);
+    const { inputs: _ignored, deductions: _deductions, ...rest } = data;
+    // Une valeur corrigée devient une saisie : la confiance calculée sur les cotes ne s'applique plus.
+    const sources = manualSources(inputs, current.inputSources);
+    const changed = sources.some((s) => s.origin === "saisie") || formula !== current.formula;
     const [row] = await db
       .update(m)
-      .set({ ...rest, inputs, formula, quantity, status: "a_verifier", validatedAt: null })
+      .set({
+        ...rest,
+        inputs,
+        formula,
+        quantity: result.net,
+        grossQuantity: result.gross,
+        deductions: result.deductions,
+        inputSources: sources,
+        ...(changed ? { confidence: null } : {}),
+        status: "a_verifier",
+        validatedAt: null,
+      })
       .where(eq(m.id, id))
       .returning();
     await auditAction(c, "metre.mesure_modifiee", "project", current.projectId, { mesure: row!.label });

@@ -73,7 +73,7 @@ export function PlanAnalysisDialog({ open, onOpenChange, projectId: fixedProject
       open={open}
       onOpenChange={onOpenChange}
       title="Lecture des plans et métré"
-      description="L’agent lit chaque page, relève les éléments de gros œuvre et leurs cotes, puis propose le métré. Les quantités sont calculées à partir des cotes relevées et restent à vérifier."
+      description="L’agent lit chaque page, relève les éléments du lot choisi et leurs cotes, contrôlées dans le texte vectoriel des PDF, puis propose le métré. Les quantités sont calculées à partir des cotes relevées et restent à vérifier."
       size="lg"
       footer={
         <>

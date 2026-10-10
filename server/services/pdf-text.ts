@@ -30,13 +30,14 @@ export interface PdfPageText {
   items: TextItem[];
 }
 
-export async function readPdfText(data: Uint8Array, options: { maxPages?: number } = {}): Promise<PdfPageText[]> {
+export async function readPdfText(data: Uint8Array, options: { maxPages?: number; pages?: number[] } = {}): Promise<PdfPageText[]> {
   const task = getDocument({ data: new Uint8Array(data), useSystemFonts: false, disableFontFace: true, verbosity: 0, cMapUrl: CMAPS, cMapPacked: true, standardFontDataUrl: STANDARD_FONTS });
   const pdf = await task.promise;
   try {
     const pages: PdfPageText[] = [];
     const count = Math.min(pdf.numPages, options.maxPages ?? pdf.numPages);
-    for (let n = 1; n <= count; n++) {
+    const wanted = options.pages ? options.pages.filter((n) => n >= 1 && n <= pdf.numPages) : Array.from({ length: count }, (_, i) => i + 1);
+    for (const n of wanted) {
       const page = await pdf.getPage(n);
       const viewport = page.getViewport({ scale: 1 });
       const content = await page.getTextContent();

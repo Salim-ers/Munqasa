@@ -223,6 +223,8 @@ export const measurementInput = z.object({
   drawingId: optionalUuid,
   zoneRef: optionalText(200),
   notes: optionalText(5000),
+  /** Déductions explicites (vides, trémies), avec les mêmes variables que la formule. */
+  deductions: z.array(z.object({ label: requiredText(120), formula: requiredText(300) })).max(20).optional(),
 });
 export type MeasurementInput = z.input<typeof measurementInput>;
 
