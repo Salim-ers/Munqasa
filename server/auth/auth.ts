@@ -2,7 +2,9 @@
  * Authentification (Better Auth, données dans Neon).
  * - Un seul compte : ADMIN_EMAIL. Toute autre création de compte est refusée en base.
  * - Aucune inscription publique : la route est désactivée ; le compte se crée en ligne de commande.
- * - Double authentification TOTP + codes de secours, verrouillage après échecs répétés ; passkeys.
+ * - Double authentification TOTP + codes de secours, verrouillage après échecs répétés, quand la
+ *   configuration l'exige (TALAB_2FA=obligatoire, voir policy.ts) ; sinon connexion par mot de passe seul,
+ *   les secrets restant conservés en base ; passkeys dans les deux cas.
  * - Limitation des tentatives stockée en base (fonctionne en serverless).
  */
 import { passkey } from "@better-auth/passkey";
@@ -13,6 +15,7 @@ import { twoFactor } from "better-auth/plugins/two-factor";
 import { type Database, getDb, schema } from "../db/index.js";
 import { getEnv, type ServerEnv } from "../env.js";
 import { requestOrigin, writeAudit } from "../services/audit.js";
+import { secondFactorPolicy } from "./policy.js";
 
 /** Durée de session : 12 h, prolongée par l'activité (au plus une fois par heure). */
 const SESSION_SECONDS = 60 * 60 * 12;
@@ -54,11 +57,13 @@ const auditPlugin = {
           const actor = ctx.context.newSession?.user.id ?? ctx.context.session?.user.id ?? null;
           const pendingSecondFactor =
             !failed && typeof returned === "object" && returned !== null && "twoFactorRedirect" in returned && returned.twoFactorRedirect === true;
+          // Connexion par mot de passe seul : la politique en vigueur est consignée avec l'événement.
+          const policy = ctx.path === "/sign-in/email" && !failed && !pendingSecondFactor ? { doubleAuthentification: secondFactorPolicy() } : {};
           await writeAudit({
             action: `${action}.${failed ? "echec" : pendingSecondFactor ? "second_facteur_requis" : "reussite"}`,
             actorUserId: actor,
             ...requestOrigin(headers),
-            details: failed ? { code: (returned as { body?: { code?: string } }).body?.code ?? null } : {},
+            details: failed ? { code: (returned as { body?: { code?: string } }).body?.code ?? null } : policy,
           });
         }),
       },
@@ -154,12 +159,18 @@ function build(db: Database, env: ServerEnv) {
       },
     },
     plugins: [
-      twoFactor({
-        issuer: "Talab Solutions",
-        backupCodeOptions: { amount: 10, length: 12 },
-        trustDeviceMaxAge: 60 * 60 * 24 * 30,
-        accountLockout: { enabled: true },
-      }),
+      // Second facteur chargé seulement s'il est exigé : sans lui, la connexion ne demande plus de code ;
+      // les secrets restent en base et resservent dès sa réactivation.
+      ...(secondFactorPolicy() === "obligatoire"
+        ? [
+            twoFactor({
+              issuer: "Talab Solutions",
+              backupCodeOptions: { amount: 10, length: 12 },
+              trustDeviceMaxAge: 60 * 60 * 24 * 30,
+              accountLockout: { enabled: true },
+            }),
+          ]
+        : []),
       passkey({
         rpID: new URL(env.appUrl).hostname,
         rpName: "Talab Solutions",

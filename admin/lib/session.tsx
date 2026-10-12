@@ -12,6 +12,8 @@ export interface Me {
   user: { id: string; email: string; name: string; twoFactorEnabled: boolean };
   session: { id: string; expiresAt: string };
   secondFactorRequired: boolean;
+  /** Politique fixée par la configuration du serveur : second facteur exigé ou désactivé temporairement. */
+  secondFactorPolicy: "obligatoire" | "desactivee";
 }
 
 export const ME_KEY = ["me"] as const;

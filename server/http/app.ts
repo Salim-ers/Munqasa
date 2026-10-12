@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { getAuth } from "../auth/auth.js";
 import { type AdminEnv, requireAdmin, sameOriginOnly } from "../auth/guard.js";
+import { secondFactorPolicy, secondFactorRequired } from "../auth/policy.js";
 import { ConfigError } from "../env.js";
 import { AiConfigError } from "../ai/client.js";
 import { AiBudgetError } from "../services/openai.js";
@@ -31,17 +32,19 @@ function adminApi() {
   const admin = new Hono<AdminEnv>();
   admin.use("*", sameOriginOnly);
 
-  // Accessible avant l'activation de la double authentification (pour la proposer).
+  // Accessible avant l'activation de la double authentification (pour la proposer quand elle est exigée).
   admin.get("/me", requireAdmin({ allowWithoutSecondFactor: true }), (c) => {
     const { user, session } = c.get("session");
+    const enabled = Boolean((user as { twoFactorEnabled?: boolean }).twoFactorEnabled);
     return c.json({
-      user: { id: user.id, email: user.email, name: user.name, twoFactorEnabled: Boolean(user.twoFactorEnabled) },
+      user: { id: user.id, email: user.email, name: user.name, twoFactorEnabled: enabled },
       session: { id: session.id, expiresAt: session.expiresAt },
-      secondFactorRequired: !user.twoFactorEnabled,
+      secondFactorRequired: secondFactorRequired() && !enabled,
+      secondFactorPolicy: secondFactorPolicy(),
     });
   });
 
-  // Tout le reste exige la double authentification.
+  // Tout le reste exige la double authentification quand la configuration l'impose.
   admin.use("*", requireAdmin());
   admin.route("/dashboard", dashboardRoutes);
   admin.route("/system", systemRoutes);

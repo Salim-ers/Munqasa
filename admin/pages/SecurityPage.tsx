@@ -148,6 +148,7 @@ function SecondFactorCard() {
     setCodes(res.data.backupCodes);
   }
 
+  const disabled = me.data?.secondFactorPolicy === "desactivee";
   return (
     <Card className="p-5">
       <div className="flex items-start gap-3">
@@ -158,10 +159,16 @@ function SecondFactorCard() {
           className="flex-1"
           title="Double authentification"
           subtitle="Application d’authentification et codes de secours"
-          action={me.data?.user.twoFactorEnabled ? <Badge tone="success" dot>Activée</Badge> : <Badge tone="warning" dot>Non activée</Badge>}
+          action={disabled ? <Badge tone="neutral" dot>Désactivée</Badge> : me.data?.user.twoFactorEnabled ? <Badge tone="success" dot>Activée</Badge> : <Badge tone="warning" dot>Non activée</Badge>}
         />
       </div>
-      {codes ? (
+      {disabled ? (
+        <p className="mt-4 text-xs leading-relaxed text-ink-2">
+          Désactivée temporairement par la configuration du serveur : la connexion se fait par adresse et mot de passe. Vos réglages (application
+          d’authentification, codes de secours) sont conservés et redeviennent actifs dès sa réactivation. Le mot de passe, la limitation des
+          tentatives, les sessions et le journal des connexions restent en vigueur.
+        </p>
+      ) : codes ? (
         <div className="mt-4">
           <p className="text-xs text-ink-2">Nouveaux codes de secours (les anciens ne fonctionnent plus) :</p>
           <ul className="mt-2 grid grid-cols-2 gap-1.5 font-mono text-xs text-ink">

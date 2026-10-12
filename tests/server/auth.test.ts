@@ -3,7 +3,7 @@
  * Chaque test reproduit ce que ferait un navigateur : cookies, origine, adresse IP.
  */
 import { desc, eq } from "drizzle-orm";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { schema } from "../../server/db/index.js";
 import { ADMIN_EMAIL, ADMIN_PASSWORD, provisionAdmin, setupTestServer, TestBrowser, totpFromUri } from "./helpers.js";
 
@@ -11,8 +11,14 @@ let ctx: Awaited<ReturnType<typeof setupTestServer>>;
 let totpUri = "";
 let backupCodes: string[] = [];
 
+// Parcours avec double authentification exigée (TALAB_2FA=obligatoire) : la réactivation reste éprouvée.
 beforeAll(async () => {
+  process.env.TALAB_2FA = "obligatoire";
   ctx = await setupTestServer();
+});
+
+afterAll(() => {
+  delete process.env.TALAB_2FA;
 });
 
 describe("accès sans compte", () => {

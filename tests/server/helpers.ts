@@ -48,18 +48,23 @@ export async function provisionAdmin(email = ADMIN_EMAIL, password = ADMIN_PASSW
 }
 
 /**
- * Session administrateur complète (mot de passe + double authentification activée), comme après
- * la première connexion. Renvoie le navigateur connecté et l'URI TOTP.
+ * Session administrateur complète, comme après la première connexion : mot de passe, puis double
+ * authentification activée quand la configuration l'exige (TALAB_2FA=obligatoire). Renvoie le navigateur
+ * connecté et l'URI TOTP (null si la double authentification est désactivée).
  */
 export async function adminSession(app: ReturnType<typeof createApp>, ip = "203.0.113.10") {
   await provisionAdmin();
   const browser = new TestBrowser(app, ip);
-  await browser.request("/api/auth/sign-in/email", { body: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD } });
+  const signIn = await browser.request("/api/auth/sign-in/email", { body: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD } });
+  if (process.env.TALAB_2FA !== "obligatoire") {
+    if (signIn.status !== 200) throw new Error(`Connexion impossible (${signIn.status}).`);
+    return { browser, totpUri: null as string | null };
+  }
   const enable = await browser.request("/api/auth/two-factor/enable", { body: { password: ADMIN_PASSWORD } });
   const totpUri: string = enable.json.totpURI;
   const verify = await browser.request("/api/auth/two-factor/verify-totp", { body: { code: totpFromUri(totpUri) } });
   if (verify.status !== 200) throw new Error(`Activation de la double authentification impossible (${verify.status}).`);
-  return { browser, totpUri };
+  return { browser, totpUri: totpUri as string | null };
 }
 
 /** Navigateur minimal : garde les cookies, envoie l'origine du site. */

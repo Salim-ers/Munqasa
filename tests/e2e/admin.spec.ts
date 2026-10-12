@@ -1,26 +1,14 @@
 /**
- * Parcours complet de l'administration dans un vrai navigateur : connexion et double authentification,
+ * Parcours complet de l'administration dans un vrai navigateur : connexion par mot de passe (double authentification
+ * désactivée par la configuration ; sa réactivation est éprouvée par les tests serveur),
  * affaire (lots, échéances, documents, historique), clients, prospects, agenda, paramètres, système,
  * notifications, affichage téléphone. Aucune donnée n'est simulée : tout passe par l'API.
  */
-import { createHmac } from "node:crypto";
 import { type BrowserContext, expect, type Page, test } from "@playwright/test";
 import { E2E } from "./constants.ts";
 
 const PDF = Buffer.from("%PDF-1.7\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n");
 const PNG = Buffer.from("89504e470d0a1a0a0000000d49484452000000010000000108020000009077" + "53de0000000c4944415408d763f8cfc0000003010100" + "18dd8db00000000049454e44ae426082", "hex");
-
-function totp(secret: string, at = Date.now()): string {
-  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-  let bits = "";
-  for (const ch of secret.replace(/\s|=/g, "").toUpperCase()) bits += alphabet.indexOf(ch).toString(2).padStart(5, "0");
-  const key = Buffer.from(bits.match(/.{8}/g)!.map((b) => parseInt(b, 2)));
-  const counter = Buffer.alloc(8);
-  counter.writeBigUInt64BE(BigInt(Math.floor(at / 30_000)));
-  const h = createHmac("sha1", key).update(counter).digest();
-  const o = h[h.length - 1]! & 0xf;
-  return ((h.readUInt32BE(o) & 0x7fffffff) % 1_000_000).toString().padStart(6, "0");
-}
 
 /** Date locale au format des champs datetime-local, dans n jours à 10 h. */
 function localInput(daysAhead: number): string {
@@ -49,7 +37,7 @@ test.describe.serial("administration", () => {
     await context?.close();
   });
 
-  test("refuse l'accès sans session puis ouvre une session avec double authentification", async () => {
+  test("refuse l'accès sans session puis ouvre une session par mot de passe, sans code de double authentification", async () => {
     await page.goto("/administration/dashboard");
     await expect(page).toHaveURL(/\/administration\/connexion/);
     expect((await page.request.get("/api/admin/projects")).status()).toBe(401);
@@ -57,17 +45,18 @@ test.describe.serial("administration", () => {
     await page.getByLabel("Adresse e-mail").fill(E2E.email);
     await page.getByLabel("Mot de passe", { exact: true }).fill(E2E.password);
     await page.getByRole("button", { name: "Se connecter", exact: true }).click();
-    await expect(page).toHaveURL(/double-authentification/);
-
-    await page.getByLabel("Confirmez votre mot de passe").fill(E2E.password);
-    await page.getByRole("button", { name: /Continuer|Activer/ }).click();
-    const secret = (await page.locator("p.font-mono").first().textContent())!.replace(/\s/g, "");
-    await page.getByLabel("Code à 6 chiffres").fill(totp(secret));
-    await expect(page.getByText("Vos codes de secours")).toBeVisible();
-    await page.getByText("J’ai conservé mes codes de secours en lieu sûr").click();
-    await page.getByRole("button", { name: "Accéder au tableau de bord" }).click();
+    // Double authentification désactivée par la configuration : aucun écran de code, accès direct.
     await expect(page).toHaveURL(/\/administration\/dashboard/);
     await expect(page.getByRole("heading", { name: "Tableau de bord" })).toBeVisible();
+    await expect(page.getByLabel("Code à 6 chiffres")).toHaveCount(0);
+
+    await page.goto("/administration/securite");
+    await expect(page.getByText(/Désactivée temporairement par la configuration du serveur/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Régénérer les codes de secours" })).toHaveCount(0);
+    await page.goto("/administration/securite/double-authentification");
+    await expect(page.getByRole("heading", { name: "Double authentification désactivée" })).toBeVisible();
+    await page.getByRole("button", { name: "Continuer vers le tableau de bord" }).click();
+    await expect(page).toHaveURL(/\/administration\/dashboard/);
   });
 
   test("crée une affaire depuis le tableau de bord", async () => {

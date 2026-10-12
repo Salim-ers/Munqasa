@@ -1,12 +1,14 @@
 /**
  * Garde de l'API d'administration, appliquée côté serveur à chaque route privée :
- * session valide, compte = ADMIN_EMAIL, double authentification activée.
+ * session valide, compte = ADMIN_EMAIL, double authentification activée quand la configuration l'exige
+ * (TALAB_2FA=obligatoire, voir policy.ts).
  * Le lien « Administration » du site n'est qu'un point d'entrée : la sécurité est ici.
  */
 import { createMiddleware } from "hono/factory";
 import { getEnv } from "../env.js";
 import { requestOrigin, writeAudit } from "../services/audit.js";
 import { type Auth, getAuth } from "./auth.js";
+import { secondFactorRequired } from "./policy.js";
 
 export type AdminSession = NonNullable<Awaited<ReturnType<Auth["api"]["getSession"]>>>;
 export type AdminEnv = { Variables: { session: AdminSession } };
@@ -27,7 +29,7 @@ export function requireAdmin(options: { allowWithoutSecondFactor?: boolean } = {
       });
       return c.json({ error: "interdit", message: "Accès refusé." }, 403);
     }
-    if (!result.user.twoFactorEnabled && !options.allowWithoutSecondFactor) {
+    if (secondFactorRequired() && !(result.user as { twoFactorEnabled?: boolean }).twoFactorEnabled && !options.allowWithoutSecondFactor) {
       return c.json(
         { error: "second_facteur_requis", message: "Activez la double authentification pour accéder à l'espace d'administration." },
         403,

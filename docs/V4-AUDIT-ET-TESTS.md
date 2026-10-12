@@ -72,3 +72,18 @@ s'exécutent quand leurs chemins sont fournis (`TALAB_SAMPLE_PLAN`, `TALAB_SAMPL
 | 21 exports de l'API (PDF, Word, Excel, thème sombre) | en-tête `x-talab-mise-en-page` à 0 |
 | Dossier ZIP | index « Contrôle de mise en page » : fichiers contrôlés, anomalies restantes dites fichier par fichier |
 | Dossier réel TAL-2026-0003 recomposé | 0 anomalie sur les sous-détails (93 pages), la DPGF (14 pages) et le CCTP (43 pages) ; béton des bandeaux à 833,5453 ; huit décompositions impossibles identifiées |
+
+### Authentification et sécurité (`tests/server/auth-sans-2fa.test.ts`, `tests/server/auth.test.ts`, `tests/server/bootstrap.test.ts`)
+
+| Cas | Résultat attendu |
+| --- | --- |
+| Connexion sans `TALAB_2FA` | session ouverte par mot de passe seul, aucun code demandé, API métier accessible |
+| Routes du second facteur | indisponibles tant qu'il est désactivé (404) |
+| Mot de passe | haché en base, jamais en clair |
+| Mauvais mot de passe, tentatives répétées | 401, puis 429 |
+| Origine étrangère | connexion et requêtes modifiantes refusées (403) |
+| Visiteur, autre compte | 401, création de tout autre compte refusée |
+| Journal | connexion consignée avec la politique en vigueur |
+| Sessions | liste disponible, fermeture à la déconnexion |
+| `TALAB_2FA=obligatoire` | second facteur de nouveau exigé (403 tant qu'il n'est pas activé) |
+| Désactivation puis réactivation | secret et codes conservés ; le code de la même application est accepté sans nouvelle activation |

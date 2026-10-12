@@ -29,6 +29,11 @@ const schema = z.object({
   OPENAI_API_KEY: optionalString,
   /** Secret des appels planifiés Vercel (traitements longs). */
   CRON_SECRET: optionalString,
+  /**
+   * Double authentification : « obligatoire » pour l'exiger ; absente ou autre valeur, désactivée
+   * temporairement sans rien supprimer (server/auth/policy.ts).
+   */
+  TALAB_2FA: optionalString,
   /** Stockage objet compatible S3 (Cloudflare R2 en production). */
   S3_ENDPOINT: optionalString,
   S3_REGION: optionalString,

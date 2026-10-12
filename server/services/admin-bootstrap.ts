@@ -2,16 +2,19 @@
  * Compte administrateur initial, créé au déploiement à partir de ADMIN_PASSWORD (variable Vercel de
  * production), pour qui ne passe pas par la ligne de commande :
  * - aucun compte : il est créé pour ADMIN_EMAIL ;
- * - compte existant mais pas encore activé (double authentification absente) : son mot de passe suit
- *   ADMIN_PASSWORD, ce qui permet de corriger une faute de saisie ;
- * - compte activé : ADMIN_PASSWORD est ignorée. Une fois connecté, il faut la supprimer sur Vercel.
+ * - compte existant mais pas encore activé (double authentification absente et aucune connexion réussie) :
+ *   son mot de passe suit ADMIN_PASSWORD, ce qui permet de corriger une faute de saisie ;
+ * - compte activé (double authentification activée, ou au moins une connexion réussie, ce qui compte quand
+ *   la double authentification est désactivée par la configuration) : ADMIN_PASSWORD est ignorée. Une fois
+ *   connecté, il faut la supprimer sur Vercel.
  * Le mot de passe n'est jamais journalisé ; seule son empreinte est enregistrée.
  *
  * Chaque déploiement vérifie aussi que la double authentification reste lisible (voir checkSecondFactor).
  */
 import { symmetricDecrypt } from "better-auth/crypto";
-import { eq } from "drizzle-orm";
+import { and, eq, like } from "drizzle-orm";
 import { getAuth } from "../auth/auth.js";
+import { secondFactorRequired } from "../auth/policy.js";
 import { getDb, schema } from "../db/index.js";
 import { getEnv } from "../env.js";
 import { writeAudit } from "./audit.js";
@@ -44,6 +47,15 @@ export async function bootstrapAdmin(): Promise<BootstrapResult> {
   const admin = users.find((u) => u.email.toLowerCase() === email);
   if (!admin || users.length > 1) return "autre_compte";
   if (admin.twoFactorEnabled) return "deja_active";
+  // Sans double authentification exigée, un compte déjà utilisé n'a plus son mot de passe remplacé.
+  const [loggedIn] = secondFactorRequired()
+    ? []
+    : await db
+        .select({ id: schema.auditLog.id })
+        .from(schema.auditLog)
+        .where(and(eq(schema.auditLog.actorUserId, admin.id), like(schema.auditLog.action, "connexion.%.reussite")))
+        .limit(1);
+  if (loggedIn) return "deja_active";
 
   // Compte pas encore activé : le mot de passe suit la variable (sessions fermées seulement s'il change).
   const credential = (await ctx.internalAdapter.findAccounts(admin.id)).find((a) => a.providerId === "credential");

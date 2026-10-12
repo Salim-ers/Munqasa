@@ -5,7 +5,7 @@
  */
 import { symmetricEncrypt } from "better-auth/crypto";
 import { eq } from "drizzle-orm";
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { schema } from "../../server/db/index.js";
 import { resetEnvCache } from "../../server/env.js";
 import { bootstrapAdmin, checkSecondFactor } from "../../server/services/admin-bootstrap.js";
@@ -26,8 +26,14 @@ async function signIn(password: string, ip: string) {
   return { browser, res };
 }
 
+// Parcours avec double authentification exigée (TALAB_2FA=obligatoire) : la réactivation reste éprouvée.
 beforeAll(async () => {
+  process.env.TALAB_2FA = "obligatoire";
   ctx = await setupTestServer();
+});
+
+afterAll(() => {
+  delete process.env.TALAB_2FA;
 });
 
 afterEach(() => withPassword(undefined));

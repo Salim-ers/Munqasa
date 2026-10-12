@@ -10,13 +10,39 @@ import { InlineError } from "../components/ui/Feedback";
 import { OtpInput } from "../components/ui/OtpInput";
 import { AuthLayout } from "../layout/AuthLayout";
 import { authClient, authErrorMessage } from "../lib/auth-client";
-import { ME_KEY } from "../lib/session";
+import { ME_KEY, useMe } from "../lib/session";
 
 type Phase = "password" | "scan" | "codes";
 const step = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -12 }, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] as const } };
 
-/** Activation obligatoire de la double authentification (première connexion ou après réinitialisation). */
+/** Activation de la double authentification quand la configuration l'exige ; sinon, simple information. */
 export function SecondFactorSetupPage() {
+  const me = useMe();
+  if (me.data?.secondFactorPolicy === "desactivee") return <SecondFactorDisabled />;
+  return <SecondFactorSetup />;
+}
+
+/** Double authentification désactivée par la configuration : rien à activer, retour à l'application. */
+function SecondFactorDisabled() {
+  const navigate = useNavigate();
+  return (
+    <AuthLayout>
+      <div className="mb-6 grid size-11 place-items-center rounded-xl bg-accent-soft text-accent">
+        <ShieldCheck className="size-5" aria-hidden="true" />
+      </div>
+      <h2 className="text-2xl font-semibold tracking-tight text-ink">Double authentification désactivée</h2>
+      <p className="mt-1.5 text-sm leading-relaxed text-ink-3">
+        La configuration du serveur ne demande pas de second facteur pour le moment : la connexion se fait par adresse et mot de passe. Vos réglages
+        éventuels restent conservés et redeviennent actifs dès sa réactivation.
+      </p>
+      <Button className="mt-8 w-full" size="lg" onClick={() => navigate("/administration/dashboard", { replace: true })}>
+        Continuer vers le tableau de bord
+      </Button>
+    </AuthLayout>
+  );
+}
+
+function SecondFactorSetup() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [phase, setPhase] = useState<Phase>("password");
