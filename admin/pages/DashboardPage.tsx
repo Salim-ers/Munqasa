@@ -30,7 +30,7 @@ import { ProjectStatusBadge } from "../components/StatusBadge";
 import { Button } from "../components/ui/Button";
 import { COUNTRY_LABELS, type Currency, formatDate, formatMoney, formatNumber, formatRelative } from "../lib/format";
 import type { SystemStatus } from "../lib/types";
-import { ProjectFormDialog } from "./projects/ProjectFormDialog";
+import { NewProjectWizard } from "./projects/NewProjectWizard";
 
 interface DashboardData {
   generatedAt: string;
@@ -76,13 +76,12 @@ export function DashboardPage() {
   const dashboard = useQuery({ queryKey: ["dashboard"], queryFn: ({ signal }) => api<DashboardData>("/dashboard", { signal }), refetchInterval: 60_000 });
   const status = useQuery({ queryKey: ["system-status"], queryFn: ({ signal }) => api<SystemStatus>("/system/status", { signal }), staleTime: 5 * 60_000 });
   const d = dashboard.data;
-  const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
 
   return (
     <div className="mx-auto max-w-[96rem]">
       <PageHeading generatedAt={d?.generatedAt} onCreate={() => setCreating(true)} />
-      <ProjectFormDialog open={creating} onOpenChange={setCreating} onSaved={(p) => navigate(`/administration/affaires/${p.id}`)} />
+      <NewProjectWizard open={creating} onOpenChange={setCreating} />
       {dashboard.isError ? (
         <Card className="p-6">
           <EmptyState icon={<TriangleAlert className="size-5" />} title="Tableau de bord indisponible" text="Les données n’ont pas pu être chargées. Réessayez dans un instant." />

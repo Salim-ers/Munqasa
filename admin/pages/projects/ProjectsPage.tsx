@@ -16,7 +16,7 @@ import { cn } from "../../lib/cn";
 import { formatDate, formatMoney, formatRelative } from "../../lib/format";
 import { useListParams } from "../../lib/list-params";
 import type { Paged, ProjectRow } from "../../lib/types";
-import { ProjectFormDialog } from "./ProjectFormDialog";
+import { NewProjectWizard } from "./NewProjectWizard";
 
 const PAGE_SIZE = 25;
 const col = createColumnHelper<ProjectRow>();
@@ -161,7 +161,7 @@ export function ProjectsPage() {
         />
         {data ? <Pagination page={data.page} pageSize={data.pageSize} total={data.total} onPageChange={list.setPage} /> : null}
       </Card>
-      <ProjectFormDialog open={creating} onOpenChange={setCreating} onSaved={(p) => navigate(`/administration/affaires/${p.id}`)} />
+      <NewProjectWizard open={creating} onOpenChange={setCreating} />
     </div>
   );
 }

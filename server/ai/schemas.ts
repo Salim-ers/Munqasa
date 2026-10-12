@@ -252,6 +252,18 @@ export const quoteDraft = z.object({
 });
 export type QuoteDraft = z.output<typeof quoteDraft>;
 
+/** Préremplissage d'une affaire depuis le texte des plans : chaque valeur accompagnée du passage cité. */
+const citedValue = z.object({ value: z.string(), quote: z.string() }).nullable();
+export const projectPrefill = z.object({
+  name: citedValue,
+  client: citedValue,
+  siteAddress: citedValue,
+  city: citedValue,
+  worksNature: citedValue,
+  notes: z.array(z.string()),
+});
+export type ProjectPrefillOutput = z.output<typeof projectPrefill>;
+
 /** Préparation d'un devis, seconde étape : choix d'un prix parmi les candidats proposés, ou aucun. */
 export const quotePricing = z.object({
   choices: z.array(z.object({ key: z.string(), priceItemId: z.string().nullable(), justification: z.string().nullable() })),

@@ -2,10 +2,12 @@
 import { and, asc, count, desc, eq, gte, ilike, inArray, isNull, lte, ne, notInArray, or, type SQL, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { PROJECT_STATUSES, type ProjectStatus } from "../../../shared/enums.js";
-import { deadlineInput, listQuery, projectInput, projectLotInput, projectPatch } from "../../../shared/schemas.js";
+import { deadlineInput, listQuery, projectInput, projectLotInput, projectPatch, projectPrefillRequest } from "../../../shared/schemas.js";
+import { modelFor } from "../../ai/client.js";
 import type { AdminEnv } from "../../auth/guard.js";
 import { getDb, schema } from "../../db/index.js";
 import { auditAction } from "../../services/audit.js";
+import { prefillProject } from "../../services/project-prefill.js";
 import { nextReference } from "../../services/references.js";
 import { body, conflict, notFound, parse, patchBody, uuidParam } from "../validate.js";
 
@@ -77,6 +79,18 @@ export const projectRoutes = new Hono<AdminEnv>()
     // La date de remise apparaît d'elle-même dans l'agenda (lue sur l'affaire, jamais recopiée).
     await auditAction(c, "affaire.creation", "project", row!.id, { reference, nom: row!.name });
     return c.json({ project: row }, 201);
+  })
+  /**
+   * Préremplissage d'une nouvelle affaire depuis le texte vectoriel de ses plans (lu dans le navigateur) :
+   * seules les valeurs dont le passage figure mot pour mot sur un plan sont proposées.
+   */
+  .post("/prefill", async (c) => {
+    const data = await body(c, projectPrefillRequest);
+    await modelFor("extraction");
+    const db = await getDb();
+    const prefill = await prefillProject(db, data.files);
+    await auditAction(c, "affaire.preremplissage", "project", null, { plans: data.files.length, champs: Object.entries(prefill).filter(([k, v]) => k !== "notes" && v).map(([k]) => k) });
+    return c.json({ prefill });
   })
   .get("/:id", async (c) => {
     const db = await getDb();

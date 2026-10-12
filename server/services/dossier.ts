@@ -220,7 +220,7 @@ const RENDER_LABELS: Record<string, string> = {
  * validés malgré une anomalie bloquante, et anomalies de rendu du dernier contrôle des fichiers produits
  * s'il porte sur le contenu actuel.
  */
-export async function checkDossier(db: Database, projectId: string): Promise<IssueDraft[]> {
+export async function checkDossier(db: Database, projectId: string, fingerprint?: string): Promise<IssueDraft[]> {
   const issues: IssueDraft[] = [];
   const cctps = await db.select().from(schema.cctpDocument).where(and(eq(schema.cctpDocument.projectId, projectId), ne(schema.cctpDocument.status, "archive")));
   const dpgfs = await db.select().from(schema.dpgf).where(and(eq(schema.dpgf.projectId, projectId), ne(schema.dpgf.status, "archive")));
@@ -260,7 +260,7 @@ export async function checkDossier(db: Database, projectId: string): Promise<Iss
 
   // Fichiers produits : anomalies de rendu du dernier contrôle, s'il porte sur le contenu actuel.
   const [rendered] = await db.select().from(schema.exportCheck).where(eq(schema.exportCheck.projectId, projectId)).orderBy(desc(schema.exportCheck.createdAt)).limit(1);
-  if (rendered && rendered.fingerprint === (await dossierFingerprint(db, projectId))) {
+  if (rendered && rendered.fingerprint === (fingerprint ?? (await dossierFingerprint(db, projectId)))) {
     for (const file of rendered.files) {
       for (const issue of file.issues) {
         issues.push({
@@ -297,16 +297,21 @@ export async function refreshDocumentChecks(db: Database, kind: string, id: stri
 }
 
 /** Rejoue tous les contrôles du dossier et renvoie le nombre d'anomalies ouvertes par gravité. */
-export async function runDossierChecks(db: Database, projectId: string): Promise<{ counts: Record<"bloquante" | "majeure" | "mineure" | "information", number>; documents: number }> {
-  const cctps = await db.select({ id: schema.cctpDocument.id }).from(schema.cctpDocument).where(and(eq(schema.cctpDocument.projectId, projectId), ne(schema.cctpDocument.status, "archive")));
-  const dpgfs = await db.select({ id: schema.dpgf.id }).from(schema.dpgf).where(and(eq(schema.dpgf.projectId, projectId), ne(schema.dpgf.status, "archive")));
-  for (const c of cctps) await replaceIssues(db, { projectId, documentType: "cctp", documentId: c.id }, await checkCctp(db, c.id));
-  for (const d of dpgfs) {
-    await replaceIssues(db, { projectId, documentType: "dpgf", documentId: d.id }, await checkDpgf(db, d.id));
-    await replaceIssues(db, { projectId, documentType: "sous_detail", documentId: d.id }, await checkBreakdowns(db, d.id));
-  }
-  await replaceIssues(db, { projectId, documentType: "metre", documentId: projectId }, await checkMetre(db, projectId));
-  await replaceIssues(db, { projectId, documentType: "dossier", documentId: projectId }, await checkDossier(db, projectId));
+export async function runDossierChecks(db: Database, projectId: string, options: { fingerprint?: string } = {}): Promise<{ counts: Record<"bloquante" | "majeure" | "mineure" | "information", number>; documents: number }> {
+  const [cctps, dpgfs] = await Promise.all([
+    db.select({ id: schema.cctpDocument.id }).from(schema.cctpDocument).where(and(eq(schema.cctpDocument.projectId, projectId), ne(schema.cctpDocument.status, "archive"))),
+    db.select({ id: schema.dpgf.id }).from(schema.dpgf).where(and(eq(schema.dpgf.projectId, projectId), ne(schema.dpgf.status, "archive"))),
+  ]);
+  // Documents contrôlés en parallèle ; le contrôle du dossier, qui lit leurs anomalies, vient ensuite.
+  await Promise.all([
+    ...cctps.map(async (c) => replaceIssues(db, { projectId, documentType: "cctp", documentId: c.id }, await checkCctp(db, c.id))),
+    ...dpgfs.map(async (d) => {
+      await replaceIssues(db, { projectId, documentType: "dpgf", documentId: d.id }, await checkDpgf(db, d.id));
+      await replaceIssues(db, { projectId, documentType: "sous_detail", documentId: d.id }, await checkBreakdowns(db, d.id));
+    }),
+    (async () => replaceIssues(db, { projectId, documentType: "metre", documentId: projectId }, await checkMetre(db, projectId)))(),
+  ]);
+  await replaceIssues(db, { projectId, documentType: "dossier", documentId: projectId }, await checkDossier(db, projectId, options.fingerprint));
   return { counts: await openIssueCounts(db, projectId), documents: cctps.length + dpgfs.length };
 }
 

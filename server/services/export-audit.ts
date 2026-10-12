@@ -83,7 +83,9 @@ export function renderFindings(files: RenderedFileCheck[]): Finding[] {
  * « refresh: false » lit les anomalies telles qu'enregistrées (juste après un contrôle).
  */
 export async function dossierExportAudit(db: Database, projectId: string, options: { refresh?: boolean } = {}): Promise<ExportAudit> {
-  if (options.refresh !== false) await runDossierChecks(db, projectId);
+  // Empreinte calculée une fois : les contrôles ne modifient que les anomalies, jamais le contenu.
+  const fingerprint = await dossierFingerprint(db, projectId);
+  if (options.refresh !== false) await runDossierChecks(db, projectId, { fingerprint });
   const issues = await db
     .select({ severity: schema.qualityIssue.severity, category: schema.qualityIssue.category, point: schema.qualityIssue.auditPoint, message: schema.qualityIssue.message })
     .from(schema.qualityIssue)
@@ -112,7 +114,7 @@ export async function dossierExportAudit(db: Database, projectId: string, option
   add(has.cctp, "references_reglementaires");
 
   const [rendered] = await db.select().from(schema.exportCheck).where(eq(schema.exportCheck.projectId, projectId)).orderBy(desc(schema.exportCheck.createdAt)).limit(1);
-  const upToDate = Boolean(rendered && rendered.fingerprint === (await dossierFingerprint(db, projectId)));
+  const upToDate = Boolean(rendered && rendered.fingerprint === fingerprint);
   const rendering = {
     checkedAt: rendered ? rendered.createdAt.toISOString() : null,
     upToDate,

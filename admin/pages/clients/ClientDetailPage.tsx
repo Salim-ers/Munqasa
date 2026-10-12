@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Archive, ArchiveRestore, FolderPlus, Mail, MapPin, Pencil, Phone, TriangleAlert, User } from "lucide-react";
 import { type ReactNode, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { toast } from "sonner";
 import { COUNTRY_LABELS, type ProjectStatus, SECTOR_LABELS } from "../../../shared/enums";
 import { LEGAL_ID_FIELDS } from "../../../shared/schemas";
@@ -14,7 +14,7 @@ import { PageHeader } from "../../components/ui/PageHeader";
 import { api, ApiError, errorMessage } from "../../lib/api";
 import { formatDate } from "../../lib/format";
 import type { Client } from "../../lib/types";
-import { ProjectFormDialog } from "../projects/ProjectFormDialog";
+import { NewProjectWizard } from "../projects/NewProjectWizard";
 import { ClientFormDialog } from "./ClientFormDialog";
 
 interface ClientDetail {
@@ -24,7 +24,6 @@ interface ClientDetail {
 
 export function ClientDetailPage() {
   const { id = "" } = useParams();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [creatingProject, setCreatingProject] = useState(false);
@@ -159,7 +158,7 @@ export function ClientDetailPage() {
       {client ? (
         <>
           <ClientFormDialog open={editing} onOpenChange={setEditing} client={client} />
-          <ProjectFormDialog open={creatingProject} onOpenChange={setCreatingProject} defaults={{ clientId: client.id, country: client.country, sector: client.sector }} onSaved={(p) => navigate(`/administration/affaires/${p.id}`)} />
+          <NewProjectWizard open={creatingProject} onOpenChange={setCreatingProject} defaults={{ clientId: client.id, country: client.country, sector: client.sector }} />
         </>
       ) : null}
     </div>

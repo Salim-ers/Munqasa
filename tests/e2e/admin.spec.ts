@@ -5,6 +5,7 @@
  * notifications, affichage téléphone. Aucune donnée n'est simulée : tout passe par l'API.
  */
 import { type BrowserContext, expect, type Page, test } from "@playwright/test";
+import { PDFDocument, StandardFonts } from "pdf-lib";
 import { E2E } from "./constants.ts";
 
 const PDF = Buffer.from("%PDF-1.7\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n");
@@ -63,15 +64,25 @@ test.describe.serial("administration", () => {
   test("crée une affaire depuis le tableau de bord", async () => {
     await page.getByRole("button", { name: "Nouvelle affaire" }).first().click();
     const dialog = page.getByRole("dialog", { name: "Nouvelle affaire" });
+    await expect(dialog.getByRole("list", { name: "Étapes de la création" })).toBeVisible();
     await dialog.getByRole("button", { name: /Créer l.affaire/ }).click();
     await expect(dialog.getByText("Champ obligatoire.")).toBeVisible();
 
     await dialog.getByLabel("Intitulé de l’affaire").fill("Construction d’un groupe scolaire");
     await dialog.getByLabel("Ville").fill("Rabat");
     await dialog.getByLabel("Date limite de remise").fill(localInput(2));
+    await dialog.getByRole("button", { name: /Plus de détails/ }).click();
     await dialog.getByLabel(/Estimation/).fill("12 500 000,50");
     await dialog.getByLabel("Description").fill("Opération de test de bout en bout.");
     await dialog.getByRole("button", { name: /Créer l.affaire/ }).click();
+
+    // Lots, documents et production se remettent à plus tard : l'affaire s'ouvre telle quelle.
+    await expect(dialog.getByText(/Nomenclature « Bâtiment, nomenclature complète »/)).toBeVisible();
+    await dialog.getByRole("button", { name: "Plus tard" }).click();
+    await expect(dialog.getByText(/source du métré, du CCTP et de la DPGF/)).toBeVisible();
+    await dialog.getByRole("button", { name: "Plus tard" }).click();
+    await expect(dialog.getByText("Documents à produire")).toBeVisible();
+    await dialog.getByRole("button", { name: "Ouvrir l’affaire" }).click();
 
     await expect(page).toHaveURL(/\/administration\/affaires\/[0-9a-f-]{36}$/);
     projectUrl = page.url();
@@ -545,6 +556,42 @@ test.describe.serial("administration", () => {
     await expect(page.getByText("Prix à établir", { exact: true }).first()).toBeVisible();
   });
 
+  test("crée une affaire en partant de ses plans, jusqu'à la génération", async () => {
+    // Plan PDF dont le cartouche porte l'intitulé, le maître d'ouvrage et la commune en texte vectoriel.
+    const pdf = await PDFDocument.create();
+    const font = await pdf.embedFont(StandardFonts.Helvetica);
+    const sheet = pdf.addPage([842, 595]);
+    ["CONSTRUCTION D’UN CENTRE DE SANTÉ", "Maîtrise d'ouvrage", "Commune urbaine de Salé", "Commune : Salé", "PLAN DE MASSE", "ECH. 1/200"].forEach((line, i) => sheet.drawText(line, { x: 560, y: 220 - i * 18, size: 10, font }));
+    const bytes = Buffer.from(await pdf.save());
+
+    await page.goto("/administration/affaires");
+    await page.getByRole("button", { name: "Nouvelle affaire" }).first().click();
+    const dialog = page.getByRole("dialog", { name: "Nouvelle affaire" });
+    await dialog.getByRole("region", { name: "Commencer par les plans" }).locator('input[type="file"]').setInputFiles({ name: "Plan de masse.pdf", mimeType: "application/pdf", buffer: bytes });
+    await expect(dialog.getByText("Plan de masse.pdf : texte du cartouche lu")).toBeVisible({ timeout: 30_000 });
+    await dialog.getByText(/J’accepte que le texte des cartouches/).click();
+    await dialog.getByRole("button", { name: "Préremplir depuis les plans" }).click();
+    await expect(dialog.getByLabel("Intitulé de l’affaire")).toHaveValue("Construction d’un centre de santé");
+    await expect(dialog.getByText("Lu sur Plan de masse.pdf : « CONSTRUCTION D’UN CENTRE DE SANTÉ »")).toBeVisible();
+    await expect(dialog.getByLabel("Ville")).toHaveValue("Salé");
+    await expect(dialog.getByRole("checkbox", { name: "Créer le client « Commune urbaine de Salé »" })).toBeChecked();
+    await dialog.getByRole("button", { name: /Créer l.affaire/ }).click();
+
+    await dialog.getByLabel("Rechercher un lot").fill("gros");
+    await dialog.getByLabel("01 Gros œuvre", { exact: true }).check();
+    await dialog.getByRole("button", { name: "Ajouter 1 lot(s)" }).click();
+    // Le plan déposé à la première étape est envoyé et vérifié d'office.
+    await expect(dialog.getByText("1 fichier(s) vérifié(s).")).toBeVisible({ timeout: 30_000 });
+    await dialog.getByRole("button", { name: "Continuer" }).click();
+    await expect(dialog.getByRole("checkbox", { name: "Métré depuis les plans", exact: true })).toBeChecked();
+    await dialog.getByLabel("Taux de TVA de la DPGF, en %").fill("20");
+    await dialog.getByText(/J’accepte que les pages des plans choisis/).click();
+    await dialog.getByRole("button", { name: "Générer les documents" }).click();
+    await expect(page).toHaveURL(/\/administration\/affaires\/[0-9a-f-]{36}\?onglet=dossier$/);
+    await expect(page.getByText(/Dernier contrôle le/)).toBeVisible({ timeout: 120_000 });
+    await expect(page.getByText(/TAL-\d{4}-\d{4}, Commune urbaine de Salé/).first()).toBeVisible();
+  });
+
   test("s'affiche sans débordement sur téléphone", async () => {
     await page.setViewportSize({ width: 390, height: 844 });
     const project = new URL(projectUrl).pathname;
@@ -575,6 +622,14 @@ test.describe.serial("administration", () => {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       if (overflow > 0) overflows.push(`${path} : ${overflow} px`);
     }
+    // Création d'une affaire : la fenêtre tient dans l'écran.
+    await page.goto("/administration/affaires");
+    await page.getByRole("button", { name: "Nouvelle affaire" }).first().click();
+    const wizard = page.getByRole("dialog", { name: "Nouvelle affaire" });
+    await expect(wizard.getByRole("list", { name: "Étapes de la création" })).toBeVisible();
+    const wizardOverflow = await wizard.evaluate((el) => el.scrollWidth - el.clientWidth);
+    if (wizardOverflow > 0) overflows.push(`création d’affaire : ${wizardOverflow} px`);
+    await page.keyboard.press("Escape");
     expect(overflows).toEqual([]);
     await page.goto("/administration/affaires");
     await expect(page.getByRole("list", { name: "Affaires" }).getByText("Construction d’un groupe scolaire")).toBeVisible();

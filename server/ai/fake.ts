@@ -147,6 +147,21 @@ const builders: Record<string, (input: string) => unknown> = {
     const postes = jsonAfter(input, "Postes (JSON)") as Array<{ key: string; prixCandidats: Array<{ id: string }> }>;
     return { choices: postes.map((p) => ({ key: p.key, priceItemId: p.prixCandidats[0]?.id ?? null, justification: p.prixCandidats.length ? "Candidat le plus proche" : null })) };
   },
+  prefill_affaire: (input) => {
+    const lines = input.split("\n").map((l) => l.trim()).filter(Boolean);
+    const name = lines.find((l) => /^(construction|réhabilitation|rehabilitation|extension|aménagement)\b/i.test(l)) ?? null;
+    const label = lines.findIndex((l) => /^ma[iî]tr(e|ise) d.ouvrage/i.test(l));
+    const client = label >= 0 ? (lines[label + 1] ?? null) : null;
+    const commune = lines.find((l) => /^commune\s*:/i.test(l)) ?? null;
+    return {
+      name: name ? { value: name.charAt(0) + name.slice(1).toLowerCase(), quote: name } : null,
+      client: client ? { value: client, quote: client } : null,
+      siteAddress: null,
+      city: commune ? { value: commune.replace(/^commune\s*:\s*/i, ""), quote: commune } : null,
+      worksNature: { value: "Démolition", quote: "Démolition totale" },
+      notes: [],
+    };
+  },
   prix_postes: (input) => {
     const postes = jsonAfter(input, "Postes (JSON)") as Array<{ key: string; prixCandidats: Array<{ id: string }> }>;
     return { choices: postes.map((p) => ({ key: p.key, priceItemId: p.prixCandidats[0]?.id ?? null, justification: p.prixCandidats.length ? "Candidat le plus proche" : null })) };

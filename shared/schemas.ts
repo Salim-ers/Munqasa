@@ -380,6 +380,15 @@ export const dossierGenerationRequest = z.object({
 
 export const CONSENT_MESSAGE = "Confirmez l’envoi des plans et des informations de l’affaire à l’API OpenAI.";
 
+/** Préremplissage d'une affaire : texte vectoriel des premières pages de plans, lu dans le navigateur. */
+export const projectPrefillRequest = z.object({
+  files: z
+    .array(z.object({ name: requiredText(300), text: z.string().trim().min(1).max(30_000) }))
+    .min(1, { error: "Aucun texte lisible dans les plans choisis." })
+    .max(10),
+  consent: z.literal(true, { error: "Confirmez l’envoi du texte des plans à l’API OpenAI." }),
+});
+
 /** Déclaration de validation d'un dossier par un professionnel. */
 export const dossierValidationRequest = z.object({
   signedBy: requiredText(150),

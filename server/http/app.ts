@@ -8,7 +8,7 @@ import { getAuth } from "../auth/auth.js";
 import { type AdminEnv, requireAdmin, sameOriginOnly } from "../auth/guard.js";
 import { secondFactorPolicy, secondFactorRequired } from "../auth/policy.js";
 import { ConfigError } from "../env.js";
-import { AiConfigError } from "../ai/client.js";
+import { AiConfigError, AiRefusalError, AiRetriableError } from "../ai/client.js";
 import { AiBudgetError } from "../services/openai.js";
 import { StorageNotConfiguredError } from "../services/storage.js";
 import { agentRoutes, metreRoutes } from "./routes/agents.js";
@@ -104,8 +104,12 @@ export function createApp() {
     }
     if (error instanceof AiBudgetError) return c.json({ error: "plafond_ia", message: error.message }, 429);
     if (error instanceof AiConfigError) return c.json({ error: "ia_non_configuree", message: error.message }, 400);
-    // Le détail reste dans les journaux serveur ; le client reçoit un message neutre.
-    console.error("[api]", c.req.method, c.req.path, error);
+    // Appel direct à un modèle (hors traitement long) : message utile, sans détail technique.
+    if (error instanceof AiRetriableError) return c.json({ error: "ia_indisponible", message: "Le service d’IA n’a pas répondu à temps : réessayez dans un instant, ou complétez les champs à la main." }, 503);
+    if (error instanceof AiRefusalError) return c.json({ error: "ia_refus", message: "Le modèle n’a pas traité cette demande : complétez les champs à la main." }, 422);
+    // Le détail reste dans les journaux serveur, sous une référence que l'utilisateur peut communiquer.
+    const incident = crypto.randomUUID().slice(0, 8);
+    console.error("[api]", incident, c.req.method, c.req.path, error);
     if (error instanceof ConfigError) {
       return c.json({ error: "configuration_incomplete", message: "La configuration du serveur est incomplète." }, 503);
     }
@@ -114,7 +118,7 @@ export function createApp() {
     }
     // Ne relit pas la configuration ici : elle peut être la cause de l'erreur.
     const production = Boolean(process.env.VERCEL_ENV) || process.env.NODE_ENV === "production";
-    return c.json({ error: "erreur_interne", message: "Une erreur est survenue.", ...(production ? {} : { detail: String(error) }) }, 500);
+    return c.json({ error: "erreur_interne", message: `Une erreur est survenue : réessayez, et si elle persiste, communiquez la référence ${incident}.`, incident, ...(production ? {} : { detail: String(error) }) }, 500);
   });
   return app;
 }

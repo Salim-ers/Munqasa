@@ -1,4 +1,26 @@
-# Dossier d'une affaire : génération, contrôle indépendant, contrôle avant export, niveaux de validation
+# Dossier d'une affaire : création, génération, contrôle indépendant, contrôle avant export, niveaux de validation
+
+## Créer une affaire
+
+Bouton *Nouvelle affaire* (tableau de bord, liste des affaires, fiche client). Un seul parcours, en quatre temps
+nommés *Affaire*, *Lots*, *Documents* et *Production* ; l'affaire existe dès le premier, chacun des suivants peut
+être remis à plus tard, et fermer la fenêtre ouvre l'affaire telle qu'elle est.
+
+- **Affaire** : intitulé, client ou maître d'ouvrage, type d'opération, pays, ville, adresse du site, date limite
+  de remise, devise ; secteur, type de marché, phase, nature des travaux, estimation et description sous
+  *Plus de détails*. Un client choisi donne son pays et son secteur s'ils n'ont pas été choisis à la main.
+- **Commencer par les plans** : les plans PDF déposés sont lus sur le poste (texte vectoriel de la première page,
+  cotes écartées) ; après accord explicite, ce texte seul est confié à l'agent d'analyse documentaire. Le
+  serveur ne retient une valeur (intitulé, maître d'ouvrage, adresse et commune du site, nature des travaux) que
+  si le passage cité figure mot pour mot sur un plan et la contient ; chaque champ prérempli montre ce passage,
+  ce qui ne se vérifie pas est écarté et dit. Un maître d'ouvrage déjà client est reconnu (son pays est repris),
+  sinon sa création est proposée. Le type d'opération découle de l'intitulé. Les plans déposés sont ensuite
+  joints à l'affaire, sans nouvel envoi à faire.
+- **Lots** : lots du modèle du type d'opération présélectionnés (logements, réhabilitation, VRD), aucun pour la
+  nomenclature complète du bâtiment ; recherche par numéro ou intitulé.
+- **Documents** : plans et pièces, vérifiés à la réception.
+- **Production** : les mêmes choix que *Générer le dossier* (documents à produire, plans, lots, TVA, niveau du
+  CCTP, accord d'envoi) ; la génération lancée, l'affaire s'ouvre sur son onglet *Dossier* et sa progression.
 
 ## Générer le dossier
 

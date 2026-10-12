@@ -137,6 +137,18 @@ s'exécutent quand leurs chemins sont fournis (`TALAB_SAMPLE_PLAN`, `TALAB_SAMPL
 | IA : quantité inventée, prix hors candidats | écartés, ligne à préciser et à établir |
 | Navigateur | devis créé depuis l’affaire, ligne chiffrée par le serveur, export PDF, devis préparé par l’IA, téléphone sans débordement |
 
+### Création d’une affaire (`tests/server/project-prefill.test.ts`, parcours navigateur)
+
+| Cas | Résultat attendu |
+| --- | --- |
+| Préremplissage sans accord d’envoi | refusé, motif précis |
+| Cartouche réel de PLAN METRIKA | intitulé, maître d’ouvrage et commune retenus avec leur passage cité ; type d’opération « logements » ; pays non supposé |
+| Valeur proposée sans passage sur le plan, valeur qui ajoute un mot | écartée, et signalée |
+| Maître d’ouvrage déjà client | client reconnu, pays du client repris |
+| Navigateur, parcours complet | plan PDF lu sur le poste, champs préremplis avec leur passage, client créé, lot ajouté, plan envoyé et vérifié d’office, génération lancée, dossier contrôlé |
+| Navigateur, étapes remises à plus tard | affaire ouverte telle quelle |
+| Téléphone | fenêtre de création sans débordement |
+
 ### Chaîne des agents et contrôle avant export (`tests/server/agents-pipeline.test.ts`, `tests/server/dossier.test.ts`, parcours navigateur)
 
 | Cas | Résultat attendu |

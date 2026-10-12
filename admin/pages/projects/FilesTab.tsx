@@ -174,7 +174,7 @@ export function FilesTab({ projectId }: { projectId: string }) {
   );
 }
 
-function DropZone({ onFiles }: { onFiles: (files: FileList) => void }) {
+export function DropZone({ onFiles, accept = ACCEPT, title = "Glissez vos fichiers ici" }: { onFiles: (files: FileList) => void; accept?: string; title?: string }) {
   const inputId = useId();
   const input = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
@@ -206,7 +206,7 @@ function DropZone({ onFiles }: { onFiles: (files: FileList) => void }) {
         <span className={cn("grid size-11 place-items-center rounded-xl transition-colors", over ? "bg-accent text-on-accent" : "bg-surface-2 text-ink-2")}>
           <UploadCloud className="size-5" aria-hidden="true" />
         </span>
-        <span className="text-xs font-semibold text-ink">{over ? "Déposez pour envoyer" : "Glissez vos fichiers ici"}</span>
+        <span className="text-xs font-semibold text-ink">{over ? "Déposez pour envoyer" : title}</span>
         <span className="text-2xs text-ink-3">ou touchez pour les choisir</span>
       </label>
       <input
@@ -214,7 +214,7 @@ function DropZone({ onFiles }: { onFiles: (files: FileList) => void }) {
         id={inputId}
         type="file"
         multiple
-        accept={ACCEPT}
+        accept={accept}
         className="sr-only"
         onChange={(e) => {
           if (e.target.files?.length) onFiles(e.target.files);
@@ -225,7 +225,7 @@ function DropZone({ onFiles }: { onFiles: (files: FileList) => void }) {
   );
 }
 
-function UploadRow({ item, onCancel }: { item: UploadItem; onCancel: () => void }) {
+export function UploadRow({ item, onCancel }: { item: UploadItem; onCancel: () => void }) {
   const label =
     item.stage === "attente" ? "En attente" : item.stage === "envoi" ? `${Math.round(item.progress * 100)} %` : item.stage === "verification" ? "Vérification" : item.stage === "termine" ? "Vérifié" : "Échec";
   return (
