@@ -125,7 +125,9 @@ function tableOf(block: Extract<Block, { type: "table" }>, pal: Palette, content
         }),
     ),
   });
-  const body = block.rows.map((row: Row) => {
+  const body = block.rows.map((row: Row, rowIndex) => {
+    // Tableau gardé d'un seul tenant : chaque ligne reste avec la suivante, la dernière exceptée.
+    const keepNext = Boolean(block.keepTogether) && rowIndex < block.rows.length - 1;
     const strong = row.kind === "group" || row.kind === "subtotal" || row.kind === "total";
     const fill = row.kind === "group" ? pal.surfaceAlt : row.kind === "total" ? pal.surface : null;
     const topBorder = row.kind === "total" || row.kind === "subtotal" ? { style: BorderStyle.SINGLE, size: 8, color: hex(row.kind === "total" ? pal.ink : pal.rule) } : none;
@@ -147,6 +149,7 @@ function tableOf(block: Extract<Block, { type: "table" }>, pal: Palette, content
                 new Paragraph({
                   alignment: align(cell.align ?? block.columns[index]?.align),
                   spacing: { after: 0 },
+                  keepNext,
                   children: runs([{ text: line, bold: (cell.bold || strong) && i === 0 }], pal, { size: i === 0 ? size : size - 0.6, color: i === 0 ? color : pal.muted }),
                 }),
             ),

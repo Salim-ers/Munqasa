@@ -66,7 +66,8 @@ export type Block =
   | { type: "note"; content: Inline[]; label?: string }
   | { type: "callout"; tone: "info" | "warning" | "danger" | "success"; title: string; content: Inline[] }
   | { type: "keyValues"; rows: Array<[string, string]> }
-  | { type: "table"; columns: Column[]; rows: Row[]; dense?: boolean; caption?: string | null }
+  /** « keepTogether » : tableau court (récapitulatif, totaux) jamais coupé entre deux pages. */
+  | { type: "table"; columns: Column[]; rows: Row[]; dense?: boolean; caption?: string | null; keepTogether?: boolean }
   | { type: "references"; codes: string[] }
   | { type: "pageBreak" };
 

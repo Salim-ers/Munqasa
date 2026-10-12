@@ -250,6 +250,8 @@ export function quoteModel(data: QuoteDocData): DocModel {
       { label: `Montant, ${currency}`, width: 22, align: "right" },
     ],
     rows: totalsRows.map(([label, value]) => ({ kind: label.startsWith("Total TTC") ? "total" : "item", cells: [label, { text: value, align: "right" }] })),
+    // Le total TTC ne se retrouve jamais seul en haut d'une page, séparé du hors taxes et de la TVA.
+    keepTogether: true,
   });
   const conditions: Array<[string, string]> = [];
   if (quote.paymentTerms) conditions.push(["Conditions de règlement", quote.paymentTerms]);

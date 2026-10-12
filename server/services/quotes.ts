@@ -318,6 +318,7 @@ export async function createQuote(db: Database, input: QuoteCreateInput): Promis
     dpgfDoc = loaded[0]!.dpgf;
     dpgfCount = loaded.length;
     if (loaded.some((x) => x.dpgf.projectId !== dpgfDoc!.projectId)) throw new QuoteError("Les DPGF choisies appartiennent à des affaires différentes.", 400);
+    if (projectRow && dpgfDoc.projectId !== projectRow.id) throw new QuoteError("Cette DPGF appartient à une autre affaire.", 400);
     if (loaded.some((x) => x.dpgf.currency !== dpgfDoc!.currency)) throw new QuoteError("Les DPGF choisies sont établies dans des devises différentes.", 400);
     if (loaded.length === 1) dpgfLines = loaded[0]!.lines;
     else {

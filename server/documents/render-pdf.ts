@@ -165,8 +165,10 @@ function startHeight(blocks: Block[], index: number, contentWidth: number, depth
       const widths = fitColumns(block, { contentWidth, size, padding: CELL_PADDING * 2 }).map((w) => Math.max(w - CELL_PADDING * 2, 4));
       const rowHeight = (texts: string[]) => Math.max(...texts.map((t, i) => t.split("\n").reduce((n, line) => n + lineCount(printable(line), widths[i] ?? contentWidth, size), 0)), 1) * LINE(size) + pad + 1;
       const header = rowHeight(block.columns.map((c) => c.label));
-      const first = block.rows[0] ? rowHeight(block.rows[0].cells.map((c) => cellOf(c).text)) : 0;
-      return (block.caption ? LINE(TYPE.small) + 3 : 0) + 2 + header + first;
+      // Tableau gardé d'un seul tenant : le titre qui le précède réserve sa hauteur entière.
+      const kept = block.keepTogether ? block.rows : block.rows.slice(0, 1);
+      const body = kept.reduce((h, row) => h + rowHeight(row.cells.map((c) => cellOf(c).text)), 0);
+      return (block.caption ? LINE(TYPE.small) + 3 : 0) + 2 + header + body;
     }
     case "references":
       return LINE(TYPE.small);
@@ -241,11 +243,12 @@ function tableNode(block: Extract<Block, { type: "table" }>, pal: Palette, conte
       paddingBottom: () => pad,
     },
     margin: [0, 2, 0, compact ? 8 : 10],
+    ...(block.keepTogether ? { unbreakable: true } : {}),
   };
   const stack: Content[] = [];
   if (block.caption) stack.push({ text: printable(block.caption), fontSize: TYPE.small, color: pal.muted, margin: [0, 0, 0, 3] });
   stack.push(node);
-  return { stack };
+  return block.keepTogether ? { stack, unbreakable: true } : { stack };
 }
 
 function blockNodes(block: Block, pal: Palette, contentWidth: number, compact: boolean): Content[] {

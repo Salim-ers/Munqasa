@@ -18,7 +18,38 @@ les coordonnées de chaque ligne de texte, lecture des classeurs Excel).
 
 Chaque ligne est un test automatisé, rejoué par `npm test` (serveur, base PostgreSQL réelle en mémoire,
 fournisseur d'IA simulé) ou `npm run test:e2e` (navigateur). Les tests sur les fichiers privés de l'affaire
-s'exécutent quand leurs chemins sont fournis (`TALAB_SAMPLE_PLAN`, `TALAB_SAMPLE_DPGF`).
+s'exécutent quand leurs chemins sont fournis (`TALAB_SAMPLE_DOSSIER` pour le dossier TAL-2026-0003,
+`TALAB_SAMPLE_PLAN` pour PLAN METRIKA, `TALAB_SAMPLE_DPGF`) ; ces fichiers ne sont jamais versionnés.
+
+### Bilan de la validation (phase 10, 12 octobre 2026)
+
+| Suite | Résultat |
+| --- | --- |
+| Vérification des types (application, serveur, administration, scripts, tests) | aucune erreur |
+| Tests serveur (`npm test`, 25 fichiers) | 264 réussis sur 264 |
+| Tests sur les fichiers réels (TAL-2026-0003, PLAN METRIKA, DPGF) | 6 réussis sur 6 |
+| Parcours navigateur (`npm run test:e2e`) | 22 réussis sur 22, aucune erreur dans le navigateur, aucun débordement sur téléphone |
+| Construction de production | réussie |
+
+### Critères d'acceptation et preuves
+
+| Critère du cahier des charges | Preuve |
+| --- | --- |
+| 1. Scénarios de non-régression existants | 164 tests et 19 parcours d'avant la mission toujours rejoués et réussis ; génération lancée avec l'ancienne forme d'entrée menée à son terme ; anomalies antérieures classées par leur catégorie |
+| 2. Calculs financiers | moteur du devis vérifié à la main au centime (remises, TVA par taux, arrondis, acompte), totaux multi-lots à deux taux, prix décomposé, totaux partiels, conversion d'unités exacte |
+| 3. Pertes appliquées une seule fois | tests de calcul des pertes, correction des consommations qui les comprenaient déjà, point « Pertes » du contrôle avant export |
+| 4. Sous-détails impossibles identifiés sans faux coût nul | état « décomposition impossible » et coûts non renseignés, jamais « 0,00 », dans les tests de chiffrage et les exports |
+| 5. Quantités justifiables calculées avec traçabilité | métré tracé cote par cote sur PLAN METRIKA, quantités de DPGF reprises du métré avec leur source, ouvrages vérifiés conservés au métré relancé |
+| 6. Composition et pagination | contrôle de rendu de chaque export (CCTP de 3 à 92 pages, DPGF de 26 pages, sous-détails multipages, devis court et devis détaillé de 13 pages, descriptions longues) à 0 anomalie, dossier réel TAL-2026-0003 recomposé à 0 anomalie |
+| 7. Moteur de devis de bout en bout | création, chiffrage, contrôle avant export, statuts, version figée, exports, devis par l'IA et devis repris des DPGF par la chaîne des agents |
+| 8. Menus de lots et références existantes | catalogue numéroté, sélecteur, lots recopiés sans renumérotation, lots de l'affaire dans la génération et la création d'affaire |
+| 9. Connexion sans double authentification | 11 tests sans second facteur, 20 avec, protections inchangées, réactivation sans perte |
+| 10. Bibliothèques réellement alimentées | bilan compté en base de production (879 références françaises, 7 393 marocaines) ; prix historiques et valeurs réglementaires jamais repris d'office |
+| 11. Cohérence CCTP, DPGF, sous-détails, devis, métrés | contrôles croisés rattachés aux quinze points du contrôle avant export, identifiants d'ouvrages et de postes partagés par les agents |
+| 12. Statuts fidèles au niveau de complétude | statut imprimé calculé, jamais « validé » avec une anomalie bloquante ; document validé malgré une anomalie bloquante signalé |
+
+Le niveau visé reste à confirmer par des tests métier et des revues humaines indépendantes ; aucun contrôle
+automatique ne certifie la conformité structurelle, réglementaire ou contractuelle d'un dossier.
 
 ### Calculs financiers (`tests/server/pricing.test.ts`, `tests/server/chiffrage.test.ts`)
 
@@ -136,6 +167,19 @@ s'exécutent quand leurs chemins sont fournis (`TALAB_SAMPLE_PLAN`, `TALAB_SAMPL
 | IA : « 120 m² de murs » dans la description | quantité 120 citée comme source, prix du candidat de la bibliothèque |
 | IA : quantité inventée, prix hors candidats | écartés, ligne à préciser et à établir |
 | Navigateur | devis créé depuis l’affaire, ligne chiffrée par le serveur, export PDF, devis préparé par l’IA, téléphone sans débordement |
+
+### Validation complémentaire (`tests/server/validation-v4.test.ts`)
+
+| Cas | Résultat attendu |
+| --- | --- |
+| Devis détaillé : 80 lignes en 4 sections, descriptions longues, option, TVA 10 et 20 %, remises | 13 pages, PDF, Word et Excel à 0 anomalie de rendu, chaque ligne présente, récapitulatif jamais coupé |
+| DPGF de 45 postes aux descriptions longues | DPGF, BPU, DQE et estimation en PDF et Excel à 0 anomalie |
+| Devis depuis deux DPGF : 10 × 1 250,50 + 3 × 333,33 à 20 %, 120,5 × 18,40 + 1 500 à 10 % | 17 222,19 HT ; TVA 371,72 et 2 701,00 ; 20 294,91 TTC ; une section par lot avec son sous-total |
+| Unités | m² = m2, m = ml, forfait = ens ; 1 t = 1 000 kg, 1 cm = 0,01 m, 1 l = 0,001 m³ ; jamais m² vers m³ ni heure vers jour |
+| Prix de 14 000 la tonne pour 2 500 kg d’armatures | 14 par kg, 35 000,00, conversion écrite dans la provenance ; prix au m² refusé pour un poste au kg |
+| DPGF ou plans d’une autre affaire | refusés, motif précis |
+| Génération lancée avec l’ancienne forme d’entrée | CCTP et DPGF établis, contrôles faits, rien d’autre lancé |
+| Anomalie enregistrée avant le contrôle avant export | classée d’après sa catégorie |
 
 ### Création d’une affaire (`tests/server/project-prefill.test.ts`, parcours navigateur)
 

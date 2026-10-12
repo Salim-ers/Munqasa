@@ -13,7 +13,7 @@ import { type Database, schema } from "../db/index.js";
 import { Dec } from "./decimal.js";
 import { lineAmount } from "./dpgf.js";
 import { lossesAlreadyIncluded } from "./pricing.js";
-import { isKnownUnit, normalizeUnit, sameUnit } from "./units.js";
+import { compatibleUnits, isKnownUnit, normalizeUnit, sameUnit } from "./units.js";
 import { readSetting } from "./settings.js";
 
 export interface IssueDraft {
@@ -286,7 +286,7 @@ export async function checkDpgf(db: Database, dpgfId: string): Promise<IssueDraf
       if (isHistoricalPrice(price, stalePriceMonths)) issues.push({ severity: "mineure", category: "version", point: "prix", message: `Prix historique de la bibliothèque, plus de ${stalePriceMonths} mois : ${price.designation}, ${price.period ?? price.priceDate.split("-").reverse().join("/")}, poste ${label(p)}`, targets: target(p.id) });
       if (price.reliability === "faible") issues.push({ severity: "mineure", category: "reserve", point: "prix", message: `Prix de bibliothèque de fiabilité faible : ${price.designation}, poste ${label(p)}`, targets: target(p.id) });
       if (price.currency !== doc.currency) issues.push({ severity: "bloquante", category: "incoherence", point: "prix", message: `Prix de bibliothèque en ${price.currency} dans une DPGF en ${doc.currency} : poste ${label(p)}`, targets: target(p.id) });
-      if (p.unit && !sameUnit(price.unit, p.unit)) issues.push({ severity: "majeure", category: "unite", point: "unites", message: `Unité du prix de bibliothèque différente de celle du poste (${price.unit} au lieu de ${p.unit}) : ${label(p)}`, targets: target(p.id) });
+      if (p.unit && !compatibleUnits(price.unit, p.unit)) issues.push({ severity: "majeure", category: "unite", point: "unites", message: `Unité du prix de bibliothèque différente de celle du poste (${price.unit} au lieu de ${p.unit}) : ${label(p)}`, targets: target(p.id) });
     }
   }
 

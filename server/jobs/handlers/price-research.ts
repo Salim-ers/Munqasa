@@ -1,6 +1,6 @@
 /**
  * Agent de recherche de prix, dans la génération du dossier : pour chaque poste encore sans prix d'une DPGF,
- * prix candidats cherchés dans la bibliothèque (prix d'ouvrage de même unité, même devise et même pays,
+ * prix candidats cherchés dans la bibliothèque (prix d'ouvrage de même unité ou d'une unité convertible, même devise et même pays,
  * jamais historiques, jamais une valeur réglementaire), puis choix par l'agent parmi ces seuls candidats.
  * Le serveur applique le prix choisi avec les règles d'un choix manuel (services/dpgf-prices.ts) : provenance
  * inscrite, poste à vérifier. Un poste dont un sous-détail donne déjà un prix est laissé à ce sous-détail, qui
@@ -14,7 +14,7 @@ import { applyLibraryPrice } from "../../services/dpgf-prices.js";
 import { findCandidates, type PriceCandidate } from "../../services/pricing.js";
 import { checkDpgf, replaceIssues } from "../../services/quality.js";
 import { readSetting } from "../../services/settings.js";
-import { sameUnit } from "../../services/units.js";
+import { compatibleUnits } from "../../services/units.js";
 import type { StepContext, StepOutcome } from "../types.js";
 
 /** Postes soumis à l'agent par recherche : chaque poste interroge la bibliothèque. */
@@ -56,7 +56,7 @@ export async function priceResearchStep(ctx: StepContext, dpgfId: string): Promi
   const candidates = new Map<string, PriceCandidate[]>();
   for (const p of targets) {
     const found = await findCandidates(db, { text: `${p.designation} ${p.description ?? ""}`, currency: doc.currency, country: project!.country, city: project!.city, limit: 15, purpose: "devis", staleMonths: stalePriceMonths });
-    const fitting = found.filter((c) => sameUnit(c.unit, p.unit)).slice(0, 5);
+    const fitting = found.filter((c) => compatibleUnits(c.unit, p.unit)).slice(0, 5);
     if (fitting.length) candidates.set(p.id, fitting);
   }
 

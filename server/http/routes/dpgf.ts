@@ -15,7 +15,7 @@ import { applyLibraryPrice } from "../../services/dpgf-prices.js";
 import { findCandidates } from "../../services/pricing.js";
 import { checkDpgf, hasBlockingIssues, replaceIssues } from "../../services/quality.js";
 import { readSetting } from "../../services/settings.js";
-import { sameUnit } from "../../services/units.js";
+import { compatibleUnits } from "../../services/units.js";
 import { listVersions, snapshotDpgf } from "../../services/versions.js";
 import { body, conflict, notFound, patchBody, uuidParam, ValidationError } from "../validate.js";
 import { serializeJob } from "./agents.js";
@@ -76,7 +76,7 @@ export const dpgfRoutes = new Hono<AdminEnv>()
     const { stalePriceMonths } = await readSetting("alertes");
     for (const line of targets.slice(0, MATCH_LIMIT)) {
       const candidates = line.unit
-        ? (await findCandidates(db, { text: `${line.designation} ${line.description ?? ""}`, currency: doc.currency, country: project!.country, city: project!.city, limit: 15, purpose: "ligne", staleMonths: stalePriceMonths })).filter((cand) => sameUnit(cand.unit, line.unit)).slice(0, 5)
+        ? (await findCandidates(db, { text: `${line.designation} ${line.description ?? ""}`, currency: doc.currency, country: project!.country, city: project!.city, limit: 15, purpose: "ligne", staleMonths: stalePriceMonths })).filter((cand) => compatibleUnits(cand.unit, line.unit)).slice(0, 5)
         : [];
       items.push({ lineId: line.id, code: line.code, designation: line.designation, unit: line.unit, quantity: line.quantity, unitPrice: line.unitPrice, priceSource: line.priceSource, candidates });
     }
