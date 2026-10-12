@@ -6,6 +6,7 @@ import { dossierAuditHandler } from "./handlers/dossier-audit.js";
 import { dpgfHandler } from "./handlers/dpgf.js";
 import { planAnalysisHandler } from "./handlers/plan-analysis.js";
 import { priceImportHandler } from "./handlers/price-import.js";
+import { quoteAiHandler } from "./handlers/quote-ai.js";
 import { sousDetailHandler } from "./handlers/sous-detail.js";
 import type { JobHandler } from "./types.js";
 
@@ -17,6 +18,7 @@ const handlers: Partial<Record<JobKind, JobHandler>> = {
   import_prix: priceImportHandler,
   controle_qualite: dossierAuditHandler,
   generation_dossier: dossierHandler,
+  generation_devis: quoteAiHandler,
 };
 
 export function handlerFor(kind: JobKind): JobHandler {

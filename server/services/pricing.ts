@@ -262,13 +262,13 @@ const lineScope = sql`(price_scope in ('fourniture_pose', 'ouvrage_complet') or 
  * proximité : ville de l'affaire, sa région, niveau national, autres zones. Une seule déclinaison par
  * référence (la plus proche, puis la plus récente). Un prix TTC sans taux de TVA connu est écarté.
  * Avec un seuil d'ancienneté, chaque prix est marqué historique ou non ; pour un chiffrage automatique
- * (sous-détails établis par l'agent), les prix historiques sont écartés, ainsi que les valeurs
+ * (sous-détails établis par l'agent, devis préparé par l'IA), les prix historiques sont écartés, ainsi que les valeurs
  * réglementaires (salaires minimaux bruts, indemnités) : bases de calcul d'un déboursé que l'économiste
  * établit avec ses charges, jamais un coût à reprendre tel quel.
  */
 export async function findCandidates(
   db: Database,
-  params: { text: string; currency: string; country: string; city?: string | null; limit?: number; purpose?: "sous_detail" | "ligne"; staleMonths?: number | null },
+  params: { text: string; currency: string; country: string; city?: string | null; limit?: number; purpose?: "sous_detail" | "ligne" | "devis"; staleMonths?: number | null },
 ): Promise<PriceCandidate[]> {
   const words = keywords(params.text);
   if (words.length === 0) return [];
@@ -299,9 +299,9 @@ export async function findCandidates(
       where archived_at is null and verification_status <> 'rejete' and kind <> 'ratio'
         and currency = ${params.currency} and country = ${params.country}
         and (tax_basis is distinct from 'TTC' or vat_rate is not null)
-        ${params.purpose === "ligne" ? sql`and ${lineScope}` : sql``}
-        ${params.purpose === "sous_detail" && before ? sql`and not ${historical}` : sql``}
-        ${params.purpose === "sous_detail" ? sql`and not regulated` : sql``}
+        ${params.purpose === "ligne" || params.purpose === "devis" ? sql`and ${lineScope}` : sql``}
+        ${(params.purpose === "sous_detail" || params.purpose === "devis") && before ? sql`and not ${historical}` : sql``}
+        ${params.purpose === "sous_detail" || params.purpose === "devis" ? sql`and not regulated` : sql``}
     ), ranked as (
       select c.*, ts_rank(to_tsvector('french', unaccent_text), websearch_to_tsquery('french', ${query})) as rank,
         row_number() over (partition by coalesce(c.group_key, c.id::text) order by c.locality, c.price_date desc) as rn

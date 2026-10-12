@@ -11,6 +11,7 @@ import { getEnv } from "../../env.js";
 import { writeAudit } from "../../services/audit.js";
 import { generateDeadlineReminders } from "../../services/notifications.js";
 import { scheduleSourceChecks } from "../../services/price-sources/schedule.js";
+import { expireQuotes } from "../../services/quotes.js";
 import { getStorage } from "../../services/storage.js";
 import { resumeStalledJobs, runSlice, verifyJobToken } from "../../jobs/runner.js";
 
@@ -68,6 +69,11 @@ export const jobRoutes = new Hono()
     console.error("[cron] sources de prix", error);
     return 0;
   });
-  await writeAudit({ action: "systeme.tache_planifiee", details: { rappels: reminders, envoisAbandonnes: abandonedUploads, traitementsRelances: resumedJobs, sourcesDePrix: priceChecks } });
-  return c.json({ ok: true, reminders, abandonedUploads, resumedJobs, priceChecks });
+  // Devis envoyés dont la validité est dépassée : passés au statut expiré.
+  const expiredQuotes = await expireQuotes(db).catch((error: unknown) => {
+    console.error("[cron] devis expirés", error);
+    return 0;
+  });
+  await writeAudit({ action: "systeme.tache_planifiee", details: { rappels: reminders, envoisAbandonnes: abandonedUploads, traitementsRelances: resumedJobs, sourcesDePrix: priceChecks, devisExpires: expiredQuotes } });
+  return c.json({ ok: true, reminders, abandonedUploads, resumedJobs, priceChecks, expiredQuotes });
   });

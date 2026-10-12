@@ -42,10 +42,11 @@ export const FORMATS: Record<DocumentKind, ExportFormat[]> = {
   controle: ["docx", "pdf"],
   bibliotheque: ["xlsx", "csv", "pdf"],
   sous_details: ["xlsx", "pdf"],
+  devis: ["pdf", "xlsx", "docx"],
 };
 
 /** Ce que désigne l'identifiant de l'export : un document, une DPGF ou l'affaire entière. */
-export const ID_SCOPE: Record<Exclude<DocumentKind, "bibliotheque">, "cctp" | "dpgf" | "affaire"> = {
+export const ID_SCOPE: Record<Exclude<DocumentKind, "bibliotheque" | "devis">, "cctp" | "dpgf" | "affaire"> = {
   cctp: "cctp",
   dpgf: "dpgf",
   bpu: "dpgf",
@@ -90,7 +91,7 @@ async function dpgfFamily(data: DpgfData, kind: keyof typeof DPGF_BUILDERS, form
 }
 
 /** Rend un document : CCTP par son identifiant, documents de la DPGF par celui de la DPGF, rapports et métré par celui de l'affaire. */
-export async function renderExport(db: Database, kind: Exclude<DocumentKind, "bibliotheque">, id: string, format: ExportFormat, theme: DocTheme, options: { lotId?: string | null } = {}): Promise<ExportResult> {
+export async function renderExport(db: Database, kind: Exclude<DocumentKind, "bibliotheque" | "devis">, id: string, format: ExportFormat, theme: DocTheme, options: { lotId?: string | null } = {}): Promise<ExportResult> {
   if (!FORMATS[kind]?.includes(format)) throw new UnsupportedFormat(`Format ${format} indisponible pour ce document.`);
   switch (kind) {
     case "cctp": {

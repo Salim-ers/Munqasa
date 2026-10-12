@@ -5,7 +5,7 @@
  */
 import type { DocTheme } from "./brand.js";
 
-export type DocumentKind = "cctp" | "dpgf" | "bpu" | "dqe" | "estimation" | "metre" | "analyse" | "controle" | "bibliotheque" | "sous_details";
+export type DocumentKind = "cctp" | "dpgf" | "bpu" | "dqe" | "estimation" | "metre" | "analyse" | "controle" | "bibliotheque" | "sous_details" | "devis";
 
 export interface DocMeta {
   kind: DocumentKind;
@@ -28,6 +28,8 @@ export interface DocMeta {
   toc: boolean;
   /** Mention de réserve imprimée sous le titre (estimation, contrôle automatique…). */
   disclaimer?: string | null;
+  /** Grille d'informations de la couverture propre au document (devis : client, chantier, validité…). */
+  coverRows?: Array<[string, string]>;
 }
 
 /** Mise en forme d'un morceau de texte dans un paragraphe. */

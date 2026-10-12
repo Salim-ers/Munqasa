@@ -118,3 +118,21 @@ s'exécutent quand leurs chemins sont fournis (`TALAB_SAMPLE_PLAN`, `TALAB_SAMPL
 | Filtre par lot 17 et 01 | carrelage seul ; ciment sans sous-famille compris dans le gros œuvre |
 | Mise à jour de la bibliothèque après chiffrage | ligne de DPGF et composant de sous-détail inchangés |
 | Premier chargement rejoué | sources déjà chargées jamais relues ; bilan réel par pays |
+
+### Devis (`tests/server/quotes.test.ts`, parcours navigateur)
+
+| Cas | Résultat attendu |
+| --- | --- |
+| 12,5 × 18,333 avec 10 % de remise, 3 × 1 250 à 10 %, 7 × 45,50, remise globale de 5 %, acompte de 30 % | net 206,22 ; total des lignes 4 274,72 ; remise 213,74 ; HT 4 060,98 ; TVA 356,25 et 99,70 sur 3 562,50 et 498,48 ; TTC 4 516,93 ; acompte 1 355,08 ; option hors total |
+| Ligne sans prix, devis sans taux de TVA | totaux partiels, TVA et TTC à établir, jamais 0,00 |
+| Autoliquidation | aucune TVA, TTC égal au HT, mention légale |
+| Fourniture 40 et pose 25, frais de chantier 5 %, frais généraux 10 %, aléas 2 %, marge 15 % | prix unitaire 87,91 ; prix direct jamais majoré |
+| Création depuis DPGF, métré, bibliothèque | provenance des prix et des quantités ; poste non chiffré à établir ; métré incomplètement vérifié signalé ; prix TTC ramené HT ; ratio refusé |
+| Déclarer prêt un devis incomplet | refusé avec le motif |
+| Envoi | verrou, version figée avec émetteur et client, modification refusée |
+| Prix de la bibliothèque modifié après envoi | devis inchangé |
+| Nouvelle version, duplication, archivage, validité dépassée | brouillon modifiable, nouveau numéro, liste filtrée, statut expiré |
+| PDF, Word, Excel | 0 anomalie de mise en page ou de structure |
+| IA : « 120 m² de murs » dans la description | quantité 120 citée comme source, prix du candidat de la bibliothèque |
+| IA : quantité inventée, prix hors candidats | écartés, ligne à préciser et à établir |
+| Navigateur | devis créé depuis l’affaire, ligne chiffrée par le serveur, export PDF, devis préparé par l’IA, téléphone sans débordement |

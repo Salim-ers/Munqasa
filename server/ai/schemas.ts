@@ -225,3 +225,35 @@ export const sousDetailBatch = z.object({
   ),
 });
 export type SousDetailBatch = z.output<typeof sousDetailBatch>;
+
+/**
+ * Préparation d'un devis, première étape : postes proposés et source de chaque quantité. Une quantité ne vient
+ * que d'un poste de DPGF ou d'un ouvrage du métré désignés par leur identifiant, ou d'un nombre écrit dans la
+ * description de l'utilisateur, cité mot pour mot ; sinon elle reste à préciser. Aucun prix à cette étape.
+ */
+export const quoteDraft = z.object({
+  title: z.string(),
+  postes: z.array(
+    z.object({
+      key: z.string(),
+      section: z.string().nullable(),
+      designation: z.string(),
+      description: z.string().nullable(),
+      unit: z.string().nullable(),
+      source: z.enum(["dpgf", "metre", "description", "aucune"]),
+      sourceId: z.string().nullable(),
+      quantity: z.string().nullable(),
+      /** Passage de la description qui porte la quantité, cité mot pour mot. */
+      quantityQuote: z.string().nullable(),
+    }),
+  ),
+  /** Points que l'utilisateur doit confirmer (caractéristiques, quantités, choix techniques) : jamais des obligations inventées. */
+  questions: z.array(z.string()),
+});
+export type QuoteDraft = z.output<typeof quoteDraft>;
+
+/** Préparation d'un devis, seconde étape : choix d'un prix parmi les candidats proposés, ou aucun. */
+export const quotePricing = z.object({
+  choices: z.array(z.object({ key: z.string(), priceItemId: z.string().nullable(), justification: z.string().nullable() })),
+});
+export type QuotePricing = z.output<typeof quotePricing>;

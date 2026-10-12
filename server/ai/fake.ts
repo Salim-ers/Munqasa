@@ -124,6 +124,29 @@ const builders: Record<string, (input: string) => unknown> = {
       }),
     };
   },
+  devis_postes: (input) => {
+    // Sources transmises : postes de DPGF et ouvrages du métré d'abord, sinon un poste tiré de la description.
+    const start = input.indexOf("Sources (JSON)");
+    const json = start >= 0 ? input.slice(input.indexOf("{", start)) : "{}";
+    let sources: { description?: string | null; dpgf?: Array<{ id: string; designation: string; unite: string | null }>; metre?: Array<{ id: string; designation: string; unite: string | null }> } = {};
+    try {
+      sources = JSON.parse(json) as typeof sources;
+    } catch {
+      sources = {};
+    }
+    const postes: unknown[] = [];
+    (sources.dpgf ?? []).slice(0, 20).forEach((p, i) => postes.push({ key: `d${i + 1}`, section: "Travaux de la DPGF", designation: p.designation, description: null, unit: p.unite, source: "dpgf", sourceId: p.id, quantity: null, quantityQuote: null }));
+    (sources.metre ?? []).slice(0, 20).forEach((m, i) => postes.push({ key: `m${i + 1}`, section: "Ouvrages du métré", designation: m.designation, description: null, unit: m.unite, source: "metre", sourceId: m.id, quantity: null, quantityQuote: null }));
+    const text = sources.description ?? "";
+    const match = /(\d+(?:[.,]\d+)?)\s*(m²|m2|m³|m3|ml|u)(?![a-z0-9])([^.;,]*)/i.exec(text);
+    if (match) postes.push({ key: "t1", section: null, designation: text.split(/[.;]/)[0]!.slice(0, 120), description: null, unit: match[2]!.replace("2", "²").replace("3", "³"), source: "description", sourceId: null, quantity: match[1]!.replace(",", "."), quantityQuote: match[0]!.trim() });
+    else if (text) postes.push({ key: "t1", section: null, designation: text.split(/[.;]/)[0]!.slice(0, 120), description: null, unit: "forfait", source: "aucune", sourceId: null, quantity: null, quantityQuote: null });
+    return { title: text ? text.split(/[.;]/)[0]!.slice(0, 80) : "Travaux de l’affaire", postes, questions: postes.length ? ["Confirmer les caractéristiques des ouvrages"] : [] };
+  },
+  devis_prix: (input) => {
+    const postes = jsonAfter(input, "Postes (JSON)") as Array<{ key: string; prixCandidats: Array<{ id: string }> }>;
+    return { choices: postes.map((p) => ({ key: p.key, priceItemId: p.prixCandidats[0]?.id ?? null, justification: p.prixCandidats.length ? "Candidat le plus proche" : null })) };
+  },
   releve_plan: () => ({
     sheet: { title: "Plan de fondations", number: "GO-01", kind: "plan_niveau", level: "Fondations", scale: "1/100", revision: "B", readable: true },
     elements: [

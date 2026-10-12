@@ -71,6 +71,13 @@
       "when": 1791804732129,
       "tag": "0009_valeurs_reglementaires",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791806340779,
+      "tag": "0010_devis_complets",
+      "breakpoints": true
     }
   ]
 }

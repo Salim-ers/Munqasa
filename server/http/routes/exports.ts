@@ -48,7 +48,7 @@ async function guarded<T>(work: () => Promise<T>): Promise<T> {
 }
 
 /** Rendu commun aux routes d'export, avec journal et erreurs explicites. */
-export async function exportResponse(c: Context<AdminEnv>, kind: Exclude<DocumentKind, "bibliotheque">, id: string, format: ExportFormat): Promise<Response> {
+export async function exportResponse(c: Context<AdminEnv>, kind: Exclude<DocumentKind, "bibliotheque" | "devis">, id: string, format: ExportFormat): Promise<Response> {
   const db = await getDb();
   const lotId = c.req.query("lot");
   const result = await guarded(() => renderExport(db, kind, id, format, themeOf(c), { lotId: lotId && UUID.test(lotId) ? lotId : null }));
@@ -90,7 +90,7 @@ export const exportRoutes = new Hono<AdminEnv>()
     return download({ buffer: result.buffer, fileName: result.fileName, contentType: CONTENT_TYPES.zip });
   })
   .get("/:kind/:id/:format", async (c) => {
-    const kind = c.req.param("kind") as Exclude<DocumentKind, "bibliotheque">;
+    const kind = c.req.param("kind") as Exclude<DocumentKind, "bibliotheque" | "devis">;
     const id = c.req.param("id");
     if (!(kind in ID_SCOPE)) notFound("Type de document inconnu.");
     if (!UUID.test(id)) notFound("Document introuvable.");

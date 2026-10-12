@@ -22,6 +22,7 @@ test.describe.serial("administration", () => {
   let page: Page;
   const problems: string[] = [];
   let projectUrl = "";
+  let quoteUrl = "";
 
   test.beforeAll(async ({ browser }) => {
     context = await browser.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
@@ -477,6 +478,46 @@ test.describe.serial("administration", () => {
     await expect(page.getByText(/Reste à faire :/).first()).toBeVisible();
   });
 
+  test("crée un devis depuis l'affaire, le chiffre, le télécharge, puis en fait préparer un par l'IA", async () => {
+    await page.goto(projectUrl);
+    await page.getByRole("button", { name: "Créer un devis" }).click();
+    const dialog = page.getByRole("dialog", { name: "Nouveau devis" });
+    await expect(dialog.getByRole("radio", { name: /Depuis une affaire/ })).toHaveAttribute("aria-checked", "true");
+    await dialog.getByRole("button", { name: "Créer le devis" }).click();
+    await expect(page).toHaveURL(/\/administration\/devis\/[0-9a-f-]{36}$/);
+    quoteUrl = page.url();
+    await expect(page.getByRole("heading", { name: /^Devis DEV-\d{4}-\d{4}$/ })).toBeVisible();
+
+    await page.getByRole("button", { name: "Ligne", exact: true }).click();
+    const line = page.getByRole("dialog", { name: "Nouvelle ligne" });
+    await line.getByLabel("Désignation").fill("Enduit de façade monocouche");
+    await line.getByRole("textbox", { name: /^Unité/ }).fill("m2");
+    await line.getByRole("textbox", { name: /^Quantité/ }).fill("150");
+    await line.getByRole("textbox", { name: /^Prix unitaire HT/ }).fill("95");
+    await line.getByRole("button", { name: "Enregistrer" }).click();
+    // 150 × 95 = 14 250, calculé par le serveur.
+    await expect(page.getByText(/^14\s250,00\sMAD$/).first()).toBeVisible();
+
+    await page.getByRole("textbox", { name: /^Validité, en jours/ }).fill("30");
+    await page.getByRole("button", { name: "Enregistrer" }).click();
+    await expect(page.getByText("Devis enregistré.")).toBeVisible();
+
+    await page.getByRole("button", { name: "Télécharger", exact: true }).click();
+    const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: "Télécharger en PDF" }).click()]);
+    expect(download.suggestedFilename()).toMatch(/\.pdf$/);
+
+    await page.goto("/administration/devis");
+    await expect(page.getByRole("link", { name: /^DEV-\d{4}-\d{4}$/ }).first()).toBeVisible();
+    await page.getByRole("button", { name: "Générer mon devis avec l’IA" }).click();
+    const ai = page.getByRole("dialog", { name: "Générer mon devis avec l’IA" });
+    await ai.getByLabel("Description des travaux").fill("Peinture de 80 m² de murs dans le hall.");
+    await ai.getByRole("button", { name: "Préparer le devis" }).click();
+    await expect(page).toHaveURL(/\/administration\/devis\/[0-9a-f-]{36}$/);
+    // Quantité reprise de la description, prix à établir faute de prix d'ouvrage dans la bibliothèque.
+    await expect(page.getByText(/^80 m², Prix à établir/).first()).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText("Prix à établir", { exact: true }).first()).toBeVisible();
+  });
+
   test("s'affiche sans débordement sur téléphone", async () => {
     await page.setViewportSize({ width: 390, height: 844 });
     const project = new URL(projectUrl).pathname;
@@ -499,6 +540,8 @@ test.describe.serial("administration", () => {
       "/administration/parametres?onglet=chiffrage",
       "/administration/parametres?onglet=lots",
       "/administration/systeme",
+      "/administration/devis",
+      new URL(quoteUrl).pathname,
     ]) {
       await page.goto(path);
       await page.waitForLoadState("networkidle");

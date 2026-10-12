@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, ChevronDown, Coins, FileStack, Layers, Pencil, TriangleAlert } from "lucide-react";
+import { CalendarClock, ChevronDown, Coins, FilePlus2, FileStack, Layers, Pencil, TriangleAlert } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { PROJECT_STATUS_LABELS, PROJECT_STATUSES, type ProjectStatus } from "../../../shared/enums";
 import { Button } from "../../components/ui/Button";
@@ -25,6 +25,7 @@ import { LotsTab } from "./LotsTab";
 import { MetreTab } from "./MetreTab";
 import { OverviewTab } from "./OverviewTab";
 import { ProjectFormDialog } from "./ProjectFormDialog";
+import { NewQuoteDialog } from "../quotes/NewQuoteDialog";
 
 const TABS = ["synthese", "dossier", "lots", "echeances", "documents", "metre", "cctp", "dpgf", "sousdetails", "historique"] as const;
 type Tab = (typeof TABS)[number];
@@ -35,6 +36,8 @@ export function ProjectDetailPage() {
   const tab: Tab = (TABS as readonly string[]).includes(params.get("onglet") ?? "") ? (params.get("onglet") as Tab) : "synthese";
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
+  const [quoting, setQuoting] = useState(false);
+  const navigate = useNavigate();
   const detail = useQuery({ queryKey: ["project", id], queryFn: ({ signal }) => api<ProjectDetail>(`/projects/${id}`, { signal }) });
 
   // « Reprendre mon travail » : la dernière ouverture classe l'affaire en tête du tableau de bord.
@@ -108,6 +111,9 @@ export function ProjectDetailPage() {
                 <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-3.5 -translate-y-1/2 text-ink-3" aria-hidden="true" />
               </div>
               <DownloadMenu size="md" label="Dossier" groups={[dossierGroup(id), documentGroup("Rapport de contrôle qualité", "controle", id, ["pdf", "docx"])]} />
+              <Button variant="secondary" icon={<FilePlus2 className="size-4" />} onClick={() => setQuoting(true)}>
+                Créer un devis
+              </Button>
               <Button variant="secondary" icon={<Pencil className="size-4" />} onClick={() => setEditing(true)}>
                 Modifier
               </Button>
@@ -202,6 +208,7 @@ export function ProjectDetailPage() {
       </Tabs>
 
       {project ? <ProjectFormDialog open={editing} onOpenChange={setEditing} project={project} client={data?.client} /> : null}
+      {project ? <NewQuoteDialog open={quoting} onOpenChange={setQuoting} projectId={id} onCreated={(quoteId) => navigate(`/administration/devis/${quoteId}`)} /> : null}
     </div>
   );
 }

@@ -174,9 +174,9 @@ douteuses attendent une décision en quarantaine) :
 | France | 39 | 24 types de travaux | fourniture et pose, HT | 39 (2009 à 2018) |
 | France | 74 | 4 ratios | ratios d'opération | 74 |
 
-Au premier chargement en base de développement : **877 références françaises publiées** (dont 739 valeurs
-réglementaires) et 5 en quarantaine, **7 393 références marocaines publiées**. Le premier chargement de production
-écrit ce même bilan dans le journal du déploiement.
+En production, après le déploiement du 12 octobre 2026 (journal du déploiement) : **879 références françaises
+publiées**, dont 739 valeurs réglementaires, et 3 en quarantaine en attente de décision ; **7 393 références
+marocaines publiées**. Le premier chargement de chaque déploiement écrit ce bilan dans son journal.
 
 Lots couverts, par les familles de prix rattachées à la nomenclature par défaut :
 

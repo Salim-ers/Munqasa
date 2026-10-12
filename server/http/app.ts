@@ -22,6 +22,7 @@ import { dashboardRoutes } from "./routes/dashboard.js";
 import { fileRoutes } from "./routes/files.js";
 import { jobRoutes } from "./routes/jobs.js";
 import { libraryRoutes } from "./routes/library.js";
+import { quoteLineRoutes, quoteRoutes } from "./routes/quotes.js";
 import { referenceRoutes } from "./routes/references.js";
 import { deadlineRoutes, projectRoutes } from "./routes/projects.js";
 import { lotCatalogRoutes, lotEntryRoutes, projectLotRoutes } from "./routes/lots.js";
@@ -68,6 +69,8 @@ function adminApi() {
   admin.route("/", cctpRoutes);
   admin.route("/", dpgfRoutes);
   admin.route("/library", libraryRoutes);
+  admin.route("/quotes", quoteRoutes);
+  admin.route("/quote-lines", quoteLineRoutes);
   admin.route("/", breakdownRoutes);
   admin.route("/", dossierRoutes);
   admin.route("/exports", exportRoutes);

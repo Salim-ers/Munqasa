@@ -23,6 +23,12 @@ import {
   RELIABILITY_LEVELS,
   SECTORS,
   TAX_BASES,
+  MARGIN_MODES,
+  QUOTE_LINE_KINDS,
+  QUOTE_PRICING_MODES,
+  QUOTE_SOURCES,
+  RATE_BASES,
+  TAX_REGIMES,
 } from "./enums.js";
 import { TRADE_KEYS } from "./trades.js";
 
@@ -562,4 +568,81 @@ export const listQuery = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(25),
   sort: z.string().trim().max(50).optional(),
   dir: z.enum(["asc", "desc"]).optional().default("desc"),
+});
+
+/* ---------- Devis ---------- */
+
+export const quoteCreateInput = z.object({
+  mode: z.enum(QUOTE_SOURCES),
+  title: optionalText(300),
+  projectId: optionalUuid,
+  clientId: optionalUuid,
+  dpgfId: optionalUuid,
+  lotIds: z.array(z.string().uuid()).max(60).optional().default([]),
+  priceItemIds: z.array(z.string().uuid()).max(200).optional().default([]),
+  companyProfileId: optionalUuid,
+});
+
+export const quoteUpdateInput = z.object({
+  title: requiredText(300),
+  clientId: optionalUuid,
+  companyProfileId: optionalUuid,
+  siteName: optionalText(300),
+  siteAddress: optionalText(500),
+  issueDate: optionalDate,
+  validityDays: z.union([z.coerce.number().int().min(1, "Une validité d’un jour au moins.").max(365, "Une validité d’un an au plus."), z.literal(""), z.null()]).optional().transform((v) => (v === "" || v === undefined ? null : v)),
+  vatRate: optionalRate,
+  discountRate: optionalRate,
+  taxRegime: z.enum(TAX_REGIMES),
+  taxExemptionBasis: optionalText(500),
+  depositRate: optionalRate,
+  depositAmount: optionalMoney,
+  siteCostsRate: optionalRate,
+  overheadRate: optionalRate,
+  overheadBase: z.enum(RATE_BASES),
+  contingencyRate: optionalRate,
+  contingencyBase: z.enum(RATE_BASES),
+  marginRate: optionalNumber(4, "Taux invalide (jusqu’à 4 décimales).", false),
+  marginMode: z.enum(MARGIN_MODES),
+  paymentTerms: optionalText(2000),
+  notes: optionalText(4000),
+  legalMentions: optionalText(6000),
+});
+export type QuoteUpdateInput = z.input<typeof quoteUpdateInput>;
+
+export const quoteLineInput = z.object({
+  kind: z.enum(QUOTE_LINE_KINDS),
+  parentId: optionalUuid,
+  lotId: optionalUuid,
+  designation: requiredText(500),
+  description: optionalText(4000),
+  unit: optionalText(20),
+  quantity: optionalDecimal,
+  unitPrice: optionalDecimal,
+  discountRate: optionalRate,
+  vatRate: optionalRate,
+  pricingMode: z.enum(QUOTE_PRICING_MODES).default("direct"),
+  supplyCost: optionalDecimal,
+  laborCost: optionalDecimal,
+  quantitySource: optionalText(600),
+  priceConfirmed: z.boolean().optional(),
+});
+export type QuoteLineInput = z.input<typeof quoteLineInput>;
+
+export const quoteLibraryLinesInput = z.object({
+  priceItemIds: z.array(z.string().uuid()).min(1, "Choisissez au moins un prix.").max(100),
+  parentId: optionalUuid,
+});
+
+export const quoteActionInput = z.object({ note: optionalText(1000) });
+
+export const quoteAiInput = z.object({
+  description: optionalText(6000),
+  projectId: optionalUuid,
+  lotIds: z.array(z.string().uuid()).max(60).optional().default([]),
+  useCctp: z.boolean().optional().default(true),
+  useDpgf: z.boolean().optional().default(true),
+  useMetre: z.boolean().optional().default(true),
+  companyProfileId: optionalUuid,
+  clientId: optionalUuid,
 });

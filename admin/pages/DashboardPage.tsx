@@ -101,7 +101,8 @@ export function DashboardPage() {
               icon={<Receipt />}
               label="Devis en attente"
               value={d ? d.documents.quotesPending.reduce((a, q) => a + q.count, 0) : undefined}
-              note={d && d.documents.quotesPending.length ? d.documents.quotesPending.map((q) => `${q.count} en ${q.currency}`).join(", ") : "À vérifier, validés ou envoyés"}
+              note={d && d.documents.quotesPending.length ? d.documents.quotesPending.map((q) => `${q.count} en ${q.currency}`).join(", ") : "À vérifier, prêts à envoyer ou envoyés"}
+              to="/administration/devis"
             />
           </motion.div>
           <motion.div {...appear(3)} className="md:col-span-6 xl:col-span-3">

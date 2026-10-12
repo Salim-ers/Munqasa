@@ -642,3 +642,170 @@ export interface BreakdownList {
   postes: Array<{ line: DpgfLine; breakdown: Breakdown | null }>;
   issues: QualityIssue[];
 }
+
+/* ---------- Devis ---------- */
+
+export interface QuotePriceSnapshot {
+  designation: string;
+  unitPrice: string;
+  unitPriceHt: string;
+  taxBasis: string | null;
+  currency: string;
+  priceDate: string;
+  period: string | null;
+  sourceName: string | null;
+  reliability: string | null;
+  verificationStatus: string;
+  historical: boolean;
+  regulated: boolean;
+}
+
+export interface Quote {
+  id: string;
+  number: string;
+  projectId: string | null;
+  clientId: string | null;
+  companyProfileId: string | null;
+  title: string;
+  siteName: string | null;
+  siteAddress: string | null;
+  issueDate: string | null;
+  validityDays: number | null;
+  currency: Currency;
+  discountRate: string | null;
+  vatRate: string | null;
+  status: import("../../shared/enums").QuoteStatus;
+  paymentTerms: string | null;
+  notes: string | null;
+  legalMentions: string | null;
+  currentVersion: number;
+  lockedAt: string | null;
+  sentAt: string | null;
+  source: import("../../shared/enums").QuoteSource;
+  dpgfId: string | null;
+  lotIds: string[];
+  taxRegime: import("../../shared/enums").TaxRegime;
+  taxExemptionBasis: string | null;
+  depositRate: string | null;
+  depositAmount: string | null;
+  siteCostsRate: string | null;
+  overheadRate: string | null;
+  overheadBase: import("../../shared/enums").RateBase;
+  contingencyRate: string | null;
+  contingencyBase: import("../../shared/enums").RateBase;
+  marginRate: string | null;
+  marginMode: import("../../shared/enums").MarginMode;
+  totalHt: string | null;
+  totalVat: string | null;
+  totalTtc: string | null;
+  totalsState: "complet" | "partiel" | "non_renseigne";
+  archivedAt: string | null;
+  generationJobId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QuoteLine {
+  id: string;
+  quoteId: string;
+  parentId: string | null;
+  position: number;
+  kind: import("../../shared/enums").QuoteLineKind;
+  designation: string;
+  description: string | null;
+  unit: string | null;
+  quantity: string | null;
+  unitPrice: string | null;
+  discountRate: string | null;
+  vatRate: string | null;
+  lotId: string | null;
+  lotLabel: string | null;
+  priceItemId: string | null;
+  priceOrigin: string | null;
+  priceSnapshot: QuotePriceSnapshot | null;
+  priceConfirmed: boolean;
+  pricingMode: import("../../shared/enums").QuotePricingMode;
+  supplyCost: string | null;
+  laborCost: string | null;
+  quantitySource: string | null;
+  amountHt: string | null;
+}
+
+export interface QuoteLineFigures {
+  unitPrice: string | null;
+  gross: string | null;
+  discount: string | null;
+  net: string | null;
+  vatRate: string | null;
+  decomposition: { debourseSec: string; fraisChantier: string; overhead: string; contingency: string; margin: string } | null;
+}
+
+export interface QuoteTotals {
+  lines: Record<string, QuoteLineFigures>;
+  sections: Record<string, { total: string; complete: boolean; count: number }>;
+  options: string | null;
+  linesTotal: string;
+  globalDiscount: string;
+  totalHt: string;
+  vat: Array<{ rate: string; base: string; amount: string }>;
+  totalVat: string | null;
+  totalTtc: string | null;
+  deposit: string | null;
+  state: "complet" | "partiel" | "non_renseigne";
+  missing: { prices: number; quantities: number; vatRates: number };
+}
+
+export interface QuoteCheck {
+  severity: "bloquante" | "majeure" | "mineure";
+  message: string;
+  lineId?: string;
+}
+
+export interface QuoteEvent {
+  id: string;
+  kind: import("../../shared/enums").QuoteEventKind;
+  note: string | null;
+  occurredAt: string;
+}
+
+export interface QuoteVersionItem {
+  id: string;
+  version: number;
+  status: import("../../shared/enums").QuoteStatus;
+  label: string;
+  createdAt: string;
+}
+
+export interface QuoteDetail {
+  quote: Quote;
+  lines: QuoteLine[];
+  totals: QuoteTotals;
+  checks: QuoteCheck[];
+  company: CompanyProfile | null;
+  client: Client | null;
+  project: { id: string; reference: string; name: string; country: Country } | null;
+  lots: Lot[];
+  events: QuoteEvent[];
+  versions: QuoteVersionItem[];
+  job: { id: string; status: string } | null;
+}
+
+export interface QuoteListItem {
+  id: string;
+  number: string;
+  title: string;
+  status: import("../../shared/enums").QuoteStatus;
+  currency: Currency;
+  totalHt: string | null;
+  totalTtc: string | null;
+  totalsState: "complet" | "partiel" | "non_renseigne";
+  issueDate: string | null;
+  validityDays: number | null;
+  currentVersion: number;
+  source: import("../../shared/enums").QuoteSource;
+  archivedAt: string | null;
+  updatedAt: string;
+  clientName: string | null;
+  projectReference: string | null;
+  projectId: string | null;
+}

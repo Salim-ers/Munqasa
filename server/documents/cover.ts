@@ -25,6 +25,7 @@ export interface CoverLayout {
 }
 
 export function coverInfo(m: DocMeta): Array<[string, string]> {
+  if (m.coverRows) return m.coverRows.filter((r) => Boolean(r[1]));
   const info: Array<[string, string | null]> = [
     ["Maître d’ouvrage", m.client],
     ["Localisation", m.project.location],

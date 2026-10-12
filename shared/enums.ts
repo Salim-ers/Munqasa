@@ -256,8 +256,78 @@ export const RATE_BASES = ["debourse_sec", "debourse_total", "prix_de_revient"] 
 export type RateBase = (typeof RATE_BASES)[number];
 export const RATE_BASE_LABELS: Record<RateBase, string> = { debourse_sec: "Déboursé sec", debourse_total: "Déboursé total", prix_de_revient: "Prix de revient" };
 export const QUOTE_STATUSES = ["brouillon", "a_verifier", "valide", "envoye", "accepte", "refuse", "expire"] as const;
+export type QuoteStatus = (typeof QUOTE_STATUSES)[number];
+/** « valide » s'affiche « Prêt à envoyer » : vérifié, complet, pas encore envoyé. */
+export const QUOTE_STATUS_LABELS: Record<QuoteStatus, string> = {
+  brouillon: "Brouillon",
+  a_verifier: "À vérifier",
+  valide: "Prêt à envoyer",
+  envoye: "Envoyé",
+  accepte: "Accepté",
+  refuse: "Refusé",
+  expire: "Expiré",
+};
 export const QUOTE_LINE_KINDS = ["section", "ligne", "option"] as const;
-export const QUOTE_EVENT_KINDS = ["creation", "modification", "validation", "envoi", "relance", "acceptation", "refus", "expiration", "duplication"] as const;
+export type QuoteLineKind = (typeof QUOTE_LINE_KINDS)[number];
+export const QUOTE_EVENT_KINDS = [
+  "creation",
+  "modification",
+  "validation",
+  "envoi",
+  "relance",
+  "acceptation",
+  "refus",
+  "expiration",
+  "duplication",
+  "nouvelle_version",
+  "archivage",
+  "restauration",
+  "export",
+  "generation",
+] as const;
+export type QuoteEventKind = (typeof QUOTE_EVENT_KINDS)[number];
+export const QUOTE_EVENT_LABELS: Record<QuoteEventKind, string> = {
+  creation: "Création",
+  modification: "Modification",
+  validation: "Vérification",
+  envoi: "Envoi",
+  relance: "Relance",
+  acceptation: "Acceptation",
+  refus: "Refus",
+  expiration: "Expiration",
+  duplication: "Duplication",
+  nouvelle_version: "Nouvelle version",
+  archivage: "Archivage",
+  restauration: "Restauration",
+  export: "Export",
+  generation: "Préparation par l’IA",
+};
+/** Origine d'un devis : vierge, affaire, DPGF, métré, bibliothèque de prix ou préparation par l'IA. */
+export const QUOTE_SOURCES = ["vierge", "projet", "dpgf", "metre", "bibliotheque", "ia"] as const;
+export type QuoteSource = (typeof QUOTE_SOURCES)[number];
+export const QUOTE_SOURCE_LABELS: Record<QuoteSource, string> = {
+  vierge: "Devis vierge",
+  projet: "À partir d’une affaire",
+  dpgf: "À partir d’une DPGF",
+  metre: "À partir du métré",
+  bibliotheque: "À partir de la bibliothèque",
+  ia: "Préparé par l’IA",
+};
+/**
+ * Régime de TVA d'un devis : taux par ligne en régime normal ; autoliquidation de la sous-traitance du
+ * bâtiment et franchise en base, propres à la France ; exonération avec son fondement légal, saisi.
+ */
+export const TAX_REGIMES = ["normal", "autoliquidation", "franchise", "exoneration"] as const;
+export type TaxRegime = (typeof TAX_REGIMES)[number];
+export const TAX_REGIME_LABELS: Record<TaxRegime, string> = {
+  normal: "TVA au taux de chaque ligne",
+  autoliquidation: "Autoliquidation, sous-traitance du bâtiment",
+  franchise: "Franchise en base de TVA",
+  exoneration: "Exonération de TVA",
+};
+/** Prix d'une ligne de devis : prix unitaire direct, ou décomposé (fourniture et pose, puis coefficients du devis). */
+export const QUOTE_PRICING_MODES = ["direct", "decompose"] as const;
+export type QuotePricingMode = (typeof QUOTE_PRICING_MODES)[number];
 export const RATE_KINDS = ["reference", "achat", "vente", "contractuel"] as const;
 export const DOCUMENT_TYPES = ["cctp", "dpgf", "sous_detail", "devis", "metre", "dossier"] as const;
 export type DocumentType = (typeof DOCUMENT_TYPES)[number];

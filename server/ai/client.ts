@@ -14,7 +14,7 @@ import { getEnv } from "../env.js";
 import { assertBudget, getOpenAI, recordUsage } from "../services/openai.js";
 import { readSetting } from "../services/settings.js";
 
-export type AgentName = "lecteur_plans" | "metreur" | "redacteur_cctp" | "economiste_dpgf" | "sous_detail";
+export type AgentName = "lecteur_plans" | "metreur" | "redacteur_cctp" | "economiste_dpgf" | "sous_detail" | "redacteur_devis";
 export type ModelRole = "generation" | "extraction";
 
 /** Configuration à corriger par l'administrateur (modèle absent, clé refusée…) : inutile de réessayer. */
