@@ -11,6 +11,7 @@ import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { callAgent } from "../../ai/client.js";
 import { allowedReferences, projectContext } from "../../ai/context.js";
 import { type CctpBlock, type CctpDetailLevel, type CctpOutline, cctpChapter, cctpOutline } from "../../ai/schemas.js";
+import { lotDocumentTitle } from "../../../shared/lots.js";
 import { schema } from "../../db/index.js";
 import { checkCctp, replaceIssues } from "../../services/quality.js";
 import { snapshotCctp } from "../../services/versions.js";
@@ -205,6 +206,9 @@ export const cctpHandler: JobHandler = {
       if (outline.chapters.length === 0) throw new Error("Le modèle n’a proposé aucun chapitre.");
 
       const [project] = await db.select().from(schema.project).where(eq(schema.project.id, projectId));
+      // Titre fixé par le numéro et l'intitulé du lot de l'affaire : identiques sur tous ses documents.
+      const [lot] = input.lotId ? await db.select().from(schema.projectLot).where(eq(schema.projectLot.id, input.lotId)) : [];
+      const title = lotDocumentTitle("CCTP", lot ?? null, project!.name);
       const items = await db.select({ id: schema.workItem.id, code: schema.workItem.code }).from(schema.workItem).where(eq(schema.workItem.projectId, projectId));
       // Un article par ouvrage au moins : un ouvrage du métré oublié par le plan reçoit son article de mise en œuvre.
       const added = input.useMetre ? coverWorkItems(outline, context.ouvrages) : [];
@@ -215,7 +219,7 @@ export const cctpHandler: JobHandler = {
           .values({
             projectId,
             lotId: input.lotId,
-            title: outline.title,
+            title,
             country: project!.country,
             phase: project!.designPhase,
             detailLevel: input.detailLevel,

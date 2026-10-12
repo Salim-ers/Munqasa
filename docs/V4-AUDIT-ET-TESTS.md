@@ -87,3 +87,16 @@ s'exécutent quand leurs chemins sont fournis (`TALAB_SAMPLE_PLAN`, `TALAB_SAMPL
 | Sessions | liste disponible, fermeture à la déconnexion |
 | `TALAB_2FA=obligatoire` | second facteur de nouveau exigé (403 tant qu'il n'est pas activé) |
 | Désactivation puis réactivation | secret et codes conservés ; le code de la même application est accepté sans nouvelle activation |
+
+### Lots (`tests/server/lots.test.ts`, parcours navigateur)
+
+| Cas | Résultat attendu |
+| --- | --- |
+| Nomenclature par défaut | 30 lots 01 à 30, sous-lots 01.01 à 01.07, modèles bâtiment, logements, réhabilitation, VRD créés une seule fois |
+| Ajout groupé (01 déjà saisi « Gros oeuvre », 08, 01.04, lot personnalisé 31) | 08, 01.04 et 31 ajoutés ; 01 conservé tel quel, signalé ; 01.04 rattaché au lot 01 de l'affaire |
+| Nomenclature modifiée (08 renommé et renuméroté) | lot 08 de l'affaire inchangé |
+| Plans relus (semelle, voile, réseau, baie) | suggestions 01 (2 éléments), 03, 11, 12 |
+| Fusion de lots d'affaire | ouvrages déplacés, lot absorbé retiré ; refusée si le lot absorbé a un CCTP |
+| CCTP du lot « 01 Gros oeuvre » | titre « CCTP, lot 01 Gros oeuvre », couverture « Lot 01, Gros oeuvre » |
+| Fusion, séparation, sous-lot, favori, copie, suppression de nomenclature | lots fusionnés archivés et sous-lots rattachés ; numéro déjà pris refusé ; dernière nomenclature jamais supprimée |
+| Sélecteur dans le navigateur | recherche « gros » puis « plomberie », deux lots ajoutés, journal « Lots ajoutés » |

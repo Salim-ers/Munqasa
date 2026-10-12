@@ -1,6 +1,7 @@
 /** Contexte commun aux exports d'une affaire : affaire, maître d'ouvrage, lot, entité émettrice, identité documentaire. */
 import { desc, eq } from "drizzle-orm";
 import { COUNTRY_LABELS, DESIGN_PHASE_LABELS } from "../../shared/enums.js";
+import { lotLabel } from "../../shared/lots.js";
 import type { DocumentIdentity } from "../../shared/settings.js";
 import { type Database, schema } from "../db/index.js";
 import { readSetting } from "../services/settings.js";
@@ -40,7 +41,7 @@ export function baseMeta(ctx: ExportContext, fields: { kind: DocumentKind; typeL
       phase: fields.phase === undefined ? DESIGN_PHASE_LABELS[p.designPhase] : fields.phase,
     },
     client: ctx.client?.name ?? null,
-    lot: ctx.lot ? `Lot ${ctx.lot.code}, ${ctx.lot.name}` : null,
+    lot: ctx.lot ? lotLabel(ctx.lot) : null,
     version: fields.version,
     date: fields.date ?? new Date(),
     status: fields.status,

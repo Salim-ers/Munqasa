@@ -57,6 +57,13 @@
       "when": 1791796977789,
       "tag": "0007_pertes_et_completude",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791801224249,
+      "tag": "0008_catalogue_des_lots",
+      "breakpoints": true
     }
   ]
 }

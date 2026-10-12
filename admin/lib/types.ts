@@ -94,6 +94,35 @@ export interface Lot {
   name: string;
   tradeFamily: string;
   position: number;
+  parentId: string | null;
+  catalogEntryId: string | null;
+}
+
+/** Lot ou sous-lot d'une nomenclature du catalogue. */
+export interface LotCatalogEntry {
+  id: string;
+  catalogId: string;
+  parentId: string | null;
+  number: string;
+  name: string;
+  tradeFamily: string;
+  favorite: boolean;
+  archived: boolean;
+  position: number;
+}
+
+export interface LotCatalog {
+  id: string;
+  name: string;
+  country: "FR" | "MA" | null;
+  projectType: string | null;
+  isDefault: boolean;
+  entries: LotCatalogEntry[];
+}
+
+export interface LotCatalogList {
+  catalogs: LotCatalog[];
+  recent: Array<{ code: string; name: string; tradeFamily: string; catalogEntryId: string | null }>;
 }
 
 export interface Deadline {

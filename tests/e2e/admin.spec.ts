@@ -80,14 +80,21 @@ test.describe.serial("administration", () => {
     await expect(page.getByText(/12\s500\s000,50/).first()).toBeVisible();
   });
 
-  test("ajoute un lot, une échéance, et change le statut", async () => {
+  test("ajoute des lots depuis le catalogue numéroté, une échéance, et change le statut", async () => {
     await page.getByRole("tab", { name: /Lots/ }).click();
-    await page.getByRole("button", { name: "Ajouter un lot" }).click();
-    const lot = page.getByRole("dialog", { name: "Nouveau lot" });
-    await expect(lot.getByLabel("Code")).toHaveValue("01");
-    await lot.getByLabel("Intitulé").fill("Gros œuvre");
-    await lot.getByRole("button", { name: "Ajouter" }).click();
+    await page.getByRole("tabpanel").getByRole("button", { name: /Ajouter des lots|Choisir les lots/ }).first().click();
+    const picker = page.getByRole("dialog", { name: "Ajouter des lots" });
+    // Recherche instantanée par intitulé, regroupement par corps d'état, sélection multiple.
+    await picker.getByLabel("Rechercher un lot").fill("gros");
+    await expect(picker.getByLabel("01 Gros œuvre", { exact: true })).toBeVisible();
+    await picker.getByLabel("01 Gros œuvre", { exact: true }).check();
+    await picker.getByLabel("Rechercher un lot").fill("plomberie");
+    await picker.getByLabel("20 Plomberie / Sanitaire", { exact: true }).check();
+    await expect(picker.getByText("2 sélectionné(s)", { exact: false })).toBeVisible();
+    await picker.getByRole("button", { name: "Ajouter 2 lot(s)" }).click();
+    await expect(page.getByText("2 lot(s) ajouté(s).")).toBeVisible();
     await expect(page.getByRole("tabpanel").getByText("Gros œuvre", { exact: true })).toBeVisible();
+    await expect(page.getByRole("tabpanel").getByText("Plomberie / Sanitaire", { exact: true })).toBeVisible();
 
     await page.getByRole("tab", { name: /Échéances/ }).click();
     await page.getByRole("tabpanel").getByRole("button", { name: "Ajouter" }).click();
@@ -123,7 +130,7 @@ test.describe.serial("administration", () => {
     expect(readFileSync(path).equals(PDF)).toBe(true);
 
     await page.getByRole("tab", { name: "Historique" }).click();
-    for (const label of ["Affaire créée", "Lot ajouté", "Échéance ajoutée", "Statut modifié", "Fichier téléversé", "Fichier refusé", "Fichier téléchargé"]) {
+    for (const label of ["Affaire créée", "Lots ajoutés", "Échéance ajoutée", "Statut modifié", "Fichier téléversé", "Fichier refusé", "Fichier téléchargé"]) {
       await expect(page.getByRole("tabpanel").getByText(label, { exact: true }).first()).toBeVisible();
     }
   });
@@ -368,6 +375,20 @@ test.describe.serial("administration", () => {
     await page.getByRole("button", { name: "Enregistrer" }).click();
     await expect(page.getByText("Identité documentaire enregistrée.")).toBeVisible();
 
+    // Nomenclatures de lots : nomenclature par défaut, favori, sous-lot ajouté.
+    await page.getByRole("tab", { name: "Lots" }).click();
+    await expect(page.getByText(/Nomenclature interne indicative/)).toBeVisible();
+    await expect(page.getByRole("tabpanel").getByText("Piscines / Ouvrages spécifiques", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Ajouter 23 aux favoris" }).click();
+    await expect(page.getByRole("button", { name: "Retirer 23 des favoris" })).toBeVisible();
+    await page.getByRole("button", { name: "Ajouter un lot", exact: true }).click();
+    const entry = page.getByRole("dialog", { name: "Nouveau lot" });
+    await entry.getByLabel("Numéro").fill("31");
+    await entry.getByLabel("Intitulé").fill("Désamiantage");
+    await entry.getByRole("button", { name: "Enregistrer" }).click();
+    await expect(page.getByText("Lot ajouté à la nomenclature.")).toBeVisible();
+    await expect(page.getByRole("tabpanel").getByText("Désamiantage", { exact: true })).toBeVisible();
+
     await page.getByRole("tab", { name: "Intelligence artificielle" }).click();
     await expect(page.getByText(/La clé OpenAI n’est pas configurée/)).toBeVisible();
 
@@ -469,12 +490,14 @@ test.describe.serial("administration", () => {
       `${project}?onglet=cctp`,
       `${project}?onglet=dpgf`,
       `${project}?onglet=sousdetails`,
+      `${project}?onglet=lots`,
       "/administration/agents",
       "/administration/bibliotheque",
       "/administration/referentiel",
       "/administration/agenda",
       "/administration/parametres",
       "/administration/parametres?onglet=chiffrage",
+      "/administration/parametres?onglet=lots",
       "/administration/systeme",
     ]) {
       await page.goto(path);

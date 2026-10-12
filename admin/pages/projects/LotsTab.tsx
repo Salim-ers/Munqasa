@@ -1,7 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Layers, Pencil, Plus, Trash2 } from "lucide-react";
+import { Combine, Layers, Library, Pencil, Plus, Trash2 } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import { toast } from "sonner";
+import { LotPickerDialog } from "../../components/LotPicker";
 import { projectLotInput } from "../../../shared/schemas";
 import { TRADE_FAMILIES, tradeLabel } from "../../../shared/trades";
 import { Button } from "../../components/ui/Button";
@@ -25,10 +27,19 @@ function nextCode(lots: Lot[]): string {
   return "";
 }
 
+/** Lots dans l'ordre de lecture : chaque sous-lot sous son lot. */
+function ordered(lots: Lot[]): Array<{ lot: Lot; depth: number }> {
+  const roots = lots.filter((l) => !l.parentId || !lots.some((p) => p.id === l.parentId));
+  return roots.flatMap((lot) => [{ lot, depth: 0 }, ...lots.filter((c) => c.parentId === lot.id).map((c) => ({ lot: c, depth: 1 }))]);
+}
+
 export function LotsTab({ projectId, lots }: { projectId: string; lots: Lot[] }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [editing, setEditing] = useState<Lot | null | undefined>(undefined);
   const [deleting, setDeleting] = useState<Lot | null>(null);
+  const [picking, setPicking] = useState(false);
+  const [merging, setMerging] = useState<Lot | null>(null);
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: ["project", projectId] });
     void queryClient.invalidateQueries({ queryKey: ["projects"] });
@@ -42,8 +53,8 @@ export function LotsTab({ projectId, lots }: { projectId: string; lots: Lot[] })
           title="Lots"
           subtitle="Chaque lot relève d’une famille de corps d’état : les documents ne mélangent jamais les lots."
           action={
-            <Button size="sm" icon={<Plus className="size-3.5" />} onClick={() => setEditing(null)}>
-              Ajouter un lot
+            <Button size="sm" icon={<Plus className="size-3.5" />} onClick={() => setPicking(true)}>
+              Ajouter des lots
             </Button>
           }
         />
@@ -54,24 +65,26 @@ export function LotsTab({ projectId, lots }: { projectId: string; lots: Lot[] })
           title="Aucun lot"
           text="Découpez l’affaire en lots (gros œuvre, menuiseries, lots techniques…) pour préparer CCTP et DPGF."
           action={
-            <Button size="sm" onClick={() => setEditing(null)}>
-              Ajouter le premier lot
+            <Button size="sm" onClick={() => setPicking(true)}>
+              Choisir les lots
             </Button>
           }
         />
       ) : (
         <ul className="divide-y divide-line border-t border-line">
-          {lots.map((lot) => (
-            <li key={lot.id} className="flex items-center gap-4 px-5 py-3">
+          {ordered(lots).map(({ lot, depth }) => (
+            <li key={lot.id} className={`flex items-center gap-4 py-3 pr-5 ${depth ? "pl-12" : "pl-5"}`}>
               <span className="grid h-9 min-w-11 place-items-center rounded-lg bg-surface-2 px-2 text-xs font-semibold text-ink tabular">{lot.code}</span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs font-semibold text-ink">{lot.name}</p>
-                <p className="truncate text-2xs text-ink-3">{tradeLabel(lot.tradeFamily)}</p>
+                <p className="truncate text-2xs text-ink-3">{[depth ? "Sous-lot" : null, tradeLabel(lot.tradeFamily)].filter(Boolean).join(", ")}</p>
               </div>
               <ActionMenu
                 actions={[
+                  { label: "Prix de ce corps d’état", icon: <Library />, onSelect: () => navigate(`/administration/bibliotheque?famille=${encodeURIComponent(lot.tradeFamily)}`) },
                   { label: "Modifier", icon: <Pencil />, onSelect: () => setEditing(lot) },
-                  { label: "Supprimer", icon: <Trash2 />, tone: "danger", onSelect: () => setDeleting(lot) },
+                  ...(lots.length > 1 ? [{ label: "Fusionner avec un autre lot", icon: <Combine />, onSelect: () => setMerging(lot) }] : []),
+                  { label: "Supprimer", icon: <Trash2 />, tone: "danger" as const, onSelect: () => setDeleting(lot) },
                 ]}
               />
             </li>
@@ -80,6 +93,8 @@ export function LotsTab({ projectId, lots }: { projectId: string; lots: Lot[] })
       )}
 
       <LotDialog projectId={projectId} lot={editing} open={editing !== undefined} onOpenChange={(open) => !open && setEditing(undefined)} suggestedCode={nextCode(lots)} onSaved={refresh} />
+      <LotPickerDialog open={picking} onOpenChange={setPicking} projectId={projectId} existingCodes={lots.map((l) => l.code)} onAdded={refresh} />
+      <MergeDialog projectId={projectId} source={merging} lots={lots} onOpenChange={(open) => !open && setMerging(null)} onMerged={refresh} />
       <ConfirmDialog
         open={deleting !== null}
         onOpenChange={(open) => !open && setDeleting(null)}
@@ -191,6 +206,50 @@ function LotDialog({
           error={errors.tradeFamily}
           hint={family ? family.subFamilies.slice(0, 5).join(", ") + (family.subFamilies.length > 5 ? "…" : "") : undefined}
         />
+      </div>
+    </Modal>
+  );
+}
+
+/** Fusion d'un lot dans un autre : ouvrages et mesures passent au lot conservé ; refusée si le lot absorbé a déjà ses documents. */
+function MergeDialog({ projectId, source, lots, onOpenChange, onMerged }: { projectId: string; source: Lot | null; lots: Lot[]; onOpenChange: (open: boolean) => void; onMerged: () => void }) {
+  const [targetId, setTargetId] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    setTargetId("");
+    setError(null);
+  }, [source]);
+  const merge = useMutation({
+    mutationFn: () => api<{ moved: number }>(`/projects/${projectId}/lots/${source!.id}/merge`, { body: { targetId } }),
+    onSuccess: (result) => {
+      toast.success(`Lots fusionnés : ${result.moved} ouvrage(s) déplacé(s).`);
+      onOpenChange(false);
+      onMerged();
+    },
+    onError: (e) => setError(errorMessage(e)),
+  });
+  const targets = lots.filter((l) => l.id !== source?.id);
+  return (
+    <Modal
+      open={source !== null}
+      onOpenChange={onOpenChange}
+      title="Fusionner deux lots"
+      description={source ? `Le lot ${source.code}, ${source.name}, est absorbé : ses ouvrages et ses mesures rejoignent le lot choisi, puis il est retiré de l’affaire. Les autres lots gardent leurs numéros.` : undefined}
+      size="sm"
+      footer={
+        <>
+          <Button variant="secondary" onClick={() => onOpenChange(false)}>
+            Annuler
+          </Button>
+          <Button loading={merge.isPending} disabled={!targetId} onClick={() => merge.mutate()}>
+            Fusionner
+          </Button>
+        </>
+      }
+    >
+      <div className="grid gap-3">
+        {error ? <InlineError>{error}</InlineError> : null}
+        <SelectField label="Lot conservé" placeholder="Choisir un lot" options={targets.map((l) => ({ value: l.id, label: `${l.code} ${l.name}` }))} value={targetId} onChange={(e) => setTargetId(e.target.value)} />
       </div>
     </Modal>
   );

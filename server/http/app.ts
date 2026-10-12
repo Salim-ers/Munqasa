@@ -24,6 +24,7 @@ import { jobRoutes } from "./routes/jobs.js";
 import { libraryRoutes } from "./routes/library.js";
 import { referenceRoutes } from "./routes/references.js";
 import { deadlineRoutes, projectRoutes } from "./routes/projects.js";
+import { lotCatalogRoutes, lotEntryRoutes, projectLotRoutes } from "./routes/lots.js";
 import { aiRoutes, companyRoutes, notificationRoutes, settingRoutes } from "./routes/settings.js";
 import { systemRoutes } from "./routes/system.js";
 import { ValidationError } from "./validate.js";
@@ -51,6 +52,9 @@ function adminApi() {
   admin.route("/clients", clientRoutes);
   admin.route("/prospects", prospectRoutes);
   admin.route("/projects", projectRoutes);
+  admin.route("/projects", projectLotRoutes);
+  admin.route("/lot-catalogs", lotCatalogRoutes);
+  admin.route("/lot-catalog-entries", lotEntryRoutes);
   admin.route("/deadlines", deadlineRoutes);
   admin.route("/files", fileRoutes);
   admin.route("/company", companyRoutes);

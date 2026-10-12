@@ -189,6 +189,57 @@ export const projectLotInput = z.object({
 });
 export type ProjectLotInput = z.input<typeof projectLotInput>;
 
+/* ---------- Catalogue des lots ---------- */
+
+/** Numéro de lot ou de sous-lot : « 01 », « 01.04 », « 1A »… */
+const lotNumber = z
+  .string()
+  .trim()
+  .min(1, "Champ obligatoire.")
+  .max(20, "20 caractères au plus.")
+  .regex(/^[0-9A-Za-z][0-9A-Za-z.\-]*$/, "Chiffres, lettres, points ou tirets.");
+
+export const lotCatalogInput = z.object({
+  name: requiredText(120),
+  country: z.enum(["FR", "MA"]).nullable().default(null),
+  projectType: optionalText(60),
+  /** Nomenclature copiée pour créer celle-ci (modèle ou nomenclature existante). */
+  copyFrom: optionalUuid,
+  isDefault: z.boolean().default(false),
+});
+
+export const lotEntryInput = z.object({
+  number: lotNumber,
+  name: requiredText(200),
+  tradeFamily: z.enum(TRADE_KEYS),
+  parentId: optionalUuid,
+  favorite: z.boolean().default(false),
+  archived: z.boolean().default(false),
+});
+
+export const lotMergeInput = z.object({
+  entryIds: z.array(z.string().uuid()).min(2, "Choisissez au moins deux lots à fusionner.").max(10),
+  number: lotNumber,
+  name: requiredText(200),
+});
+
+export const lotSplitInput = z.object({ number: lotNumber, name: requiredText(200) });
+
+/** Ajout groupé de lots à une affaire : entrées du catalogue ou lots personnalisés. */
+export const projectLotsBulkInput = z.object({
+  selections: z
+    .array(
+      z.union([
+        z.object({ catalogEntryId: z.string().uuid() }),
+        z.object({ code: lotNumber, name: requiredText(200), tradeFamily: z.enum(TRADE_KEYS), parentCode: z.string().trim().max(20).nullable().optional() }),
+      ]),
+    )
+    .min(1, "Choisissez au moins un lot.")
+    .max(80),
+});
+
+export const projectLotMergeInput = z.object({ targetId: z.string().uuid() });
+
 export const deadlineInput = z.object({
   projectId: optionalUuid,
   title: requiredText(300),
