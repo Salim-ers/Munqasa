@@ -3,6 +3,7 @@
  * ouvrage (work_item) ← métré (measurement) ← plan ; ouvrage → prescription CCTP → ligne DPGF → sous-détail.
  */
 import { type AnyPgColumn, boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import type { DecompositionState, LossMode } from "../../../shared/amounts.js";
 import type { AuditSummary } from "../../../shared/dossier.js";
 import type { MeasureDeduction, MeasureInputSource } from "../../../shared/metre.js";
 import { createdAt, fine, id, money, percent, qty, updatedAt } from "./columns.js";
@@ -27,6 +28,8 @@ export const workItem = pgTable(
     location: text("location"),
     /** Caractéristiques retenues (matériau, épaisseur…) avec leur source : jamais inventées. */
     attributes: jsonb("attributes").$type<Array<{ name: string; value: string; source: string }>>().notNull().default([]),
+    /** Données manquantes pour mesurer l'ouvrage (cote, hauteur, épaisseur, pièce absente), dites précisément. */
+    missingData: jsonb("missing_data").$type<string[]>().notNull().default([]),
     /** « proposition_ia » (lecture des plans) ou « saisie » : une nouvelle analyse ne remplace que les propositions non validées. */
     origin: text("origin").notNull().default("saisie"),
     /** Traitement qui a proposé l'ouvrage (traçabilité). */
@@ -207,6 +210,10 @@ export const priceBreakdown = pgTable(
     status: documentStatusEnum("status").notNull().default("brouillon"),
     currentVersion: integer("current_version").notNull().default(0),
     notes: text("notes"),
+    /** « decomposee », ou « impossible » quand l'ouvrage n'est pas assez défini : aucun composant ni total affiché. */
+    decomposition: text("decomposition").$type<DecompositionState>().notNull().default("decomposee"),
+    /** Caractéristiques à confirmer pour pouvoir décomposer (matériau, section, épaisseur…). */
+    missingCharacteristics: jsonb("missing_characteristics").$type<string[]>().notNull().default([]),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -224,10 +231,12 @@ export const priceBreakdownComponent = pgTable(
     category: componentCategoryEnum("category").notNull(),
     designation: text("designation").notNull(),
     unit: text("unit").notNull(),
-    /** Consommation par unité d'ouvrage (ou temps unitaire pour la main-d'œuvre). */
+    /** Consommation par unité d'ouvrage (ou temps unitaire pour la main-d'œuvre) : nette ou brute selon « lossMode ». */
     quantity: fine("quantity").notNull(),
     unitCost: qty("unit_cost"),
     lossRate: percent("loss_rate"),
+    /** « appliquee » : brute = nette × (1 + pertes) ; « incluse » : la consommation comprend déjà les pertes. */
+    lossMode: text("loss_mode").$type<LossMode>().notNull().default("appliquee"),
     /** Rendement, effectif, durée… : chacun avec sa source ou marqué comme hypothèse. */
     details: jsonb("details").$type<Record<string, string>>().notNull().default({}),
     isHypothesis: boolean("is_hypothesis").notNull().default(true),

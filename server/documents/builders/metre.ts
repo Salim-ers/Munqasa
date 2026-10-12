@@ -10,6 +10,7 @@ import { MEASURE_CONFIDENCE_LABELS } from "../../../shared/metre.js";
 import { formulaToExcel } from "../../../shared/formula.js";
 import { type Database, schema } from "../../db/index.js";
 import { Dec } from "../../services/decimal.js";
+import { documentLevel, type DocumentLevelInfo } from "../../services/document-level.js";
 import { sameUnit } from "../../services/units.js";
 import { type DocTheme, palette } from "../brand.js";
 import { baseMeta, type ExportContext, exportContext, quantity } from "../context.js";
@@ -24,6 +25,7 @@ export interface MetreData {
   items: Array<{ item: WorkItem; measures: Measurement[]; retained: string | null }>;
   sheets: Map<string, string>;
   counts: { items: number; measures: number; verified: number; toVerify: number; rejected: number };
+  level: DocumentLevelInfo;
 }
 
 export async function loadMetre(db: Database, projectId: string, lotId: string | null = null): Promise<MetreData> {
@@ -58,8 +60,12 @@ export async function loadMetre(db: Database, projectId: string, lotId: string |
       toVerify: inScope.filter((m) => m.status === "a_verifier").length,
       rejected: inScope.filter((m) => m.status === "rejete").length,
     },
+    level: await documentLevel(db, { type: "metre", projectId, lotId }),
   };
 }
+
+/** Données manquantes d'un ouvrage non mesuré, telles que le métreur les a signalées. */
+const missingText = (item: WorkItem) => (item.missingData.length ? `Données manquantes : ${item.missingData.join(" ; ")}` : null);
 
 /** Valeurs d'une mesure, dans l'ordre où elles apparaissent dans la formule (la base ne garde pas l'ordre). */
 const values = (m: Measurement) => {
@@ -99,7 +105,7 @@ function meta(data: MetreData) {
     shortLabel: "Métrés",
     title: data.ctx.lot ? `Note de métrés, lot ${data.ctx.lot.code} ${data.ctx.lot.name}` : "Note de métrés",
     version: null,
-    status: data.counts.toVerify ? "Mesures à vérifier" : data.counts.measures ? "Mesures vérifiées" : "Aucune mesure",
+    status: data.level.label,
     toc: data.items.length > 6,
     disclaimer: "Quantités calculées par le serveur à partir des formules et des valeurs indiquées. Une mesure « à vérifier » reste une proposition ; une valeur absente n’est jamais comptée comme zéro.",
   });
@@ -128,9 +134,9 @@ export function metreModel(data: MetreData): DocModel {
       rows: data.items.map(({ item, measures, retained }) => ({
         cells: [
           item.code ?? "",
-          item.designation,
+          retained === null && item.missingData.length ? `${item.designation}\n${missingText(item)}` : item.designation,
           item.unit ?? "",
-          { text: retained !== null ? quantity(retained) : "non quantifié", align: "right", tone: retained === null ? "primary" : undefined },
+          { text: retained !== null ? quantity(retained) : "non mesuré", align: "right", tone: retained === null ? "primary" : undefined },
           { text: String(measures.length), align: "right" },
           { text: String(measures.filter((m) => m.status === "verifie").length), align: "right" },
         ],
@@ -145,9 +151,10 @@ export function metreModel(data: MetreData): DocModel {
     ];
     if (item.location) facts.push(["Localisation", item.location]);
     for (const a of item.attributes ?? []) facts.push([a.name, `${a.value} (${a.source})`]);
+    if (retained === null && item.missingData.length) facts.push(["Données manquantes", item.missingData.join(" ; ")]);
     blocks.push({ type: "keyValues", rows: facts });
     if (measures.length === 0) {
-      blocks.push({ type: "paragraph", tone: "muted", content: ["Aucune mesure : l’ouvrage est conservé et signalé comme à quantifier."] });
+      blocks.push({ type: "paragraph", tone: "muted", content: [item.missingData.length ? "Aucune mesure : les données ci-dessus manquent sur les pièces fournies ; aucune quantité n’est supposée." : "Aucune mesure : l’ouvrage est conservé et signalé comme à quantifier."] });
       continue;
     }
     const rows: Row[] = measures.map((m) => ({
@@ -248,11 +255,12 @@ export async function metreWorkbook(data: MetreData, theme: DocTheme): Promise<B
       r++;
     }
     const total = sheet.getRow(totalRow);
-    total.getCell(2).value = `Quantité retenue ${item.code ?? ""}`.trim();
+    total.getCell(2).value = [`Quantité retenue ${item.code ?? ""}`.trim(), retained === null ? missingText(item) : null].filter(Boolean).join("\n");
+    total.getCell(2).alignment = { wrapText: true, vertical: "top" };
     // Les mesures rejetées ne comptent pas ; une valeur absente n'est jamais un zéro.
     total.getCell(6).value = measures.length
-      ? { formula: `IF(COUNTIFS(H${start}:H${totalRow - 1},"<>Rejeté",F${start}:F${totalRow - 1},"<>")=0,"",SUMIFS(F${start}:F${totalRow - 1},H${start}:H${totalRow - 1},"<>Rejeté"))`, result: retained !== null ? Number(retained) : "" }
-      : "";
+      ? { formula: `IF(COUNTIFS(H${start}:H${totalRow - 1},"<>Rejeté",F${start}:F${totalRow - 1},"<>")=0,"non mesuré",SUMIFS(F${start}:F${totalRow - 1},H${start}:H${totalRow - 1},"<>Rejeté"))`, result: retained !== null ? Number(retained) : "non mesuré" }
+      : "non mesuré";
     total.getCell(7).value = item.unit ?? "";
     styleRow(total, 13, "subtotal", pal);
     total.getCell(6).numFmt = QTY_FORMAT;
@@ -277,7 +285,8 @@ export async function metreWorkbook(data: MetreData, theme: DocTheme): Promise<B
     row.getCell(1).value = t.code;
     row.getCell(2).value = t.designation;
     row.getCell(3).value = t.unit;
-    row.getCell(4).value = { formula: `'Métré'!F${t.row}`, result: Number(data.items[i]?.retained ?? 0) };
+    const retained = data.items[i]?.retained ?? null;
+    row.getCell(4).value = { formula: `'Métré'!F${t.row}`, result: retained !== null ? Number(retained) : "non mesuré" };
     row.getCell(5).value = t.count;
     styleRow(row, 5, "item", pal);
     row.getCell(4).numFmt = QTY_FORMAT;

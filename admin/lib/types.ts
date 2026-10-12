@@ -388,9 +388,12 @@ export interface DpgfLine {
 
 export interface DpgfTotals {
   subtotals: Record<string, string>;
+  subtotalStates: Record<string, "complet" | "partiel" | "non_renseigne">;
   totalHt: string;
   vat: string | null;
   totalTtc: string | null;
+  /** « non_renseigne » : aucun poste chiffré, le total n'est pas un montant ; « partiel » : postes non chiffrés exclus. */
+  state: "complet" | "partiel" | "non_renseigne";
   postes: number;
   priced: number;
 }
@@ -546,13 +549,28 @@ export interface BreakdownComponent {
   quantity: string;
   unitCost: string | null;
   lossRate: string | null;
+  lossMode: import("../../shared/amounts").LossMode;
   isHypothesis: boolean;
   priceItemId: string | null;
   sourceNote: string | null;
 }
 
+export interface ComponentFigures {
+  netQuantity: string;
+  lossRate: string | null;
+  lossMode: import("../../shared/amounts").LossMode;
+  grossQuantity: string;
+  unitCost: string | null;
+  amount: string | null;
+}
+
 export interface BreakdownResult {
   complete: boolean;
+  state: import("../../shared/amounts").AmountState;
+  priced: number;
+  count: number;
+  figures: ComponentFigures[];
+  ratesMissing: { overhead: boolean; contingency: boolean; margin: boolean };
   componentTotals: Array<string | null>;
   debourseSec: string;
   fraisChantier: string;
@@ -581,6 +599,8 @@ export interface Breakdown {
   locked: boolean;
   status: import("../../shared/enums").DocumentStatus;
   notes: string | null;
+  decomposition: import("../../shared/amounts").DecompositionState;
+  missingCharacteristics: string[];
   updatedAt: string;
   components: BreakdownComponent[];
   result: BreakdownResult | { error: string };

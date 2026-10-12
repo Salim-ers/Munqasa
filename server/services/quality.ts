@@ -7,6 +7,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import type { DocumentType, IssueCategory, IssueSeverity } from "../../shared/enums.js";
 import type { CctpBlock } from "../ai/schemas.js";
 import { type Database, schema } from "../db/index.js";
+import { lossesAlreadyIncluded } from "./pricing.js";
 import { normalizeUnit } from "./units.js";
 import { readSetting } from "./settings.js";
 
@@ -226,7 +227,16 @@ export async function checkBreakdowns(db: Database, dpgfId: string): Promise<Iss
     const line = lines.find((l) => l.id === b.dpgfLineId)!;
     const own = components.filter((c) => c.breakdownId === b.id);
     const target = [{ type: "dpgf_line", id: line.id }];
-    if (own.length === 0) issues.push({ severity: "majeure", category: "completude", message: `Sous-détail vide, poste ${label(line)}`, targets: target });
+    if (b.decomposition === "impossible" || own.length === 0) {
+      const missing = b.missingCharacteristics.length ? ` (${b.missingCharacteristics.join(", ")})` : "";
+      issues.push({ severity: "majeure", category: "completude", message: `Décomposition impossible, caractéristiques à confirmer${missing} : poste ${label(line)}`, targets: target });
+    }
+    // Pertes comptées deux fois : consommation qui les comprend déjà, avec un taux encore appliqué.
+    for (const c of own) {
+      if (c.lossMode === "appliquee" && c.isHypothesis && lossesAlreadyIncluded(c.quantity, c.lossRate, c.sourceNote)) {
+        issues.push({ severity: "majeure", category: "calcul", message: `Pertes comptées deux fois pour ${c.designation} : la consommation de ${Number(c.quantity)} comprend déjà ${Number(c.lossRate)} %, poste ${label(line)}`, targets: target });
+      }
+    }
     const missing = own.filter((c) => c.unitCost === null);
     if (missing.length) {
       issues.push({ severity: "majeure", category: "source_manquante", message: `Prix manquant pour ${missing.map((c) => c.designation).join(", ")}, poste ${label(line)}`, targets: target });

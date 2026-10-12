@@ -269,9 +269,10 @@ test.describe.serial("administration", () => {
     await launch.getByText(/J’accepte que les postes de la DPGF/).click();
     await launch.getByRole("button", { name: "Établir 2 sous-détail(s)" }).click();
 
-    // Béton 1,05 × 980 × 1,05, acier 1,05 × 14,50 × 1,05, maçon 2,5 × 65 ; frais 12 % ; marge 8 %.
+    // Consommations nettes, pertes appliquées une seule fois : béton 1 × 1,05 × 980, acier 1 × 1,05 × 14,50,
+    // maçon 2,5 × 65 ; frais 12 % ; marge 8 % : 1 459,65.
     const poste = page.getByRole("button", { name: /Béton armé pour semelles filantes/ });
-    await expect(poste).toContainText(/1\s522,81\sMAD/, { timeout: 30_000 });
+    await expect(poste).toContainText(/1\s459,65\sMAD/, { timeout: 30_000 });
     await poste.click();
     const editor = page.getByRole("dialog", { name: /Béton armé pour semelles filantes/ });
     await expect(editor.getByText("Hypothèse", { exact: true })).toHaveCount(3);
@@ -289,7 +290,7 @@ test.describe.serial("administration", () => {
     await page.getByRole("link", { name: "Ouvrir la DPGF" }).click();
     const row = page.getByRole("row", { name: /Béton armé pour semelles filantes/ });
     await expect(row.getByText("Sous-détail validé")).toBeVisible();
-    await expect(row.getByText(/15\s532,66\sMAD/)).toBeVisible();
+    await expect(row.getByText(/14\s888,43\sMAD/)).toBeVisible();
   });
 
   test("crée un client puis une affaire qui lui est rattachée", async () => {

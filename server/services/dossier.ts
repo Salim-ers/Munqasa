@@ -15,6 +15,7 @@ import { recomputeBreakdown } from "./breakdowns.js";
 import { lineAmount, metreQuantity } from "./dpgf.js";
 import { FormulaError } from "./formula.js";
 import { computeMeasure } from "./metre.js";
+import { grossQuantity, lossesAlreadyIncluded } from "./pricing.js";
 import { checkBreakdowns, checkCctp, checkDpgf, type IssueDraft, replaceIssues } from "./quality.js";
 
 const fmt = (v: string | null) => (v === null ? "vide" : String(Number(v)));
@@ -46,7 +47,35 @@ export async function recomputeDossier(db: Database, projectId: string): Promise
     }
   }
 
-  // 2. DPGF : quantités reprises du métré, prix reportés des sous-détails validés, montants.
+  // 2. Sous-détails : pertes comptées deux fois (consommation proposée qui les comprend déjà), puis déboursés
+  //    et prix de vente recalculés, avant leur report dans la DPGF.
+  const initial = await db.select().from(schema.priceBreakdown).where(eq(schema.priceBreakdown.projectId, projectId));
+  const components = initial.length ? await db.select().from(schema.priceBreakdownComponent).where(inArray(schema.priceBreakdownComponent.breakdownId, initial.map((b) => b.id))) : [];
+  for (const c of components) {
+    if (c.lossMode !== "appliquee" || !c.isHypothesis || !lossesAlreadyIncluded(c.quantity, c.lossRate, c.sourceNote)) continue;
+    await db.update(schema.priceBreakdownComponent).set({ lossMode: "incluse" }).where(eq(schema.priceBreakdownComponent.id, c.id));
+    const owner = initial.find((b) => b.id === c.breakdownId);
+    const before = c.unitCost !== null ? grossQuantity({ ...c, lossMode: "appliquee" }).times(c.unitCost).toDecimalPlaces(4).toFixed(4) : null;
+    const after = c.unitCost !== null ? grossQuantity({ ...c, lossMode: "incluse" }).times(c.unitCost).toDecimalPlaces(4).toFixed(4) : null;
+    fixes.push({
+      kind: "pertes",
+      target: `${owner?.designation ?? ""}, ${c.designation}`.replace(/^, /, ""),
+      before,
+      after,
+      note: `Pertes de ${fmt(c.lossRate)} % déjà comprises dans la consommation de ${fmt(c.quantity)} ${c.unit} : elles ne sont plus appliquées une seconde fois${before !== null ? ` (montant ${fmt(before)} devient ${fmt(after)})` : ""}.`,
+    });
+  }
+  for (const b of initial) {
+    await recomputeBreakdown(db, b.id);
+    const [after] = await db.select({ price: schema.priceBreakdown.computedUnitPrice }).from(schema.priceBreakdown).where(eq(schema.priceBreakdown.id, b.id));
+    const before = b.computedUnitPrice;
+    const now = after?.price ?? null;
+    if ((before === null) !== (now === null) || (before !== null && Number(before) !== Number(now))) {
+      fixes.push({ kind: "sous_detail", target: b.designation, before, after: now, note: `Prix de vente du sous-détail recalculé : ${fmt(before)} devient ${fmt(now)}.` });
+    }
+  }
+
+  // 3. DPGF : quantités reprises du métré, prix reportés des sous-détails validés, montants.
   const documents = await db.select().from(schema.dpgf).where(eq(schema.dpgf.projectId, projectId));
   const breakdowns = await db.select().from(schema.priceBreakdown).where(eq(schema.priceBreakdown.projectId, projectId));
   let lineCount = 0;
@@ -91,17 +120,6 @@ export async function recomputeDossier(db: Database, projectId: string): Promise
     }
     // Une DPGF corrigée n'est plus validée en l'état : elle repasse « à valider ».
     if (changed && doc.status === "valide") await db.update(schema.dpgf).set({ status: "a_valider" }).where(eq(schema.dpgf.id, doc.id));
-  }
-
-  // 3. Sous-détails : déboursés et prix de vente recalculés.
-  for (const b of breakdowns) {
-    await recomputeBreakdown(db, b.id);
-    const [after] = await db.select({ price: schema.priceBreakdown.computedUnitPrice }).from(schema.priceBreakdown).where(eq(schema.priceBreakdown.id, b.id));
-    const before = b.computedUnitPrice;
-    const now = after?.price ?? null;
-    if ((before === null) !== (now === null) || (before !== null && Number(before) !== Number(now))) {
-      fixes.push({ kind: "sous_detail", target: b.designation, before, after: now, note: `Prix de vente du sous-détail recalculé : ${fmt(before)} devient ${fmt(now)}.` });
-    }
   }
   return { fixes, checked: { measurements: measures.length, dpgfLines: lineCount, breakdowns: breakdowns.length } };
 }
@@ -201,7 +219,7 @@ export async function dossierFingerprint(db: Database, projectId: string): Promi
   const components = breakdowns.length
     ? byId(
         await db
-          .select({ id: schema.priceBreakdownComponent.id, b: schema.priceBreakdownComponent.breakdownId, c: schema.priceBreakdownComponent.category, q: schema.priceBreakdownComponent.quantity, u: schema.priceBreakdownComponent.unitCost, l: schema.priceBreakdownComponent.lossRate })
+          .select({ id: schema.priceBreakdownComponent.id, b: schema.priceBreakdownComponent.breakdownId, c: schema.priceBreakdownComponent.category, q: schema.priceBreakdownComponent.quantity, u: schema.priceBreakdownComponent.unitCost, l: schema.priceBreakdownComponent.lossRate, m: schema.priceBreakdownComponent.lossMode })
           .from(schema.priceBreakdownComponent)
           .where(inArray(schema.priceBreakdownComponent.breakdownId, breakdowns.map((b) => b.id))),
       )

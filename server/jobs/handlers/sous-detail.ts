@@ -12,7 +12,7 @@ import { callAgent } from "../../ai/client.js";
 import { type CctpBlock, sousDetailBatch } from "../../ai/schemas.js";
 import { schema } from "../../db/index.js";
 import { defaultRates, recomputeBreakdown } from "../../services/breakdowns.js";
-import { candidateNote, findCandidates, type PriceCandidate } from "../../services/pricing.js";
+import { candidateNote, findCandidates, lossesAlreadyIncluded, type PriceCandidate } from "../../services/pricing.js";
 import { blocksText, checkBreakdowns, replaceIssues } from "../../services/quality.js";
 import { normalizeUnit } from "../../services/units.js";
 import type { JobHandler } from "../types.js";
@@ -31,11 +31,16 @@ Règles strictes :
 - tu ne donnes jamais de coût ni de prix : le coût unitaire d'un composant vient uniquement d'un prix candidat de la bibliothèque, désigné par son identifiant dans « priceItemId » ; si aucun candidat ne convient, mets « priceItemId » à null : le composant restera à chiffrer ;
 - ne choisis un candidat que si sa désignation et son unité correspondent réellement au composant ;
 - les prix candidats sont hors taxes ; « portee » dit ce que couvre le prix : un prix de fourniture seule n'inclut ni la pose ni la main-d'œuvre, qui restent des composants distincts ;
-- « quantity » est la consommation par unité d'ouvrage, exprimée dans l'unité du prix candidat (par exemple 1,05 m3 de béton par m3 d'ouvrage, 6 h de main-d'œuvre par m3) : c'est une hypothèse, justifie-la brièvement dans « justification » (ratio usuel à confirmer, fiche technique, métré…) ;
-- « lossRate » : pertes en pourcentage si elles sont pertinentes, sinon null ;
+- « netQuantity » est la consommation NETTE par unité d'ouvrage, sans aucune perte ni chute, exprimée dans l'unité du prix candidat (par exemple 1 m3 de béton par m3 d'ouvrage, 6 h de main-d'œuvre par m3) : c'est une hypothèse adaptée à cet ouvrage, justifie-la brièvement dans « justification » (ratio usuel à confirmer, fiche technique, métré…) ;
+- « lossRate » : taux de pertes ou de chutes en pourcentage (par exemple « 3 »), ou null s'il est sans objet ; le serveur l'applique une seule fois (quantité brute = quantité nette × (1 + pertes)) : n'inclus jamais les pertes dans « netQuantity » et ne les répète pas dans la justification comme déjà comprises ;
 - un candidat de nature « ouvrage » (prix complet d'un ouvrage comparable) peut constituer seul le sous-détail (catégorie sous_traitance, quantité 1) s'il correspond exactement au poste ;
+- décompose chaque poste dès que la nature de l'ouvrage est connue (par exemple une infrastructure de réseau enterré : tranchée, lit de pose, fourreaux, grillage avertisseur, remblai), même si les consommations restent des hypothèses à confirmer ; mets alors « impossible » à null ;
+- si la nature, le matériau ou le système constructif du poste sont si peu définis qu'aucune décomposition pertinente n'est possible, ne propose aucun composant : remplis « impossible » avec la raison et la liste précise des caractéristiques à confirmer (matériau, section, épaisseur…) ; n'invente jamais une composition pour remplir le tableau ;
 - aucun composant superflu ; réponds pour chaque poste demandé avec son « lineId ».
 Réponds en français.`;
+
+/** Mention ajoutée quand la consommation proposée comprenait déjà les pertes : elles ne sont pas appliquées deux fois. */
+const INCLUDED_NOTE = (rate: string) => `Pertes de ${Number(rate)} % déjà comprises dans la consommation proposée : appliquées une seule fois`;
 
 /** Nombre décimal positif renvoyé par le modèle, ou null s'il est illisible. */
 function decimal(value: string | null, places: number): string | null {
@@ -144,6 +149,9 @@ export const sousDetailHandler: JobHandler = {
           continue;
         }
         const own = new Map((candidates.get(line.id) ?? []).map((c) => [c.id, c]));
+        // Composants exploitables ; aucun composant (ou une impossibilité déclarée) : décomposition impossible.
+        const components = answer.impossible ? [] : answer.components.filter((c) => decimal(c.netQuantity, 6) !== null);
+        const impossible = components.length === 0;
         const breakdownId = await db.transaction(async (tx) => {
           const [previous] = await tx.select().from(schema.priceBreakdown).where(eq(schema.priceBreakdown.dpgfLineId, line.id));
           if (previous?.locked) return null;
@@ -159,13 +167,17 @@ export const sousDetailHandler: JobHandler = {
               currency: dpgf!.currency,
               ...rates,
               status: "brouillon",
-              notes: answer.notes,
+              decomposition: impossible ? "impossible" : "decomposee",
+              missingCharacteristics: impossible ? (answer.impossible?.missing ?? []).map((m) => m.trim()).filter(Boolean).slice(0, 12) : [],
+              notes: impossible ? [answer.impossible?.reason.trim() || "Caractéristiques de l’ouvrage insuffisantes pour établir une décomposition.", answer.notes].filter(Boolean).join("\n") : answer.notes,
             })
             .returning({ id: schema.priceBreakdown.id });
           let position = 0;
-          for (const component of answer.components) {
-            const quantity = decimal(component.quantity, 6);
-            if (quantity === null) continue;
+          for (const component of components) {
+            const quantity = decimal(component.netQuantity, 6)!;
+            const lossRate = decimal(component.lossRate, 4);
+            // Pertes jamais appliquées deux fois : une consommation qui les comprend déjà est prise telle quelle.
+            const included = lossesAlreadyIncluded(quantity, lossRate, component.justification);
             // Le coût vient uniquement de la bibliothèque ; l'unité est celle du prix retenu.
             const price = component.priceItemId ? own.get(component.priceItemId) : undefined;
             await tx.insert(schema.priceBreakdownComponent).values({
@@ -176,10 +188,11 @@ export const sousDetailHandler: JobHandler = {
               unit: price?.unit ?? (component.unit.trim() || "u"),
               quantity,
               unitCost: price ? price.unitPriceHt : null,
-              lossRate: decimal(component.lossRate, 4),
+              lossRate,
+              lossMode: included ? "incluse" : "appliquee",
               isHypothesis: true,
               priceItemId: price?.id ?? null,
-              sourceNote: [component.justification.trim(), price ? candidateNote(price) : "Prix à trouver dans la bibliothèque"].filter(Boolean).join(". "),
+              sourceNote: [component.justification.trim(), included && lossRate ? INCLUDED_NOTE(lossRate) : null, price ? candidateNote(price) : "Prix à trouver dans la bibliothèque"].filter(Boolean).join(". "),
               details: price && normalizeUnit(price.unit) !== normalizeUnit(component.unit) ? { uniteProposee: component.unit } : {},
             });
           }
@@ -205,8 +218,9 @@ export const sousDetailHandler: JobHandler = {
     const lines = await db.select({ id: schema.dpgfLine.id }).from(schema.dpgfLine).where(and(eq(schema.dpgfLine.dpgfId, input.dpgfId), eq(schema.dpgfLine.kind, "poste")));
     const breakdowns = lines.length ? await db.select().from(schema.priceBreakdown).where(inArray(schema.priceBreakdown.dpgfLineId, lines.map((l) => l.id))) : [];
     const complete = breakdowns.filter((b) => b.computedUnitPrice !== null).length;
+    const impossible = breakdowns.filter((b) => b.decomposition === "impossible").length;
     return {
-      title: `Sous-détails établis : ${breakdowns.length} poste(s), ${complete} entièrement chiffré(s)`,
+      title: `Sous-détails établis : ${breakdowns.length} poste(s), ${complete} entièrement chiffré(s)${impossible ? `, ${impossible} à décomposition impossible` : ""}`,
       link: job.projectId ? `/administration/affaires/${job.projectId}?onglet=sousdetails&dpgf=${input.dpgfId}` : null,
     };
   },

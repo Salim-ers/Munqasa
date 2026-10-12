@@ -50,6 +50,13 @@
       "when": 1791672613445,
       "tag": "0006_controle_et_validation_du_dossier",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791796977789,
+      "tag": "0007_pertes_et_completude",
+      "breakpoints": true
     }
   ]
 }

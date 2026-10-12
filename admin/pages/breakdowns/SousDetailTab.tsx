@@ -125,7 +125,7 @@ export function SousDetailTab({ projectId }: { projectId: string }) {
                         </span>
                       </span>
                       <span className="ml-14 text-left sm:ml-0 sm:text-right">
-                        <span className="block text-xs font-semibold text-ink tabular">{breakdown?.computedUnitPrice ? formatMoney(breakdown.computedUnitPrice, currency) : breakdown ? "à compléter" : ""}</span>
+                        <span className="block text-xs font-semibold text-ink tabular">{breakdown?.computedUnitPrice ? formatMoney(breakdown.computedUnitPrice, currency) : breakdown?.decomposition === "impossible" ? "caractéristiques à confirmer" : breakdown ? "à compléter" : ""}</span>
                         <span className="block text-2xs text-ink-3">{line.unitPrice !== null ? `DPGF ${formatMoney(line.unitPrice, currency)}` : "DPGF non chiffrée"}</span>
                       </span>
                       <Badge tone={state.tone} dot>

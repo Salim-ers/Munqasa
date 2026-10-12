@@ -3,7 +3,8 @@ import { asc, eq, inArray } from "drizzle-orm";
 import { DESIGN_PHASE_LABELS } from "../../../shared/enums.js";
 import type { CctpBlock } from "../../ai/schemas.js";
 import { type Database, schema } from "../../db/index.js";
-import { baseMeta, COVER_STATUS, type ExportContext, exportContext, ExportNotFound } from "../context.js";
+import { documentLevel, levelFrom } from "../../services/document-level.js";
+import { baseMeta, type ExportContext, exportContext, ExportNotFound } from "../context.js";
 import type { Block, DocModel } from "../model.js";
 
 export interface CctpExport {
@@ -70,6 +71,11 @@ export async function cctpFrom(db: Database, document: CctpDocument, sections: C
     });
   }
 
+  // Statut calculé : version figée d'après ses propres articles, document courant d'après son état réel.
+  const unwritten = sections.filter((s) => s.kind === "article" && (s.status === "a_rediger" || ((s.content ?? []) as unknown[]).length === 0)).length;
+  const level = version
+    ? levelFrom(unwritten ? [`${unwritten} article(s) à rédiger`] : [], { draft: false, validated: version.validated, professional: false })
+    : await documentLevel(db, { type: "cctp", id: document.id });
   const model: DocModel = {
     meta: baseMeta(ctx, {
       kind: "cctp",
@@ -77,10 +83,11 @@ export async function cctpFrom(db: Database, document: CctpDocument, sections: C
       shortLabel: "CCTP",
       title: document.title,
       version: version?.number ?? document.currentVersion,
-      status: version ? (version.validated ? "Version validée" : "Version enregistrée") : COVER_STATUS[document.status],
+      status: level.label,
       toc: true,
       phase: DESIGN_PHASE_LABELS[document.phase],
       date: version?.date,
+      disclaimer: version ? `Version ${version.number} enregistrée le ${version.date.toLocaleDateString("fr-FR")}${version.validated ? ", validée par l’utilisateur" : ""}.` : null,
     }),
     blocks,
   };

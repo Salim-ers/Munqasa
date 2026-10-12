@@ -70,3 +70,28 @@ export function measureConfidence(sources: MeasureInputSource[]): MeasureConfide
   }
   return medium ? "moyenne" : "elevee";
 }
+
+/** Cote d'une chaîne : texte écrit, valeur en mètres, position de son centre le long de la chaîne (points). */
+export interface ChainItem {
+  text: string;
+  meters: string;
+  at: number;
+}
+
+/**
+ * Chaîne de cotes reconstituée à partir du texte vectoriel : cotes alignées sur une même ligne de cote, dans
+ * l'ordre. « verified » : l'écartement de chaque paire de cotes voisines correspond, à l'échelle de la planche,
+ * à la demi-somme de leurs valeurs (chaque cote mesure bien le segment sur lequel elle est écrite).
+ * « total » : cote écrite sur une ligne parallèle, égale à la somme des cotes partielles et centrée sur elles.
+ */
+export interface DimensionChain {
+  orientation: "horizontale" | "verticale";
+  /** Position de la ligne de cote (y pour une chaîne horizontale, x pour une verticale), en points. */
+  line: number;
+  start: number;
+  end: number;
+  items: ChainItem[];
+  sum: string;
+  verified: boolean;
+  total: { text: string; meters: string } | null;
+}

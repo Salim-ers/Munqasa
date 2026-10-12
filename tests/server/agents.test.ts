@@ -199,6 +199,7 @@ describe("lecture des plans et métré", () => {
                 note: null,
               },
             ],
+            missing: [],
           },
         ],
         warnings: [],

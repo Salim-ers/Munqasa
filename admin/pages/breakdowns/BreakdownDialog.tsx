@@ -2,13 +2,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Library, LockOpen, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { AMOUNT_STATE_LABELS, DECOMPOSITION_IMPOSSIBLE_LABEL } from "../../../shared/amounts";
 import { COMPONENT_CATEGORY_LABELS, type Currency, MARGIN_MODE_LABELS, PRICE_KIND_LABELS, RATE_BASE_LABELS, VALIDATION_STATUS_LABELS } from "../../../shared/enums";
 import { priceExclTax } from "../../../shared/prices";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { Modal } from "../../components/ui/Dialog";
 import { EmptyState, InlineError, Skeleton } from "../../components/ui/Feedback";
-import { Field, optionsOf, SelectField } from "../../components/ui/Field";
+import { Checkbox, Field, optionsOf, SelectField } from "../../components/ui/Field";
 import { ActionMenu } from "../../components/ui/Menu";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { Segmented } from "../../components/ui/Segmented";
@@ -16,7 +17,7 @@ import { api, ApiError, errorMessage, query } from "../../lib/api";
 import { cn } from "../../lib/cn";
 import { formatDate, formatMoney, formatNumber } from "../../lib/format";
 import { whenLabel, zoneLabel } from "../../lib/prices";
-import type { Breakdown, BreakdownComponent, DpgfLine, Paged, PriceItem } from "../../lib/types";
+import type { Breakdown, BreakdownComponent, ComponentFigures, DpgfLine, Paged, PriceItem } from "../../lib/types";
 import { EditableCell } from "../dpgf/DpgfView";
 import { breakdownState } from "./state";
 
@@ -201,7 +202,16 @@ export function BreakdownDialog({ projectId, currency, entry, onOpenChange }: { 
             </Badge>
             {line?.quantity ? <span className="text-2xs text-ink-3">{`${formatNumber(line.quantity)} ${line.unit ?? ""} à la DPGF`}</span> : null}
           </div>
-          {b.notes ? <p className="rounded-xl bg-surface-2 p-3 text-2xs leading-relaxed text-ink-2">{b.notes}</p> : null}
+          {b.decomposition === "impossible" ? (
+            <div className="rounded-xl border border-warning/40 bg-surface-2 p-3">
+              <p className="text-xs font-semibold text-warning">{DECOMPOSITION_IMPOSSIBLE_LABEL}</p>
+              {b.notes ? <p className="mt-1 text-2xs leading-relaxed text-ink-2">{b.notes}</p> : null}
+              {b.missingCharacteristics.length ? <p className="mt-1 text-2xs leading-relaxed text-ink-2">{`Caractéristiques à confirmer : ${b.missingCharacteristics.join(", ")}.`}</p> : null}
+              <p className="mt-1 text-2xs text-ink-3">Aucun montant n’est affiché pour ce poste ; ajoutez des composants pour établir la décomposition vous-même.</p>
+            </div>
+          ) : b.notes ? (
+            <p className="rounded-xl bg-surface-2 p-3 text-2xs leading-relaxed text-ink-2">{b.notes}</p>
+          ) : null}
 
           <section>
             <h3 className="text-xs font-semibold text-ink">Composants</h3>
@@ -213,7 +223,7 @@ export function BreakdownDialog({ projectId, currency, entry, onOpenChange }: { 
                   <ComponentRow
                     key={c.id}
                     component={c}
-                    total={"error" in b.result ? null : (b.result.componentTotals[i] ?? null)}
+                    figures={"error" in b.result ? null : (b.result.figures[i] ?? null)}
                     currency={currency}
                     locked={locked}
                     picking={picking === c.id}
@@ -277,20 +287,28 @@ export function BreakdownDialog({ projectId, currency, entry, onOpenChange }: { 
               <p className="mt-2 text-xs text-danger">{result.error}</p>
             ) : (
               <dl className="mt-2 grid gap-1.5 text-xs">
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-ink-3">Statut du coût</dt>
+                  <dd className={cn("text-right", result.state === "complet" || result.state === "estimatif" ? "text-ink" : "text-warning")}>
+                    {result.state === "partiel" ? `${AMOUNT_STATE_LABELS.partiel}, ${result.priced} composant(s) chiffré(s) sur ${result.count}` : AMOUNT_STATE_LABELS[result.state]}
+                  </dd>
+                </div>
                 {(
                   [
-                    ["Déboursé sec", result.debourseSec],
-                    ["Frais de chantier", result.fraisChantier],
-                    ["Déboursé total", result.debourseTotal],
-                    ["Frais généraux", result.overhead],
-                    ["Aléas", result.contingency],
-                    ["Prix de revient", result.prixDeRevient],
-                    ["Marge", result.margin],
+                    ["Déboursé sec", result.debourseSec, false],
+                    ["Frais de chantier", result.fraisChantier, false],
+                    ["Déboursé total", result.debourseTotal, false],
+                    ["Frais généraux", result.overhead, result.ratesMissing.overhead],
+                    ["Aléas", result.contingency, result.ratesMissing.contingency],
+                    ["Prix de revient", result.prixDeRevient, false],
+                    ["Marge", result.margin, result.ratesMissing.margin],
                   ] as const
-                ).map(([label, value]) => (
+                ).map(([label, value, missing]) => (
                   <div key={label} className="flex items-center justify-between gap-3">
                     <dt className="text-ink-3">{label}</dt>
-                    <dd className="text-ink tabular">{formatMoney(value, currency)}</dd>
+                    <dd className={cn("tabular", missing || result.state === "non_renseigne" ? "text-ink-3" : "text-ink")}>
+                      {missing ? "taux non saisi" : result.state === "non_renseigne" ? "non chiffré" : result.state === "partiel" ? `partiel, ${formatMoney(value, currency)}` : formatMoney(value, currency)}
+                    </dd>
                   </div>
                 ))}
                 <div className="mt-1 flex items-center justify-between gap-3 border-t border-line pt-2">
@@ -308,7 +326,7 @@ export function BreakdownDialog({ projectId, currency, entry, onOpenChange }: { 
 
 function ComponentRow({
   component: c,
-  total,
+  figures,
   currency,
   locked,
   picking,
@@ -317,7 +335,7 @@ function ComponentRow({
   onRemove,
 }: {
   component: BreakdownComponent;
-  total: string | null;
+  figures: ComponentFigures | null;
   currency: Currency;
   locked: boolean;
   picking: boolean;
@@ -340,8 +358,8 @@ function ComponentRow({
           />
         ) : null}
       </div>
-      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Cell label={`Consommation, ${c.unit}`}>
+      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
+        <Cell label={`${c.lossMode === "incluse" ? "Consommation brute" : "Consommation nette"}, ${c.unit}`}>
           {locked ? (
             text(formatNumber(c.quantity))
           ) : (
@@ -374,8 +392,18 @@ function ComponentRow({
             <EditableCell label="Pertes" value={c.lossRate} display={c.lossRate !== null ? `${formatNumber(c.lossRate)} %` : ""} placeholder="aucune" numeric onSave={(v) => onPatch({ lossRate: v })} />
           )}
         </Cell>
-        <Cell label="Coût par unité">{text(total !== null ? formatMoney(total, currency) : "")}</Cell>
+        <Cell label="Quantité brute">{text(figures ? formatNumber(figures.grossQuantity) : "")}</Cell>
+        <Cell label="Montant par unité">{text(figures?.amount ? formatMoney(figures.amount, currency) : c.unitCost === null ? "à chiffrer" : "")}</Cell>
       </div>
+      {c.lossRate !== null && Number(c.lossRate) > 0 ? (
+        <div className="mt-2 px-2">
+          {locked ? (
+            <p className="text-2xs text-ink-3">{c.lossMode === "incluse" ? "Pertes déjà comprises dans la consommation : appliquées une seule fois." : "Pertes appliquées à la consommation nette."}</p>
+          ) : (
+            <Checkbox label="Pertes déjà comprises dans la consommation saisie" checked={c.lossMode === "incluse"} onChange={(v) => void onPatch({ lossMode: v ? "incluse" : "appliquee" }).catch(() => undefined)} />
+          )}
+        </div>
+      ) : null}
       {c.isHypothesis || c.sourceNote ? (
         <p className="mt-2 flex flex-wrap items-center gap-1.5 px-2 text-2xs leading-relaxed text-ink-3">
           {c.isHypothesis ? <Badge tone="warning">Hypothèse</Badge> : null}
@@ -401,6 +429,7 @@ function ComponentRow({
 
 function AddComponent({ breakdownId, currency, onDone, onSaved }: { breakdownId: string; currency: Currency; onDone: () => void; onSaved: () => Promise<unknown> }) {
   const [values, setValues] = useState({ category: "materiau", designation: "", unit: "", quantity: "", unitCost: "", lossRate: "" });
+  const [lossIncluded, setLossIncluded] = useState(false);
   const [mode, setMode] = useState<"bibliotheque" | "saisie">("bibliotheque");
   const [price, setPrice] = useState<PriceItem | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -416,6 +445,7 @@ function AddComponent({ breakdownId, currency, onDone, onSaved }: { breakdownId:
           quantity: values.quantity,
           unitCost: mode === "saisie" ? values.unitCost || null : null,
           lossRate: values.lossRate || null,
+          lossMode: lossIncluded ? "incluse" : "appliquee",
           priceItemId: mode === "bibliotheque" ? (price?.id ?? null) : null,
         },
       }),
@@ -436,6 +466,9 @@ function AddComponent({ breakdownId, currency, onDone, onSaved }: { breakdownId:
         <Field label="Consommation par unité d’ouvrage" inputMode="decimal" value={values.quantity} onChange={(e) => set("quantity", e.target.value)} error={errors.quantity} />
         <Field label="Pertes (%)" optional inputMode="decimal" value={values.lossRate} onChange={(e) => set("lossRate", e.target.value)} error={errors.lossRate} />
       </div>
+      {values.lossRate && Number(values.lossRate.replace(",", ".")) > 0 ? (
+        <Checkbox label="La consommation saisie comprend déjà ces pertes (elles ne seront pas appliquées une seconde fois)" checked={lossIncluded} onChange={setLossIncluded} />
+      ) : null}
       <Segmented
         value={mode}
         onChange={setMode}

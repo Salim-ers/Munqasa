@@ -1,0 +1,59 @@
+# Amélioration V4 : constats d'audit et grille de tests
+
+## Constats d'audit sur TAL-2026-0003 (phase 1)
+
+Mesures faites sur les PDF et classeurs du dossier réellement généré (script de contrôle de mise en page sur
+les coordonnées de chaque ligne de texte, lecture des classeurs Excel).
+
+| Domaine | Constat | Cause dans le code |
+| --- | --- | --- |
+| Métré | Note de métrés « Aucune mesure » : 15 ouvrages, 0 mesure ; 39 postes de DPGF sur 65 sans quantité | lecteur de plans ne rattachant aucune cote aux murs, métreur consigné de ne rien mesurer à la moindre entrée manquante, aucun métré des postes créés par la DPGF |
+| Pertes | Béton des bandeaux : 1,03 m³ × 809,27 × 1,03 = 858,55 au lieu de 833,55 ; même défaut sur 12 composants | consommation proposée déjà majorée, taux de pertes appliqué en plus par le calcul |
+| Sous-détails | 3.3.1, 4.1.1, 4.1.2, 4.2.1, 5.2.3, 5.3.1, 5.3.2, 5.4.1 : tableaux vides suivis de totaux à 0,00 MAD | aucun état « décomposition impossible », sommes des composants inconnus présentées comme nulles |
+| Montants | Déboursés « 0,00 MAD », total DPGF « 0 », récapitulatif des métrés « 0 » pour des valeurs inconnues ; montants des totaux absents des PDF | coût inconnu compté comme zéro ; rendu PDF qui avalait la cellule suivant une cellule fusionnée |
+| Statuts | « Statut : Validé » sur les couvertures malgré 39 quantités et 65 prix manquants | statut de validation de l'utilisateur recopié tel quel sur la couverture |
+| Mise en page | Avertissement de couverture superposé à la grille d'informations (sous-détails, BPU, estimation) ; titres isolés en bas de page (CCTP p. 25, sous-détails p. 28, 31, 39, 41, 44, 58, 70, 74, note de métrés p. 3, 6, 7) ; page de sommaire réduite à une ligne (CCTP p. 4) ; colonne « Cotes contrôlées » hors marge (rapport d'analyse p. 3) | couverture tracée en positions absolues ; contrôle des titres limité au cas où rien ne les suit ; sommaire suivi d'un saut de page forcé ; largeurs de colonnes non ajustées |
+
+## Grille de tests reproductible
+
+Chaque ligne est un test automatisé, rejoué par `npm test` (serveur, base PostgreSQL réelle en mémoire,
+fournisseur d'IA simulé) ou `npm run test:e2e` (navigateur). Les tests sur les fichiers privés de l'affaire
+s'exécutent quand leurs chemins sont fournis (`TALAB_SAMPLE_PLAN`, `TALAB_SAMPLE_DPGF`).
+
+### Calculs financiers (`tests/server/pricing.test.ts`, `tests/server/chiffrage.test.ts`)
+
+| Cas | Résultat attendu |
+| --- | --- |
+| Consommation nette 1 m³, pertes 3 %, 809,2673 | quantité brute 1,03, montant 833,5453 |
+| Consommation 1,03 m³ comprenant déjà 3 % | quantité brute 1,03, montant 833,5453, jamais 858,5517 |
+| Main-d'œuvre, matériel, transport, frais de chantier | pas de pertes, frais de chantier hors déboursé sec |
+| Frais généraux sur DS, aléas sur DT, marge 15 % | chaque taux appliqué une fois sur son assiette, prix au centime |
+| Arrondi | prix de vente au centime, demi supérieur (10,005 donne 10,01) |
+| Aucun prix | état « non renseigné », aucun prix de vente, jamais 0,00 |
+| Une partie des prix | état « partiel », déboursé « partiel, x MAD » |
+| Consommations proposées par l'agent | état « estimatif » |
+| Coût réellement nul | état « nul » |
+| Justifications réelles de TAL-2026-0003 | pertes reconnues comme déjà comprises (8 cas) ; consommation nette ou « hors pertes » jamais confondue |
+| Données déjà enregistrées avec double comptage | corrigées par le contrôle indépendant, correction journalisée |
+| DPGF sans prix | total « non chiffré », statut « Généré avec réserves », aucun 0,00 |
+| DPGF partiellement chiffrée | « Total hors taxes, partiel : n poste(s) non chiffré(s) exclu(s) » |
+
+### Statuts documentaires (`tests/server/chiffrage.test.ts`)
+
+| Cas | Statut imprimé |
+| --- | --- |
+| Quantités ou prix manquants, ou aucune planche analysée | Généré avec réserves |
+| Document complet, contrôles sans anomalie | Vérification automatique réussie |
+| Document complet validé par l'utilisateur | Prêt pour revue, jamais « Validé » sans déclaration professionnelle |
+
+### Métré (`tests/server/metre.test.ts`, `tests/server/agents.test.ts`, `tests/samples/samples.test.ts`)
+
+| Cas | Résultat attendu |
+| --- | --- |
+| Cotes écrites « 2.77 », « 80 », « 404.93 » | 2,77 m, 0,80 m, altitude ignorée |
+| Chaîne 1,55 + 0,80 + 4,83 et cote 7,18 | chaîne contrôlée à l'échelle, cote totale retrouvée |
+| Cote isolée hors de l'écartement attendu | exclue de la chaîne |
+| PLAN METRIKA, niveau 0 et niveau 2 | chaîne vérifiée 7,18 ; trame 13 × 2,77 = 36,01 ; cote totale 36,01 retrouvée |
+| Poste de DPGF à métrer, cote relevée | quantité calculée par le serveur, ouvrage et mesure tracés dans la note de métrés |
+| Poste de DPGF non mesurable | « À métrer : » suivi de la donnée manquante, aucune quantité supposée |
+| Cote absente du texte vectoriel, déduction | confiance faible, déduction soustraite, correction manuelle tracée |

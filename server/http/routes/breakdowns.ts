@@ -192,11 +192,14 @@ export const breakdownRoutes = new Hono<AdminEnv>()
         quantity: data.quantity,
         unitCost: cost.unitCost,
         lossRate: data.lossRate,
+        lossMode: data.lossMode,
         priceItemId: cost.priceItemId,
         isHypothesis: false,
         sourceNote: data.sourceNote ?? cost.note,
       })
       .returning();
+    // Un composant ajouté à la main établit la décomposition jusque-là impossible.
+    if (b.decomposition === "impossible") await db.update(bd).set({ decomposition: "decomposee", missingCharacteristics: [] }).where(eq(bd.id, id));
     await recomputeBreakdown(db, id);
     const owner = await dpgfOfBreakdown(id);
     if (owner) await recheck(owner.dpgfId);

@@ -91,13 +91,11 @@ function tableNode(block: Extract<Block, { type: "table" }>, pal: Palette, conte
   }));
   const body = block.rows.map((row: Row) => {
     const cells: unknown[] = [];
-    let skip = 0;
-    row.cells.forEach((raw, index) => {
-      if (skip > 0) {
-        skip--;
-        cells.push({});
-        return;
-      }
+    // Cellules du modèle dans l'ordre logique : une cellule fusionnée sur n colonnes est suivie, dans la
+    // grille pdfmake, de n − 1 cellules de réserve ; la cellule suivante du modèle vient après elles.
+    row.cells.forEach((raw) => {
+      if (cells.length >= block.columns.length) return;
+      const index = cells.length;
       const cell: Cell = cellOf(raw);
       const strong = cell.bold || row.kind === "group" || row.kind === "subtotal" || row.kind === "total";
       const color = cell.tone === "muted" ? pal.muted : cell.tone === "primary" || (row.kind === "group" && index === 0) ? pal.primary : pal.ink;
@@ -107,15 +105,16 @@ function tableNode(block: Extract<Block, { type: "table" }>, pal: Palette, conte
         const nodes = textNodes([{ text: line, bold: strong && li === 0 }], pal).map((n) => (li === 0 ? n : { ...n, color: pal.muted, fontSize: size - 0.8 }));
         return li < lines.length - 1 ? [...nodes, { text: "\n" }] : nodes;
       });
+      const span = Math.min(cell.colSpan && cell.colSpan > 1 ? cell.colSpan : 1, block.columns.length - index);
       cells.push({
         text,
         fontSize: row.kind === "note" ? size - 0.6 : size,
         color,
         alignment: cell.align ?? block.columns[index]?.align ?? "left",
         fillColor: row.kind === "group" ? pal.surfaceAlt : row.kind === "total" ? pal.surface : undefined,
-        ...(cell.colSpan && cell.colSpan > 1 ? { colSpan: cell.colSpan } : {}),
+        ...(span > 1 ? { colSpan: span } : {}),
       });
-      if (cell.colSpan && cell.colSpan > 1) skip = cell.colSpan - 1;
+      for (let k = 1; k < span; k++) cells.push({});
     });
     while (cells.length < block.columns.length) cells.push({ text: "" });
     return cells;

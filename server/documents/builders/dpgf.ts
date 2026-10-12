@@ -6,9 +6,10 @@
 import { asc, eq } from "drizzle-orm";
 import type ExcelJS from "exceljs";
 import { type Database, schema } from "../../db/index.js";
-import { computeTotals, type DpgfTotals, type LineRow, orderTree } from "../../services/dpgf.js";
+import { documentLevel, type DocumentLevelInfo, dpgfReserves, levelFrom } from "../../services/document-level.js";
+import { computeTotals, type DpgfTotals, type LineRow, orderTree, type TotalState } from "../../services/dpgf.js";
 import { type DocTheme, palette, type Palette } from "../brand.js";
-import { baseMeta, COVER_STATUS, type ExportContext, exportContext, ExportNotFound, money, percentLabel, quantity } from "../context.js";
+import { baseMeta, type ExportContext, exportContext, ExportNotFound, money, percentLabel, quantity } from "../context.js";
 import type { Block, DocMeta, DocModel, Row } from "../model.js";
 import { amountInWords } from "../words.js";
 import { autoFilter, brandedSheet, columnLetter, moneyFormat, newWorkbook, QTY_FORMAT, styleRow } from "../xlsx.js";
@@ -21,6 +22,8 @@ export interface DpgfData {
   coverage: { postes: number; priced: number; withoutQuantity: number; withoutPrice: number };
   /** Version figée rendue (sinon l'état courant). */
   version: { number: number; date: Date; validated: boolean } | null;
+  /** Statut imprimé : calculé sur les données, jamais « validé » d'office. */
+  level: DocumentLevelInfo;
 }
 
 export async function loadDpgf(db: Database, id: string): Promise<DpgfData> {
@@ -49,7 +52,23 @@ export async function dpgfFrom(db: Database, doc: typeof schema.dpgf.$inferSelec
       withoutQuantity: postes.filter((l) => l.quantity === null).length,
       withoutPrice: postes.filter((l) => l.unitPrice === null).length,
     },
+    // Version figée : réserves tirées de ses propres lignes ; validée par l'utilisateur, elle reste « prête pour revue ».
+    level: version ? levelFrom(dpgfReserves(postes, { prices: true }), { draft: false, validated: version.validated, professional: false }) : await documentLevel(db, { type: "dpgf", id: doc.id }),
   };
+}
+
+/** Mention d'une version figée, sous le titre. */
+function versionNote(data: DpgfData): string | null {
+  if (!data.version) return null;
+  return `Version ${data.version.number} enregistrée le ${data.version.date.toLocaleDateString("fr-FR")}${data.version.validated ? ", validée par l’utilisateur" : ""}.`;
+}
+
+/** Montant d'un sous-total, suivi de « partiel » quand une partie de ses postes n'est pas chiffrée. */
+function subtotalText(data: DpgfData, id: string, currency: string): string {
+  const state: TotalState | undefined = data.totals.subtotalStates[id];
+  const value = data.totals.subtotals[id] ?? null;
+  if (!state || state === "non_renseigne" || value === null) return "";
+  return state === "partiel" ? `${money(value, currency)}\npartiel` : money(value, currency);
 }
 
 const designation = (line: LineRow) => (line.description ? `${line.designation}\n${line.description}` : line.designation);
@@ -69,11 +88,23 @@ function coverageBlock(data: DpgfData): Block | null {
   };
 }
 
+/** Libellé d'un total selon sa complétude : un total partiel le dit, un total sans poste chiffré n'a pas de montant. */
+export function totalLabel(base: string, state: TotalState, unpriced: number): string {
+  if (state === "partiel") return `${base}, partiel : ${unpriced} poste(s) non chiffré(s) exclu(s)`;
+  return base;
+}
+
 function totalsRows(data: DpgfData, cols: number, amountCol: number): Row[] {
   const currency = data.doc.currency;
+  const { state } = data.totals;
+  const unpriced = data.coverage.postes - data.coverage.priced;
   const row = (label: string, value: string | null, kind: Row["kind"]): Row => ({
     kind,
-    cells: [{ text: label, colSpan: amountCol, align: "right" }, { text: money(value, currency), align: "right" }, ...Array.from({ length: cols - amountCol - 1 }, () => "")],
+    cells: [
+      { text: totalLabel(label, state, unpriced), colSpan: amountCol, align: "right" },
+      { text: state === "non_renseigne" ? "non chiffré" : money(value, currency), align: "right", tone: state === "non_renseigne" ? "primary" : undefined },
+      ...Array.from({ length: cols - amountCol - 1 }, () => ""),
+    ],
   });
   const rows = [row("Total hors taxes", data.totals.totalHt, "total")];
   if (data.doc.vatRate !== null) {
@@ -91,7 +122,7 @@ export function dpgfModel(data: DpgfData): DocModel {
     if (line.kind !== "poste") {
       return {
         kind: line.kind === "chapitre" ? "group" : "subgroup",
-        cells: [code, line.designation, "", "", "", { text: money(data.totals.subtotals[line.id] ?? null, currency), align: "right" }, line.cctpRef ?? ""],
+        cells: [code, line.designation, "", "", "", { text: subtotalText(data, line.id, currency), align: "right" }, line.cctpRef ?? ""],
       };
     }
     const sources = [line.quantitySource ? `Quantité : ${line.quantitySource}` : null, line.priceSource ? `Prix : ${line.priceSource}` : null].filter(Boolean).join(". ");
@@ -116,9 +147,10 @@ export function dpgfModel(data: DpgfData): DocModel {
       shortLabel: "DPGF",
       title: data.doc.title,
       version: data.doc.currentVersion,
-      status: data.version ? (data.version.validated ? "Version validée" : "Version enregistrée") : COVER_STATUS[data.doc.status],
+      status: data.level.label,
       toc: false,
       date: data.version?.date,
+      disclaimer: versionNote(data),
     }),
     blocks: [
       ...(coverage ? [coverage] : []),
@@ -186,7 +218,8 @@ function writeDpgfSheet(workbook: ExcelJS.Workbook, data: DpgfData, pal: Palette
     } else {
       const end = lastDescendantRow(index);
       const subtotal = data.totals.subtotals[line.id];
-      row.getCell(6).value = end > r ? { formula: `SUBTOTAL(9,F${r + 1}:F${end})`, result: subtotal ? Number(subtotal) : 0 } : null;
+      // Sous-total vide tant qu'aucun poste n'est chiffré : jamais « 0,00 » pour des prix inconnus.
+      row.getCell(6).value = end > r ? { formula: `IF(COUNT(F${r + 1}:F${end})=0,"",SUBTOTAL(9,F${r + 1}:F${end}))`, result: subtotal ? Number(subtotal) : "" } : null;
       styleRow(row, 8, line.kind === "chapitre" ? "group" : "subgroup", pal);
       row.getCell(6).numFmt = money$;
       if (line.kind === "chapitre") subtotalRows[line.id] = r;
@@ -195,25 +228,45 @@ function writeDpgfSheet(workbook: ExcelJS.Workbook, data: DpgfData, pal: Palette
   });
   const last = first + ordered.length - 1;
   autoFilter(target, last);
-  let t = last + 2;
+  const totals = writeTotals(sheet, data, pal, { first, last, amount: "F", units: "C", width: 8 }, last + 2);
+  return { sheet, subtotalRows, ...totals };
+}
+
+/**
+ * Totaux d'une feuille de postes : libellés et montants recalculés par Excel. Un total qui exclut des postes
+ * non chiffrés dit qu'il est partiel ; sans aucun poste chiffré, il reste vide (jamais « 0,00 »).
+ */
+function writeTotals(sheet: ExcelJS.Worksheet, data: DpgfData, pal: Palette, cols: { first: number; last: number; amount: string; units: string; width: number }, start: number) {
+  const money$ = moneyFormat(data.doc.currency);
+  const { first, last, amount: A, units: U } = cols;
+  const amounts = `${A}${first}:${A}${last}`;
+  // Postes : lignes portant une unité ; montants : cellules numériques.
+  const postes = `COUNTIFS(${U}${first}:${U}${last},"?*")`;
+  const priced = `COUNT(${amounts})`;
+  const unpriced = data.coverage.postes - data.coverage.priced;
+  const merge = `${String.fromCharCode(A.charCodeAt(0) - 1)}`;
+  let t = start;
   const totalRow = (label: string, formula: string, result: number | null, strong = false) => {
-    sheet.mergeCells(`A${t}:E${t}`);
-    sheet.getCell(`A${t}`).value = label;
+    sheet.mergeCells(`A${t}:${merge}${t}`);
+    sheet.getCell(`A${t}`).value = {
+      formula: `IF(${priced}=0,"${label} : aucun poste chiffré",IF(${priced}<${postes},"${label}, partiel : "&(${postes}-${priced})&" poste(s) non chiffré(s) exclu(s)","${label}"))`,
+      result: data.totals.state === "non_renseigne" ? `${label} : aucun poste chiffré` : totalLabel(label, data.totals.state, unpriced),
+    };
     sheet.getCell(`A${t}`).alignment = { horizontal: "right" };
-    sheet.getCell(`F${t}`).value = { formula, result: result ?? 0 };
-    styleRow(sheet.getRow(t), 8, strong ? "total" : "subtotal", pal);
-    sheet.getCell(`F${t}`).numFmt = money$;
+    sheet.getCell(`${A}${t}`).value = { formula: `IF(${priced}=0,"",${formula})`, result: data.totals.state === "non_renseigne" || result === null ? "" : result };
+    styleRow(sheet.getRow(t), cols.width, strong ? "total" : "subtotal", pal);
+    sheet.getCell(`${A}${t}`).numFmt = money$;
     t++;
     return t - 1;
   };
-  const htRow = totalRow("Total hors taxes", ordered.length ? `SUBTOTAL(9,F${first}:F${last})` : "0", Number(data.totals.totalHt), true);
+  const htRow = totalRow("Total hors taxes", data.ordered.length ? `SUBTOTAL(9,${amounts})` : "0", Number(data.totals.totalHt), true);
   let ttcRow: number | null = null;
   let vatRow: number | null = null;
   if (data.doc.vatRate !== null) {
-    vatRow = totalRow(`Taxe sur la valeur ajoutée (${percentLabel(data.doc.vatRate)})`, `ROUND(F${htRow}*${data.doc.vatRate}/100,2)`, data.totals.vat !== null ? Number(data.totals.vat) : null);
-    ttcRow = totalRow("Total toutes taxes comprises", `F${htRow}+F${vatRow}`, data.totals.totalTtc !== null ? Number(data.totals.totalTtc) : null, true);
+    vatRow = totalRow(`Taxe sur la valeur ajoutée (${percentLabel(data.doc.vatRate)})`, `ROUND(${A}${htRow}*${data.doc.vatRate}/100,2)`, data.totals.vat !== null ? Number(data.totals.vat) : null);
+    ttcRow = totalRow("Total toutes taxes comprises", `${A}${htRow}+${A}${vatRow}`, data.totals.totalTtc !== null ? Number(data.totals.totalTtc) : null, true);
   }
-  return { sheet, subtotalRows, htRow, vatRow, ttcRow };
+  return { htRow, vatRow, ttcRow };
 }
 
 /** Feuille de synthèse : montant de chaque chapitre repris de la feuille DPGF par formule. */
@@ -241,8 +294,9 @@ function writeSummarySheet(workbook: ExcelJS.Workbook, data: DpgfData, pal: Pale
     row.getCell(1).value = chapter.code;
     row.getCell(2).value = chapter.line.designation;
     const sourceRow = links.subtotalRows[chapter.line.id];
-    row.getCell(3).value = sourceRow ? { formula: `'DPGF'!F${sourceRow}`, result: Number(data.totals.subtotals[chapter.line.id] ?? 0) } : 0;
-    row.getCell(4).value = { formula: `IF(C${totalRow}=0,"",C${r}/C${totalRow})`, result: "" };
+    const subtotal = data.totals.subtotals[chapter.line.id];
+    row.getCell(3).value = sourceRow ? { formula: `'DPGF'!F${sourceRow}`, result: subtotal ? Number(subtotal) : "" } : "";
+    row.getCell(4).value = { formula: `IF(N(C${totalRow})=0,"",N(C${r})/C${totalRow})`, result: "" };
     row.getCell(5).value = descendants.length;
     row.getCell(6).value = descendants.filter((l) => l.amount !== null).length;
     styleRow(row, 6, "item", pal);
@@ -251,9 +305,10 @@ function writeSummarySheet(workbook: ExcelJS.Workbook, data: DpgfData, pal: Pale
     r++;
   }
   sheet.mergeCells(`A${totalRow}:B${totalRow}`);
-  sheet.getCell(`A${totalRow}`).value = "Total hors taxes";
+  // Libellé et montant repris de la feuille DPGF : partiel ou vide comme elle.
+  sheet.getCell(`A${totalRow}`).value = { formula: `'DPGF'!A${links.htRow}`, result: data.totals.state === "non_renseigne" ? "Total hors taxes : aucun poste chiffré" : totalLabel("Total hors taxes", data.totals.state, data.coverage.postes - data.coverage.priced) };
   sheet.getCell(`A${totalRow}`).alignment = { horizontal: "right" };
-  sheet.getCell(`C${totalRow}`).value = { formula: `'DPGF'!F${links.htRow}`, result: Number(data.totals.totalHt) };
+  sheet.getCell(`C${totalRow}`).value = { formula: `'DPGF'!F${links.htRow}`, result: data.totals.state === "non_renseigne" ? "" : Number(data.totals.totalHt) };
   sheet.getCell(`E${totalRow}`).value = { formula: chapters.length ? `SUM(E${firstRow}:E${totalRow - 2})` : "0", result: data.coverage.postes };
   sheet.getCell(`F${totalRow}`).value = { formula: chapters.length ? `SUM(F${firstRow}:F${totalRow - 2})` : "0", result: data.coverage.priced };
   styleRow(sheet.getRow(totalRow), 6, "total", pal);
@@ -265,9 +320,10 @@ function writeSummarySheet(workbook: ExcelJS.Workbook, data: DpgfData, pal: Pale
     ] as const) {
       const rr = totalRow + offset;
       sheet.mergeCells(`A${rr}:B${rr}`);
-      sheet.getCell(`A${rr}`).value = label;
+      sheet.getCell(`A${rr}`).value = { formula: `'DPGF'!A${source}`, result: label };
       sheet.getCell(`A${rr}`).alignment = { horizontal: "right" };
-      sheet.getCell(`C${rr}`).value = { formula: `'DPGF'!F${source}`, result: Number((offset === 1 ? data.totals.vat : data.totals.totalTtc) ?? 0) };
+      const value = offset === 1 ? data.totals.vat : data.totals.totalTtc;
+      sheet.getCell(`C${rr}`).value = { formula: `'DPGF'!F${source}`, result: data.totals.state === "non_renseigne" || value === null ? "" : Number(value) };
       styleRow(sheet.getRow(rr), 6, offset === 2 ? "total" : "subtotal", pal);
       sheet.getCell(`C${rr}`).numFmt = money$;
     }
@@ -318,7 +374,7 @@ export function bpuModel(data: DpgfData): DocModel {
       shortLabel: "BPU",
       title: data.doc.title.replace(/^DPGF/i, "BPU"),
       version: data.doc.currentVersion,
-      status: COVER_STATUS[data.doc.status],
+      status: data.level.label,
       toc: false,
       disclaimer: priced
         ? "Prix unitaires hors taxes de pré-estimation, repris de la DPGF ; les cases vides restent à compléter. Ils ne constituent ni une offre ni un engagement de prix."
@@ -380,7 +436,7 @@ export function dqeModel(data: DpgfData): DocModel {
   const currency = data.doc.currency;
   const rows: Row[] = data.ordered.map(({ line, code }) =>
     line.kind !== "poste"
-      ? { kind: line.kind === "chapitre" ? "group" : "subgroup", cells: [code, line.designation, "", "", "", { text: money(data.totals.subtotals[line.id] ?? null, currency), align: "right" }] }
+      ? { kind: line.kind === "chapitre" ? "group" : "subgroup", cells: [code, line.designation, "", "", "", { text: subtotalText(data, line.id, currency), align: "right" }] }
       : {
           kind: "item",
           cells: [
@@ -401,7 +457,7 @@ export function dqeModel(data: DpgfData): DocModel {
       shortLabel: "DQE",
       title: data.doc.title.replace(/^DPGF/i, "DQE"),
       version: data.doc.currentVersion,
-      status: COVER_STATUS[data.doc.status],
+      status: data.level.label,
       toc: false,
     }),
     blocks: [
@@ -458,7 +514,8 @@ export async function dqeWorkbook(data: DpgfData, theme: DocTheme): Promise<Buff
       const depthHere = depth;
       let end = i;
       while (end + 1 < data.ordered.length && data.ordered[end + 1]!.depth > depthHere) end++;
-      row.getCell(6).value = end > i ? { formula: `SUBTOTAL(9,F${r + 1}:F${first + end})`, result: Number(data.totals.subtotals[line.id] ?? 0) } : null;
+      const subtotal = data.totals.subtotals[line.id];
+      row.getCell(6).value = end > i ? { formula: `IF(COUNT(F${r + 1}:F${first + end})=0,"",SUBTOTAL(9,F${r + 1}:F${first + end}))`, result: subtotal ? Number(subtotal) : "" } : null;
       styleRow(row, 6, line.kind === "chapitre" ? "group" : "subgroup", pal);
       row.getCell(6).numFmt = money$;
     }
@@ -466,21 +523,7 @@ export async function dqeWorkbook(data: DpgfData, theme: DocTheme): Promise<Buff
   });
   const last = first + data.ordered.length - 1;
   autoFilter(target, last);
-  let t = last + 2;
-  const put = (label: string, formula: string, result: number | null, kind: "total" | "subtotal") => {
-    sheet.mergeCells(`A${t}:E${t}`);
-    sheet.getCell(`A${t}`).value = label;
-    sheet.getCell(`A${t}`).alignment = { horizontal: "right" };
-    sheet.getCell(`F${t}`).value = { formula, result: result ?? 0 };
-    styleRow(sheet.getRow(t), 6, kind, pal);
-    sheet.getCell(`F${t}`).numFmt = money$;
-    return t++;
-  };
-  const ht = put("Total hors taxes", data.ordered.length ? `SUBTOTAL(9,F${first}:F${last})` : "0", Number(data.totals.totalHt), "total");
-  if (data.doc.vatRate !== null) {
-    const vat = put(`Taxe sur la valeur ajoutée (${percentLabel(data.doc.vatRate)})`, `ROUND(F${ht}*${data.doc.vatRate}/100,2)`, data.totals.vat !== null ? Number(data.totals.vat) : null, "subtotal");
-    put("Total toutes taxes comprises", `F${ht}+F${vat}`, data.totals.totalTtc !== null ? Number(data.totals.totalTtc) : null, "total");
-  }
+  writeTotals(sheet, data, pal, { first, last, amount: "F", units: "C", width: 6 }, last + 2);
   return Buffer.from(await workbook.xlsx.writeBuffer());
 }
 
@@ -492,6 +535,9 @@ export function estimationModel(data: DpgfData): DocModel {
   const chapters = data.ordered.filter((o) => o.depth === 0 && o.line.kind !== "poste");
   const total = Number(data.totals.totalHt);
   const unpriced = data.ordered.filter((o) => o.line.kind === "poste" && o.line.amount === null);
+  const none = data.totals.state === "non_renseigne";
+  const partial = data.totals.state === "partiel";
+  const shownTotal = (value: string | null) => (none ? "non chiffré" : partial ? `partiel, ${money(value, currency)}` : money(value, currency));
   const blocks: Block[] = [
     {
       type: "keyValues",
@@ -500,8 +546,9 @@ export function estimationModel(data: DpgfData): DocModel {
         ["Postes chiffrés", `${c.priced} sur ${c.postes}`],
         ["Postes sans quantité justifiée", String(c.withoutQuantity)],
         ["Postes sans prix unitaire", String(c.withoutPrice)],
-        ["Total hors taxes des postes chiffrés", money(data.totals.totalHt, currency)],
-        ...(data.doc.vatRate !== null ? ([["Total toutes taxes comprises", money(data.totals.totalTtc, currency)]] as Array<[string, string]>) : []),
+        ["Total hors taxes des postes chiffrés", shownTotal(data.totals.totalHt)],
+        ...(data.doc.vatRate !== null ? ([["Total toutes taxes comprises des postes chiffrés", shownTotal(data.totals.totalTtc)]] as Array<[string, string]>) : []),
+        ["Statut de l’estimation", none ? "non renseignée : aucun poste chiffré" : partial ? "partielle : le total n’est pas un montant final" : "tous les postes sont chiffrés"],
       ],
     },
     {
@@ -523,9 +570,17 @@ export function estimationModel(data: DpgfData): DocModel {
         ...chapters.map(({ line, code }) => {
           const postes = collectPostes(data, line.id);
           const amount = Number(data.totals.subtotals[line.id] ?? 0);
+          const text = subtotalText(data, line.id, currency) || "non chiffré";
           return {
             kind: "item" as const,
-            cells: [code, line.designation, { text: String(postes.length), align: "right" as const }, { text: String(postes.filter((p) => p.amount !== null).length), align: "right" as const }, { text: money(amount, currency), align: "right" as const }, { text: total ? percentLabel(((amount / total) * 100).toFixed(1)) : "", align: "right" as const }],
+            cells: [
+              code,
+              line.designation,
+              { text: String(postes.length), align: "right" as const },
+              { text: String(postes.filter((p) => p.amount !== null).length), align: "right" as const },
+              { text, align: "right" as const, tone: data.totals.subtotals[line.id] ? undefined : ("primary" as const) },
+              { text: total && amount ? percentLabel(((amount / total) * 100).toFixed(1)) : "", align: "right" as const },
+            ],
           };
         }),
         ...totalsRows(data, 6, 4).map((r) => ({ ...r, cells: [...r.cells.slice(0, 2), ""] })),
@@ -556,7 +611,7 @@ export function estimationModel(data: DpgfData): DocModel {
       shortLabel: "Estimation",
       title: data.doc.title.replace(/^DPGF/i, "Estimation"),
       version: data.doc.currentVersion,
-      status: COVER_STATUS[data.doc.status],
+      status: data.level.label,
       toc: false,
       disclaimer: `Estimation établie à partir des quantités justifiées et des prix disponibles : ${c.priced} poste(s) chiffré(s) sur ${c.postes}. Elle ne constitue ni une offre ni un engagement de prix.`,
     }),

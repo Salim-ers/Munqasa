@@ -18,15 +18,35 @@ export const DOSSIER_LEVELS = ["brouillon", "terminee_avec_reserves", "verificat
 export type DossierLevel = (typeof DOSSIER_LEVELS)[number];
 export const DOSSIER_LEVEL_LABELS: Record<DossierLevel, string> = {
   brouillon: "Brouillon",
-  terminee_avec_reserves: "Terminé avec réserves",
+  terminee_avec_reserves: "Généré avec réserves",
   verification_automatique_reussie: "Vérification automatique réussie",
-  pret_pour_validation: "Prêt pour validation professionnelle",
-  valide_professionnel: "Validé par un professionnel habilité",
+  pret_pour_validation: "Prêt pour revue",
+  valide_professionnel: "Validé par un professionnel",
+};
+
+/**
+ * Statut imprimé sur chaque document exporté (couverture, en-tête du classeur), calculé à l'export :
+ * - brouillon : document en cours de génération ou jamais généré ;
+ * - généré avec réserves : il manque des quantités, des prix, des prescriptions, des décompositions ou des
+ *   pièces de conception, ou une anomalie bloquante ou majeure reste ouverte ;
+ * - vérification automatique réussie : aucune réserve ; ce contrôle n'est pas une validation ;
+ * - prêt pour revue : en plus, document validé par l'utilisateur ;
+ * - validé par un professionnel : en plus, déclaration de validation professionnelle à jour couvrant le
+ *   document. Aucun contrôle automatique ne vaut validation réglementaire ou structurelle.
+ */
+export const DOCUMENT_LEVELS = ["brouillon", "genere_avec_reserves", "verification_automatique_reussie", "pret_pour_revue", "valide_professionnel"] as const;
+export type DocumentLevel = (typeof DOCUMENT_LEVELS)[number];
+export const DOCUMENT_LEVEL_LABELS: Record<DocumentLevel, string> = {
+  brouillon: "Brouillon",
+  genere_avec_reserves: "Généré avec réserves",
+  verification_automatique_reussie: "Vérification automatique réussie",
+  pret_pour_revue: "Prêt pour revue",
+  valide_professionnel: "Validé par un professionnel",
 };
 
 /** Correction appliquée par le contrôle indépendant à une erreur calculable. */
 export interface AuditFix {
-  kind: "mesure" | "quantite_dpgf" | "montant_dpgf" | "prix_sous_detail" | "sous_detail";
+  kind: "mesure" | "quantite_dpgf" | "montant_dpgf" | "prix_sous_detail" | "sous_detail" | "pertes";
   target: string;
   before: string | null;
   after: string | null;

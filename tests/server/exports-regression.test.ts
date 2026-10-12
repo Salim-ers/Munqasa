@@ -107,12 +107,13 @@ describe("export Excel de la DPGF", () => {
     expect(amount.formula).toMatch(/ROUND\([A-Z]+\d+\*[A-Z]+\d+,2\)/);
     // Sous-totaux et totaux sans double compte.
     const formulas = rows.flatMap((r) => r.texts.filter((t) => t.startsWith("=")));
-    expect(formulas.some((f) => /^=SUBTOTAL\(9,/.test(f))).toBe(true);
+    // Sous-total vide tant qu'aucun poste n'est chiffré, jamais « 0,00 » pour des prix inconnus.
+    expect(formulas.some((f) => /^=IF\(COUNT\(F\d+:F\d+\)=0,"",SUBTOTAL\(9,F\d+:F\d+\)\)$/.test(f))).toBe(true);
     const totalHt = rows.find((r) => r.texts.some((t) => /Total hors taxes/i.test(t)))!;
-    expect(totalHt.texts.some((t) => /^=SUBTOTAL\(9,/.test(t))).toBe(true);
+    expect(totalHt.texts.some((t) => /^=IF\(COUNT\(F\d+:F\d+\)=0,"",SUBTOTAL\(9,F\d+:F\d+\)\)$/.test(t))).toBe(true);
     const vat = rows.find((r) => r.texts.some((t) => /taxe sur la valeur ajoutée|TVA/i.test(t)))!;
-    expect(vat.texts.some((t) => /^=ROUND\(.*20.*\/100,2\)$/.test(t))).toBe(true);
+    expect(vat.texts.some((t) => /^=IF\(COUNT\(F\d+:F\d+\)=0,"",ROUND\(.*20.*\/100,2\)\)$/.test(t))).toBe(true);
     const ttc = rows.find((r) => r.texts.some((t) => /toutes taxes/i.test(t)))!;
-    expect(ttc.texts.some((t) => /^=[A-Z]+\d+\+[A-Z]+\d+$/.test(t))).toBe(true);
+    expect(ttc.texts.some((t) => /^=IF\(COUNT\(F\d+:F\d+\)=0,"",[A-Z]+\d+\+[A-Z]+\d+\)$/.test(t))).toBe(true);
   });
 });

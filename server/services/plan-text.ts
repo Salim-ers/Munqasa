@@ -5,8 +5,10 @@
  * Une page scannée n'a pas de texte vectoriel : ses cotes restent non contrôlables, et c'est dit.
  */
 import { Decimal } from "decimal.js";
-import type { DimensionCheck } from "../../shared/metre.js";
+import type { DimensionChain, DimensionCheck } from "../../shared/metre.js";
 import type { TextItem } from "./pdf-text.js";
+
+export type { ChainItem, DimensionChain } from "../../shared/metre.js";
 
 const Dec = Decimal.clone({ precision: 40, rounding: Decimal.ROUND_HALF_UP });
 
@@ -96,6 +98,97 @@ export function checkDimension(value: string, source: "cote_lue" | "texte_lu" | 
   if (numbers === null) return "sans_couche_texte";
   const n = normalizeNumber(value);
   return n !== null && numbers.has(n) ? "couche_texte" : "non_retrouvee";
+}
+
+/* ---------- Chaînes de cotes ---------- */
+
+/** Valeur en mètres d'une cote écrite selon l'usage des plans : décimale en mètres, entière en centimètres. */
+export function dimensionMeters(text: string): string | null {
+  const t = text.trim().replace(",", ".");
+  if (/^\d{1,2}\.\d{1,3}$/.test(t)) return new Dec(t).toString();
+  if (/^\d{1,3}$/.test(t) && Number(t) > 0) return new Dec(t).div(100).toString();
+  return null;
+}
+
+/** Points de papier par mètre réel, à l'échelle 1/ratio. */
+const pointsPerMeter = (ratio: number) => (72 / 25.4) * (1000 / ratio);
+
+/**
+ * Chaînes de cotes d'une page : cotes numériques horizontales ou verticales regroupées par ligne de cote, puis
+ * découpées là où l'écartement ne correspond plus aux valeurs (contrôle impossible sans échelle lue).
+ */
+export function dimensionChains(items: TextItem[], ratio: number | null): DimensionChain[] {
+  const k = ratio ? pointsPerMeter(ratio) : null;
+  type Token = { text: string; meters: number; orientation: "horizontale" | "verticale"; line: number; at: number };
+  const tokens: Token[] = [];
+  for (const item of items) {
+    const meters = dimensionMeters(item.text);
+    if (meters === null) continue;
+    const angle = ((Math.round(item.angle) % 360) + 360) % 360;
+    // Centre du texte le long de son sens d'écriture (repère de la page affichée, y vers le bas).
+    if (angle === 0) tokens.push({ text: item.text.trim(), meters: Number(meters), orientation: "horizontale", line: item.y, at: item.x + item.width / 2 });
+    else if (angle === 180) tokens.push({ text: item.text.trim(), meters: Number(meters), orientation: "horizontale", line: item.y, at: item.x - item.width / 2 });
+    else if (angle === 90) tokens.push({ text: item.text.trim(), meters: Number(meters), orientation: "verticale", line: item.x, at: item.y - item.width / 2 });
+    else if (angle === 270) tokens.push({ text: item.text.trim(), meters: Number(meters), orientation: "verticale", line: item.x, at: item.y + item.width / 2 });
+  }
+  // Lignes de cote : même orientation, même position transversale à 1,5 point près.
+  const lines: Token[][] = [];
+  for (const t of [...tokens].sort((a, b) => (a.orientation === b.orientation ? a.line - b.line : a.orientation < b.orientation ? -1 : 1))) {
+    const last = lines[lines.length - 1];
+    if (last && last[0]!.orientation === t.orientation && Math.abs(last[last.length - 1]!.line - t.line) <= 1.5) last.push(t);
+    else lines.push([t]);
+  }
+  const chains: DimensionChain[] = [];
+  for (const line of lines) {
+    const sorted = [...line].sort((a, b) => a.at - b.at);
+    let current: Token[] = [];
+    const flush = () => {
+      if (current.length >= 2) {
+        const sum = current.reduce((s, t) => s.plus(t.meters), new Dec(0));
+        const first = current[0]!;
+        const last = current[current.length - 1]!;
+        chains.push({
+          orientation: first.orientation,
+          line: Math.round(first.line * 10) / 10,
+          start: k ? Math.round((first.at - (first.meters / 2) * k) * 10) / 10 : Math.round(first.at),
+          end: k ? Math.round((last.at + (last.meters / 2) * k) * 10) / 10 : Math.round(last.at),
+          items: current.map((t) => ({ text: t.text, meters: String(t.meters), at: Math.round(t.at * 10) / 10 })),
+          sum: sum.toDecimalPlaces(3).toString(),
+          verified: k !== null,
+          total: null,
+        });
+      }
+      current = [];
+    };
+    for (const t of sorted) {
+      const previous = current[current.length - 1];
+      if (previous && k) {
+        // Deux cotes voisines d'une même chaîne : leurs centres sont écartés de la demi-somme de leurs valeurs.
+        const expected = ((previous.meters + t.meters) / 2) * k;
+        const gap = t.at - previous.at;
+        if (Math.abs(gap - expected) > Math.max(3, expected * 0.06)) flush();
+      } else if (previous && !k && t.at - previous.at > 400) flush();
+      current.push(t);
+    }
+    flush();
+  }
+  // Cote totale : sur une ligne parallèle proche, égale à la somme (au centimètre) et centrée sur la chaîne.
+  if (k) {
+    for (const chain of chains) {
+      const mid = (chain.start + chain.end) / 2;
+      const length = chain.end - chain.start;
+      const total = tokens.find(
+        (t) =>
+          t.orientation === chain.orientation &&
+          Math.abs(t.line - chain.line) > 1.5 &&
+          Math.abs(t.line - chain.line) <= 80 &&
+          Math.abs(t.meters - Number(chain.sum)) <= 0.011 &&
+          Math.abs(t.at - mid) <= Math.max(6, length * 0.03),
+      );
+      if (total) chain.total = { text: total.text, meters: String(total.meters) };
+    }
+  }
+  return chains;
 }
 
 /** Valeur exprimée en mètres (m, cm, mm), ou null si l'unité n'est pas une longueur reconnue. */

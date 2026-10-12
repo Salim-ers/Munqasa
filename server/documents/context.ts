@@ -1,6 +1,6 @@
 /** Contexte commun aux exports d'une affaire : affaire, maître d'ouvrage, lot, entité émettrice, identité documentaire. */
 import { desc, eq } from "drizzle-orm";
-import { COUNTRY_LABELS, DESIGN_PHASE_LABELS, type DocumentStatus } from "../../shared/enums.js";
+import { COUNTRY_LABELS, DESIGN_PHASE_LABELS } from "../../shared/enums.js";
 import type { DocumentIdentity } from "../../shared/settings.js";
 import { type Database, schema } from "../db/index.js";
 import { readSetting } from "../services/settings.js";
@@ -25,15 +25,7 @@ export async function exportContext(db: Database, projectId: string, lotId: stri
   return { project: row.project, client: row.client, lot: lots[0] ?? null, company: company ?? null, identity };
 }
 
-/** Statut lisible sur la couverture : jamais « conforme » ni « validé » sans validation enregistrée. */
-export const COVER_STATUS: Record<DocumentStatus, string> = {
-  brouillon: "Brouillon",
-  en_generation: "En cours de génération",
-  a_valider: "Document de travail, à valider",
-  valide: "Validé",
-  archive: "Archivé",
-};
-
+/** Statut imprimé : calculé par services/document-level.ts, jamais « validé » sans validation professionnelle à jour. */
 export function baseMeta(ctx: ExportContext, fields: { kind: DocumentKind; typeLabel: string; shortLabel: string; title: string; version: number | null; status: string; toc: boolean; orientation?: "portrait" | "landscape"; phase?: string | null; disclaimer?: string | null; date?: Date }): DocMeta {
   const p = ctx.project;
   return {

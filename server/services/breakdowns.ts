@@ -34,12 +34,17 @@ export function ratesOf(b: BreakdownRow): PricingRates {
 export function resultOf(b: BreakdownRow, components: ComponentRow[]): BreakdownResult | { error: string } {
   try {
     return computeBreakdown(
-      components.map((c) => ({ category: c.category, quantity: c.quantity, unitCost: c.unitCost, lossRate: c.lossRate })),
+      components.map((c) => ({ category: c.category, quantity: c.quantity, unitCost: c.unitCost, lossRate: c.lossRate, lossMode: c.lossMode, hypothesis: c.isHypothesis })),
       ratesOf(b),
     );
   } catch (error) {
     return { error: error instanceof PricingError ? error.message : "Calcul impossible." };
   }
+}
+
+/** Sous-détail sans décomposition exploitable : déclaré impossible, ou sans aucun composant. */
+export function isUndecomposed(b: Pick<BreakdownRow, "decomposition">, components: unknown[]): boolean {
+  return b.decomposition === "impossible" || components.length === 0;
 }
 
 /** Recalcule le prix de vente unitaire ; un sous-détail incomplet reste un brouillon. */

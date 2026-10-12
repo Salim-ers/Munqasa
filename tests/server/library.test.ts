@@ -236,10 +236,10 @@ describe("Agent des sous-détails de prix", () => {
     expect(beton.components.map((c) => c.priceItemId).sort()).toEqual([betonPrice.id, acier.id, macon.id].sort());
     expect(beton.components.every((c) => c.isHypothesis && c.sourceNote?.startsWith("Ratio usuel à confirmer. Prix : "))).toBe(true);
     expect(beton.components.find((c) => c.priceItemId === betonPrice.id)!.sourceNote).toBe(`Ratio usuel à confirmer. Prix : Béton C25/30 prêt à l’emploi pour semelles, Casablanca, relevé le ${today.split("-").reverse().join("/")}`);
-    // Béton 1,05 × 980 × 1,05 + acier 1,05 × 14,50 × 1,05 + maçon 2,5 × 65 = 1 258,93625 ;
-    // frais généraux 10 % et aléas 2 % du déboursé : 1 410,0086 ; marge 8 % : 1 522,81.
-    expect(beton).toMatchObject({ status: "a_valider", overheadRate: "10.0000", marginRate: "8.0000", computedUnitPrice: "1522.8100" });
-    expect(beton.result).toMatchObject({ complete: true, prixDeRevient: "1410.0086", prixDeVente: "1522.81" });
+    // Consommations nettes, pertes appliquées une seule fois : béton 1 × 1,05 × 980 + acier 1 × 1,05 × 14,50
+    // + maçon 2,5 × 65 = 1 206,725 ; frais généraux 10 % et aléas 2 % du déboursé : 1 351,532 ; marge 8 % : 1 459,65.
+    expect(beton).toMatchObject({ status: "a_valider", overheadRate: "10.0000", marginRate: "8.0000", computedUnitPrice: "1459.6500" });
+    expect(beton.result).toMatchObject({ complete: true, state: "estimatif", prixDeRevient: "1351.5320", prixDeVente: "1459.65" });
 
     // Aucun prix candidat pour l'installation de chantier : le composant reste à chiffrer.
     const installation = (await poste("1.1")).breakdown!;
@@ -278,9 +278,9 @@ describe("Agent des sous-détails de prix", () => {
     expect((await admin.request(`/api/admin/breakdowns/${beton.id}/components`, { body: { category: "materiel", designation: "Vibreur", unit: "h", quantity: "0.2", unitCost: "30" } })).status).toBe(409);
 
     expect((await admin.request(`/api/admin/dpgf/${dpgfId}/apply-breakdowns`, { body: {} })).json).toEqual({ applied: 1 });
-    // 10,2 m3 × 1 522,81 = 15 532,662.
-    expect(await dpgfLine("2.1")).toMatchObject({ priceSource: "Sous-détail validé", amount: "15532.66", status: "a_verifier" });
-    expect(Number((await dpgfLine("2.1")).unitPrice)).toBe(1522.81);
+    // 10,2 m3 × 1 459,65 = 14 888,43.
+    expect(await dpgfLine("2.1")).toMatchObject({ priceSource: "Sous-détail validé", amount: "14888.43", status: "a_verifier" });
+    expect(Number((await dpgfLine("2.1")).unitPrice)).toBe(1459.65);
     expect((await admin.request(`/api/admin/dpgf/${dpgfId}/apply-breakdowns`, { body: {} })).json).toEqual({ applied: 0 });
     expect((await data()).issues.map((i) => i.message).filter((m) => m.includes("reporté"))).toEqual([]);
   });
@@ -291,13 +291,13 @@ describe("Agent des sous-détails de prix", () => {
     expect((await poste("2.1")).breakdown).toMatchObject({ locked: false, status: "a_valider" });
     await admin.request(`/api/admin/breakdowns/${beton.id}`, { method: "PATCH", body: { overheadBase: "debourse_sec" } });
     await admin.request(`/api/admin/breakdowns/${beton.id}`, { method: "PATCH", body: { marginRate: "10" } });
-    // Pas de frais de chantier : déboursé sec et total confondus, prix de revient inchangé ; marge 10 % : 1 551,00946.
-    expect((await poste("2.1")).breakdown).toMatchObject({ overheadBase: "debourse_sec", marginRate: "10.0000", computedUnitPrice: "1551.0100" });
+    // Pas de frais de chantier : déboursé sec et total confondus, prix de revient inchangé ; marge 10 % : 1 486,6852.
+    expect((await poste("2.1")).breakdown).toMatchObject({ overheadBase: "debourse_sec", marginRate: "10.0000", computedUnitPrice: "1486.6900" });
 
     await admin.request(`/api/admin/breakdowns/${beton.id}/validate`, { body: {} });
     expect((await data()).issues.map((i) => i.message)).toContain("Prix de la DPGF différent du sous-détail validé, à reporter de nouveau : poste 2.1 Béton armé pour semelles filantes");
     expect((await admin.request(`/api/admin/dpgf/${dpgfId}/apply-breakdowns`, { body: {} })).json).toEqual({ applied: 1 });
-    expect(Number((await dpgfLine("2.1")).unitPrice)).toBe(1551.01);
+    expect(Number((await dpgfLine("2.1")).unitPrice)).toBe(1486.69);
   });
 
   it("recopie les taux des paramètres dans les seuls sous-détails non validés", async () => {
@@ -308,7 +308,7 @@ describe("Agent des sous-détails de prix", () => {
     expect((await admin.request(`/api/admin/dpgf/${dpgfId}/breakdowns/apply-rates`, { body: {} })).json).toEqual({ updated: 1 });
     // Installation : 120 × 1,14 × 1,08 = 147,744 ; le béton validé garde ses taux.
     expect((await poste("1.1")).breakdown).toMatchObject({ overheadRate: "12.0000", computedUnitPrice: "147.7400" });
-    expect((await poste("2.1")).breakdown).toMatchObject({ overheadRate: "10.0000", computedUnitPrice: "1551.0100" });
+    expect((await poste("2.1")).breakdown).toMatchObject({ overheadRate: "10.0000", computedUnitPrice: "1486.6900" });
   });
 
   it("relancé, l'agent laisse intacts les sous-détails validés", async () => {
@@ -316,7 +316,7 @@ describe("Agent des sous-détails de prix", () => {
     const res = await admin.request(`/api/admin/dpgf/${dpgfId}/breakdowns/generate`, { body: { lineIds: [], consent: true } });
     expect((await admin.request(`/api/admin/agents/jobs/${res.json.job.id}`)).json.job.status).toBe("termine");
     const after = (await poste("2.1")).breakdown!;
-    expect(after).toMatchObject({ id: before.id, locked: true, computedUnitPrice: "1551.0100" });
+    expect(after).toMatchObject({ id: before.id, locked: true, computedUnitPrice: "1486.6900" });
     expect((await poste("1.1")).breakdown).toMatchObject({ computedUnitPrice: null, status: "brouillon" });
   });
 

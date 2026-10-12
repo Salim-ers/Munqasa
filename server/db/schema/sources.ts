@@ -1,5 +1,6 @@
 /** Fichiers sources (stockés dans le compartiment privé), plans et annotations. */
 import { bigint, index, integer, jsonb, numeric, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import type { DimensionChain } from "../../../shared/metre.js";
 import { createdAt, id, updatedAt } from "./columns.js";
 import { drawingKindEnum, fileKindEnum, fileStatusEnum, validationStatusEnum } from "./enums.js";
 import { project } from "./projects.js";
@@ -54,7 +55,7 @@ export const drawing = pgTable(
     /** Indice ou révision du plan, tel qu'écrit dans le cartouche. */
     revision: text("revision"),
     /** Couche texte vectorielle de la page : nombre de textes, de nombres, échelles lues. */
-    textLayer: jsonb("text_layer").$type<{ items: number; numbers: number; scales: number[] } | null>(),
+    textLayer: jsonb("text_layer").$type<{ items: number; numbers: number; scales: number[]; chains?: DimensionChain[]; width?: number; height?: number } | null>(),
     /** Échelle numérique, seulement si lue ou confirmée (100 pour 1/100). */
     scaleRatio: numeric("scale_ratio", { precision: 12, scale: 4 }),
     /** Étalonnage : correspondance pixels / mètres établie sur une cote connue. */

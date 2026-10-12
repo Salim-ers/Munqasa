@@ -101,7 +101,7 @@ const builders: Record<string, (input: string) => unknown> = {
   sous_detail: (input) => {
     const postes = jsonAfter(input, "Postes (JSON)") as Array<{ lineId: string; prixCandidats: Array<{ id: string; designation: string; nature: string; unite: string }> }>;
     const category: Record<string, string> = { ouvrage: "sous_traitance", materiau: "materiau", main_oeuvre: "main_oeuvre", materiel: "materiel", sous_traitance: "sous_traitance", transport: "transport" };
-    const quantity: Record<string, string> = { materiau: "1.05", main_oeuvre: "2.5", materiel: "0.5" };
+    const quantity: Record<string, string> = { materiau: "1", main_oeuvre: "2.5", materiel: "0.5" };
     return {
       postes: postes.map((poste) => {
         const chosen = poste.prixCandidats.slice(0, 3);
@@ -112,12 +112,13 @@ const builders: Record<string, (input: string) => unknown> = {
                 category: category[c.nature] ?? "materiau",
                 designation: c.designation,
                 unit: c.unite,
-                quantity: quantity[c.nature] ?? "1",
+                netQuantity: quantity[c.nature] ?? "1",
                 lossRate: c.nature === "materiau" ? "5" : null,
                 priceItemId: c.id,
                 justification: "Ratio usuel à confirmer",
               }))
-            : [{ category: "main_oeuvre", designation: "Main-d’œuvre de mise en œuvre", unit: "h", quantity: "2", lossRate: null, priceItemId: null, justification: "Aucun prix de main-d’œuvre dans la bibliothèque" }],
+            : [{ category: "main_oeuvre", designation: "Main-d’œuvre de mise en œuvre", unit: "h", netQuantity: "2", lossRate: null, priceItemId: null, justification: "Aucun prix de main-d’œuvre dans la bibliothèque" }],
+          impossible: null,
           notes: null,
         };
       }),
@@ -171,8 +172,26 @@ const builders: Record<string, (input: string) => unknown> = {
               note: null,
             },
           ],
+          missing: [],
         },
       ],
+      warnings: [],
+    };
+  },
+  metre_postes: (input) => {
+    // Postes à métrer : une longueur relevée pour un poste en ml, sinon la donnée manquante est dite.
+    const postes = jsonAfter(input, "Postes à métrer (JSON)") as Array<{ lineId: string; designation: string; unite: string }>;
+    const drawingId = drawingIdsIn(input)[0] ?? null;
+    return {
+      postes: postes.map((p) =>
+        p.unite === "ml" && drawingId
+          ? {
+              lineId: p.lineId,
+              measurements: [{ label: p.designation, method: "longueur", formula: "L", inputs: [{ name: "L", value: "42.50", source: "cote lue, SF1", dimensionIds: ["1.1.1"], derivation: null }], deductions: [], unit: "ml", drawingId, zone: null, note: null }],
+              missing: [],
+            }
+          : { lineId: p.lineId, measurements: [], missing: [`${p.designation} : dimension non relevée sur les planches`] },
+      ),
       warnings: [],
     };
   },

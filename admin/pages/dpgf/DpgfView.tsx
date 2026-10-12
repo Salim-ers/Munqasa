@@ -189,9 +189,10 @@ export function DpgfView({ projectId, dpgfId, onBack }: { projectId: string; dpg
         <Card className="p-5">
           <dl className="grid gap-2 text-xs">
             <div className="flex items-center justify-between gap-3">
-              <dt className="text-ink-3">Total hors taxes</dt>
-              <dd className="text-base font-semibold text-ink tabular">{formatMoney(totals.totalHt, currency)}</dd>
+              <dt className="text-ink-3">{totals.state === "partiel" ? "Total hors taxes partiel" : "Total hors taxes"}</dt>
+              <dd className={cn("text-base font-semibold tabular", totals.state === "non_renseigne" ? "text-ink-3" : "text-ink")}>{totals.state === "non_renseigne" ? "non chiffré" : formatMoney(totals.totalHt, currency)}</dd>
             </div>
+            {totals.state === "partiel" ? <p className="text-2xs text-warning">{`${totals.postes - totals.priced} poste(s) non chiffré(s) exclu(s) : ce total n’est pas un montant final.`}</p> : null}
             <div className="flex items-center justify-between gap-3">
               <dt className="flex items-center gap-1 text-ink-3">
                 TVA
@@ -214,11 +215,11 @@ export function DpgfView({ projectId, dpgfId, onBack }: { projectId: string; dpg
                   />
                 </span>
               </dt>
-              <dd className="text-ink tabular">{totals.vat !== null ? formatMoney(totals.vat, currency) : ""}</dd>
+              <dd className="text-ink tabular">{totals.vat !== null && totals.state !== "non_renseigne" ? formatMoney(totals.vat, currency) : ""}</dd>
             </div>
-            {totals.totalTtc !== null ? (
+            {totals.totalTtc !== null && totals.state !== "non_renseigne" ? (
               <div className="flex items-center justify-between gap-3 border-t border-line pt-2">
-                <dt className="font-semibold text-ink">Total toutes taxes</dt>
+                <dt className="font-semibold text-ink">{totals.state === "partiel" ? "Total toutes taxes partiel" : "Total toutes taxes"}</dt>
                 <dd className="text-base font-semibold text-accent tabular">{formatMoney(totals.totalTtc, currency)}</dd>
               </div>
             ) : null}

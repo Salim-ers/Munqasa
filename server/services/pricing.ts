@@ -1,7 +1,9 @@
 /**
  * Sous-détail de prix : calcul exact (décimal) du déboursé, des frais et du prix de vente.
  *
- *   coût d'un composant  = consommation × coût unitaire × (1 + pertes)
+ *   quantité brute       = consommation nette × (1 + pertes)   si les pertes sont « appliquées »
+ *                        = consommation saisie                 si elles sont « incluses » (jamais les deux)
+ *   montant du composant = quantité brute × coût unitaire
  *   déboursé sec (DS)    = matériaux + main-d'œuvre + matériel + sous-traitance + transport
  *   déboursé total (DT)  = DS + frais de chantier
  *   prix de revient (PR) = DT + frais généraux + aléas, chacun sur son assiette (DS, DT ou PR)
@@ -9,17 +11,37 @@
  *
  * Une assiette « prix de revient » rend le calcul circulaire : il est résolu algébriquement,
  * PR = (DT + frais sur DS ou DT) ÷ (1 − somme des taux sur PR). Sans taux saisi, PV = déboursé.
+ *
+ * Arrondis : aucun arrondi intermédiaire ; quantités nette et brute présentées à 6 décimales, montants des
+ * composants, déboursés, frais et marge à 4 décimales, prix de vente unitaire au centime (demi supérieur).
+ * Un coût inconnu n'est jamais compté comme nul : l'état du déboursé dit s'il est complet, partiel ou absent.
  */
 import { type SQL, sql } from "drizzle-orm";
+import { type AmountState, amountState, type LossMode } from "../../shared/amounts.js";
 import type { ComponentCategory, MarginMode, PriceScope, RateBase, Reliability, TaxBasis } from "../../shared/enums.js";
 import type { Database } from "../db/index.js";
 import { Dec } from "./decimal.js";
 
 export interface PricedComponent {
   category: ComponentCategory;
+  /** Consommation saisie par unité d'ouvrage : nette (pertes appliquées) ou brute (pertes incluses). */
   quantity: string;
   unitCost: string | null;
   lossRate: string | null;
+  /** Défaut : pertes appliquées à une consommation nette. */
+  lossMode?: LossMode;
+  /** Consommation proposée par l'agent, à confirmer. */
+  hypothesis?: boolean;
+}
+
+/** Valeurs explicites d'un composant : quantité nette, taux de pertes, quantité brute, coût unitaire, montant. */
+export interface ComponentFigures {
+  netQuantity: string;
+  lossRate: string | null;
+  lossMode: LossMode;
+  grossQuantity: string;
+  unitCost: string | null;
+  amount: string | null;
 }
 
 export interface PricingRates {
@@ -34,7 +56,14 @@ export interface PricingRates {
 export interface BreakdownResult {
   /** Tous les composants ont un coût unitaire : le prix de vente est calculable. */
   complete: boolean;
+  /** Complet, partiel, absent, estimatif ou nul : un déboursé partiel n'est jamais un montant final. */
+  state: AmountState;
+  /** Composants chiffrés, sur le nombre total de composants. */
+  priced: number;
+  count: number;
+  figures: ComponentFigures[];
   componentTotals: Array<string | null>;
+  /** Sommes des seuls composants chiffrés (voir « state »). */
   debourseSec: string;
   fraisChantier: string;
   debourseTotal: string;
@@ -42,17 +71,45 @@ export interface BreakdownResult {
   contingency: string;
   prixDeRevient: string;
   margin: string;
+  /** Taux non saisis : le montant correspondant n'est pas un coût nul mais une absence de taux. */
+  ratesMissing: { overhead: boolean; contingency: boolean; margin: boolean };
   /** Prix de vente unitaire arrondi au centime, ou null si un coût manque. */
   prixDeVente: string | null;
 }
 
 export class PricingError extends Error {}
 
-const rate = (value: string | null) => (value === null || value === "" ? new Dec(0) : new Dec(value).div(100));
+const blank = (value: string | null | undefined) => value === null || value === undefined || value === "";
+const rate = (value: string | null) => (blank(value) ? new Dec(0) : new Dec(value!).div(100));
 
+/** Quantité brute exacte : nette × (1 + pertes) si elles sont appliquées, consommation saisie si incluses. */
+export function grossQuantity(c: Pick<PricedComponent, "quantity" | "lossRate" | "lossMode">): Dec {
+  const q = new Dec(c.quantity);
+  return (c.lossMode ?? "appliquee") === "incluse" ? q : q.times(new Dec(1).plus(rate(c.lossRate)));
+}
+
+/** Quantité nette exacte : consommation saisie si les pertes sont appliquées, brute ÷ (1 + pertes) si incluses. */
+export function netQuantity(c: Pick<PricedComponent, "quantity" | "lossRate" | "lossMode">): Dec {
+  const q = new Dec(c.quantity);
+  return (c.lossMode ?? "appliquee") === "incluse" ? q.div(new Dec(1).plus(rate(c.lossRate))) : q;
+}
+
+/** Montant exact d'un composant (quantité brute × coût unitaire), ou null si son coût est inconnu. */
 export function componentTotal(c: PricedComponent): Dec | null {
   if (c.unitCost === null) return null;
-  return new Dec(c.quantity).times(c.unitCost).times(new Dec(1).plus(rate(c.lossRate)));
+  return grossQuantity(c).times(c.unitCost);
+}
+
+export function componentFigures(c: PricedComponent): ComponentFigures {
+  const total = componentTotal(c);
+  return {
+    netQuantity: netQuantity(c).toDecimalPlaces(6).toFixed(6),
+    lossRate: blank(c.lossRate) ? null : c.lossRate,
+    lossMode: c.lossMode ?? "appliquee",
+    grossQuantity: grossQuantity(c).toDecimalPlaces(6).toFixed(6),
+    unitCost: c.unitCost,
+    amount: total ? total.toDecimalPlaces(4).toFixed(4) : null,
+  };
 }
 
 export function computeBreakdown(components: PricedComponent[], rates: PricingRates): BreakdownResult {
@@ -88,9 +145,14 @@ export function computeBreakdown(components: PricedComponent[], rates: PricingRa
   else pv = pr.times(new Dec(1).plus(m.div(100)));
 
   const complete = components.length > 0 && totals.every((t) => t !== null);
+  const priced = totals.filter((t) => t !== null).length;
   const fixed = (d: Dec, places = 4) => d.toDecimalPlaces(places).toFixed(places);
   return {
     complete,
+    state: amountState(priced, components.length, dt.toNumber(), components.filter((c) => c.hypothesis).length),
+    priced,
+    count: components.length,
+    figures: components.map(componentFigures),
     componentTotals: totals.map((t) => (t ? fixed(t) : null)),
     debourseSec: fixed(ds),
     fraisChantier: fixed(fc),
@@ -99,8 +161,42 @@ export function computeBreakdown(components: PricedComponent[], rates: PricingRa
     contingency: fixed(contingency),
     prixDeRevient: fixed(pr),
     margin: fixed(pv.minus(pr)),
+    ratesMissing: { overhead: blank(rates.overheadRate), contingency: blank(rates.contingencyRate), margin: blank(rates.marginRate) },
     prixDeVente: complete ? fixed(pv, 2) : null,
   };
+}
+
+/* ---------- Pertes déjà comprises dans une consommation ---------- */
+
+const INCLUDED_PATTERNS = [
+  // « intégrant 2 % de pertes », « incluant 3 % de chutes », « majorée de 5 % de pertes »
+  /(?:incluant|int[ée]grant|comprenant|y compris|major[ée]e?s?\s+de|augment[ée]e?s?\s+de)\s+(?:les\s+)?[\d\s.,]*%?\s*(?:de\s+)?(?:pertes?|chutes?)/i,
+  // « pertes comprises », « pertes déjà incluses », « chutes intégrées », « majoration déjà comprise »
+  /(?:pertes?|chutes?|majoration)(?:\s+de\s+[\d\s.,]+%)?[^.;]{0,30}?\s(?:d[ée]j[àa]\s+)?(?:comprises?|incluses?|int[ée]gr[ée]e?s?)\b/i,
+];
+/** Consommation dite nette : « hors pertes », « sans pertes », « pertes non comprises », « nette ». */
+const NET_PATTERN = /hors\s+(?:pertes?|chutes?)|sans\s+(?:pertes?|chutes?)|(?:pertes?|chutes?)\s+(?:non|pas)\s+(?:comprises?|incluses?|int[ée]gr[ée]e?s?)|consommation\s+nette/i;
+
+/** Nombre de chiffres significatifs d'une valeur décimale (« 1 » : 1, « 1.03 » : 3, « 0.042 » : 2). */
+function significant(value: Dec): number {
+  const digits = value.abs().toFixed().replace(".", "").replace(/^0+/, "").replace(/0+$/, "");
+  return digits.length;
+}
+
+/**
+ * Les pertes sont-elles déjà comprises dans la consommation proposée ? Signes retenus : la justification le
+ * dit (« 1,03 m³ incluant 3 % de pertes »), ou la consommation est exactement une valeur ronde majorée du
+ * taux (1,03 pour 3 %, 110 pour 10 %, 0,042 pour 5 %). Sert à n'appliquer les pertes qu'une seule fois.
+ */
+export function lossesAlreadyIncluded(quantity: string, lossRate: string | null, justification: string | null): boolean {
+  if (blank(lossRate) || new Dec(lossRate!).lte(0)) return false;
+  if (justification && NET_PATTERN.test(justification)) return false;
+  if (justification && INCLUDED_PATTERNS.some((p) => p.test(justification))) return true;
+  const q = new Dec(quantity);
+  if (q.lte(0)) return false;
+  const net = q.div(new Dec(1).plus(new Dec(lossRate!).div(100)));
+  const rounded = net.toDecimalPlaces(6);
+  return rounded.eq(net.toDecimalPlaces(9)) && significant(rounded) <= 2 && significant(q) > significant(rounded);
 }
 
 /* ---------- Recherche de prix candidats dans la bibliothèque ---------- */

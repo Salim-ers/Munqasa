@@ -149,8 +149,8 @@ describe("documents de la DPGF", () => {
     const dqe = await workbook((await get(`dqe/${dpgfId}/xlsx`)).bytes);
     const f = formulas(dqe.getWorksheet("DQE")!);
     expect(f.some((x) => /^IF\(AND\(ISNUMBER\(D\d+\),ISNUMBER\(E\d+\)\),ROUND\(D\d+\*E\d+,2\),""\)$/.test(x))).toBe(true);
-    expect(f.some((x) => /^SUBTOTAL\(9,F\d+:F\d+\)$/.test(x))).toBe(true);
-    expect(f.some((x) => /^ROUND\(F\d+\*20(\.0+)?\/100,2\)$/.test(x))).toBe(true);
+    expect(f.some((x) => /^IF\(COUNT\(F\d+:F\d+\)=0,"",SUBTOTAL\(9,F\d+:F\d+\)\)$/.test(x))).toBe(true);
+    expect(f.some((x) => /^IF\(COUNT\(F\d+:F\d+\)=0,"",ROUND\(F\d+\*20(\.0+)?\/100,2\)\)$/.test(x))).toBe(true);
     const estimation = await pdfText((await get(`estimation/${dpgfId}/pdf`)).bytes);
     expect(estimation).toContain("Postes non chiffrés");
     expect(estimation).toContain("Béton de propreté");
@@ -162,8 +162,10 @@ describe("documents de la DPGF", () => {
   it("sous-détails : composants et prix de vente", async () => {
     const wb = await workbook((await get(`sous_details/${dpgfId}/xlsx`)).bytes);
     const f = formulas(wb.getWorksheet("Sous-détails")!);
-    expect(f.some((x) => x.startsWith("IF(ISNUMBER(E"))).toBe(true);
-    expect(f.some((x) => x.startsWith("SUMIFS("))).toBe(true);
+    // Quantité brute : pertes appliquées à la consommation nette, ou consommation qui les comprend déjà.
+    expect(f.some((x) => /^IF\(F\d+="oui",D\d+,D\d+\*\(1\+N\(E\d+\)\)\)$/.test(x))).toBe(true);
+    expect(f.some((x) => /^IF\(ISNUMBER\(I\d+\),H\d+\*I\d+,""\)$/.test(x))).toBe(true);
+    expect(f.some((x) => x.includes("SUMIFS("))).toBe(true);
     const text = await pdfText((await get(`sous_details/${dpgfId}/pdf`)).bytes);
     expect(text).toContain("Béton C25/30");
     expect(text).toContain("Prix de vente unitaire HT");
@@ -228,7 +230,7 @@ describe("bibliothèque, versions et dossier complet", () => {
     const first = versions.find((v) => v.version === 1)!;
     const res = await get(`version/${first.id}/pdf`);
     expect(res.status).toBe(200);
-    expect(await pdfText(res.bytes)).toContain("Version enregistrée");
+    expect(await pdfText(res.bytes)).toMatch(/Version 1 enregistrée le \d{2}\/\d{2}\/\d{4}/);
     expect((await get(`version/${first.id}/xlsx`)).status).toBe(200);
     expect((await get(`version/${first.id}/docx`)).status).toBe(400);
   });

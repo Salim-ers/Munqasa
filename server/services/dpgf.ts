@@ -40,41 +40,56 @@ export async function renumber(db: Database, dpgfId: string): Promise<void> {
   }
 }
 
+/** Complétude d'un total : tous les postes chiffrés, une partie seulement, ou aucun. */
+export type TotalState = "complet" | "partiel" | "non_renseigne";
+
 export interface DpgfTotals {
   subtotals: Record<string, string>;
+  /** État de chaque sous-total : un sous-total partiel n'est jamais présenté comme un montant final. */
+  subtotalStates: Record<string, TotalState>;
   totalHt: string;
   vat: string | null;
   totalTtc: string | null;
+  /** État du total : « non_renseigne » quand aucun poste n'est chiffré (jamais affiché « 0,00 »). */
+  state: TotalState;
   postes: number;
   priced: number;
 }
+
+const stateOf = (priced: number, postes: number): TotalState => (priced === 0 ? "non_renseigne" : priced < postes ? "partiel" : "complet");
 
 /** Sous-totaux par chapitre et sous-chapitre, total hors taxes, taxe et total toutes taxes si le taux est saisi. */
 export function computeTotals(lines: LineRow[], vatRate: string | null): DpgfTotals {
   const byId = new Map(lines.map((l) => [l.id, l]));
   const subtotals = new Map<string, Dec>();
+  const counts = new Map<string, { postes: number; priced: number }>();
   let total = new Dec(0);
   let postes = 0;
   let priced = 0;
   for (const line of lines) {
     if (line.kind !== "poste") continue;
     postes++;
-    if (line.amount === null) continue;
-    priced++;
-    const amount = new Dec(line.amount);
-    total = total.plus(amount);
+    const amount = line.amount === null ? null : new Dec(line.amount);
+    if (amount) {
+      priced++;
+      total = total.plus(amount);
+    }
     let parent = line.parentId;
     while (parent) {
-      subtotals.set(parent, (subtotals.get(parent) ?? new Dec(0)).plus(amount));
+      const c = counts.get(parent) ?? { postes: 0, priced: 0 };
+      counts.set(parent, { postes: c.postes + 1, priced: c.priced + (amount ? 1 : 0) });
+      if (amount) subtotals.set(parent, (subtotals.get(parent) ?? new Dec(0)).plus(amount));
       parent = byId.get(parent)?.parentId ?? null;
     }
   }
   const vat = vatRate !== null ? total.times(vatRate).div(100).toDecimalPlaces(2) : null;
   return {
     subtotals: Object.fromEntries([...subtotals].map(([id, value]) => [id, value.toFixed(2)])),
+    subtotalStates: Object.fromEntries([...counts].map(([id, c]) => [id, stateOf(c.priced, c.postes)])),
     totalHt: total.toFixed(2),
     vat: vat?.toFixed(2) ?? null,
     totalTtc: vat ? total.plus(vat).toFixed(2) : null,
+    state: stateOf(priced, postes),
     postes,
     priced,
   };

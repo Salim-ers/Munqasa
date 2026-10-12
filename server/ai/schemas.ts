@@ -69,6 +69,29 @@ export type PlanExtraction = z.output<typeof planExtraction>;
 
 /* ---------- Métré consolidé ---------- */
 
+const metreMeasurement = z.object({
+  label: z.string(),
+  method: z.enum(MEASURE_METHODS),
+  formula: z.string(),
+  inputs: z.array(
+    z.object({
+      name: z.string(),
+      value: z.string(),
+      source: z.string(),
+      /** Identifiants des cotes relevées ou des chaînes de cotes dont vient la valeur (« 1.2.3 », « C1.2 ») ; vide si aucune. */
+      dimensionIds: z.array(z.string()),
+      /** Calcul ou conversion qui mène des cotes à la valeur, ou null si elle est reprise telle quelle. */
+      derivation: z.string().nullable(),
+    }),
+  ),
+  /** Déductions explicites (vides, trémies), avec les mêmes variables que la formule. */
+  deductions: z.array(z.object({ label: z.string(), formula: z.string() })),
+  unit: z.string(),
+  drawingId: z.string().nullable(),
+  zone: z.string().nullable(),
+  note: z.string().nullable(),
+});
+
 export const metreProposal = z.object({
   workItems: z.array(
     z.object({
@@ -77,35 +100,27 @@ export const metreProposal = z.object({
       unit: z.string(),
       location: z.string().nullable(),
       attributes: z.array(z.object({ name: z.string(), value: z.string(), source: z.string() })),
-      measurements: z.array(
-        z.object({
-          label: z.string(),
-          method: z.enum(MEASURE_METHODS),
-          formula: z.string(),
-          inputs: z.array(
-            z.object({
-              name: z.string(),
-              value: z.string(),
-              source: z.string(),
-              /** Identifiants des cotes relevées dont vient la valeur (« 1.2.3 ») ; vide si aucune. */
-              dimensionIds: z.array(z.string()),
-              /** Calcul ou conversion qui mène des cotes à la valeur, ou null si elle est reprise telle quelle. */
-              derivation: z.string().nullable(),
-            }),
-          ),
-          /** Déductions explicites (vides, trémies), avec les mêmes variables que la formule. */
-          deductions: z.array(z.object({ label: z.string(), formula: z.string() })),
-          unit: z.string(),
-          drawingId: z.string().nullable(),
-          zone: z.string().nullable(),
-          note: z.string().nullable(),
-        }),
-      ),
+      measurements: z.array(metreMeasurement),
+      /** Données manquantes pour mesurer l'ouvrage, dites précisément ; vide si rien ne manque. */
+      missing: z.array(z.string()),
     }),
   ),
   warnings: z.array(z.string()),
 });
 export type MetreProposal = z.output<typeof metreProposal>;
+
+/** Métré des postes de DPGF restés « à métrer » : mesures calculables, ou données manquantes. */
+export const metrePostes = z.object({
+  postes: z.array(
+    z.object({
+      lineId: z.string(),
+      measurements: z.array(metreMeasurement),
+      missing: z.array(z.string()),
+    }),
+  ),
+  warnings: z.array(z.string()),
+});
+export type MetrePostes = z.output<typeof metrePostes>;
 
 /* ---------- CCTP ---------- */
 
@@ -184,6 +199,7 @@ export type DpgfChapter = z.output<typeof dpgfChapter>;
 /**
  * Décomposition d'une unité d'ouvrage. Le modèle ne donne jamais de coût : chaque coût unitaire vient
  * d'un prix candidat de la bibliothèque (« priceItemId »), sinon le composant reste à chiffrer.
+ * La consommation est nette ; les pertes sont un taux distinct, appliqué une seule fois par le serveur.
  */
 export const sousDetailBatch = z.object({
   postes: z.array(
@@ -194,12 +210,16 @@ export const sousDetailBatch = z.object({
           category: z.enum(COMPONENT_CATEGORIES),
           designation: z.string(),
           unit: z.string(),
-          quantity: z.string(),
+          /** Consommation nette par unité d'ouvrage, sans pertes ni chutes. */
+          netQuantity: z.string(),
+          /** Taux de pertes en pourcentage, ou null s'il est sans objet. */
           lossRate: z.string().nullable(),
           priceItemId: z.string().nullable(),
           justification: z.string(),
         }),
       ),
+      /** Décomposition impossible faute de caractéristiques suffisantes : raison et caractéristiques à confirmer. */
+      impossible: z.object({ reason: z.string(), missing: z.array(z.string()) }).nullable(),
       notes: z.string().nullable(),
     }),
   ),

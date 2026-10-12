@@ -3,6 +3,7 @@
  * requêtes (serveur). Les montants et quantités circulent en chaînes décimales (aucun flottant).
  */
 import { z } from "zod";
+import { LOSS_MODES } from "./amounts.js";
 import {
   COUNTRIES,
   CURRENCIES,
@@ -450,6 +451,8 @@ export const breakdownComponentInput = z.object({
   quantity: decimalString.refine((v) => Number(v) >= 0, "Quantité invalide."),
   unitCost: optionalDecimal,
   lossRate: optionalDecimal,
+  /** Pertes appliquées à une consommation nette, ou déjà comprises dans la consommation saisie. */
+  lossMode: z.enum(LOSS_MODES).default("appliquee"),
   priceItemId: optionalUuid,
   sourceNote: optionalText(1000),
 });

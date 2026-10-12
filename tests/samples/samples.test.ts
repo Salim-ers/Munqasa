@@ -7,7 +7,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { beforeAll, describe, expect, it } from "vitest";
 import { readPdfText } from "../../server/services/pdf-text.js";
-import { numberTokens, resolveScale, scalesIn } from "../../server/services/plan-text.js";
+import { dimensionChains, numberTokens, resolveScale, scalesIn } from "../../server/services/plan-text.js";
 import { adminSession, setupTestServer, type TestBrowser } from "../server/helpers.js";
 
 const plan = process.env.TALAB_SAMPLE_PLAN;
@@ -23,6 +23,17 @@ describe.skipIf(!plan || !existsSync(plan))("plan d'exemple PLAN METRIKA : texte
     const scales = pages.map((p) => scalesIn(p.items.map((i) => i.text).join("  ")));
     expect(scales).toEqual([[75], [50], [50], [50], [50], [50], [20], [20], [50], [50], [75], []]);
     expect(scales.map((s) => resolveScale(s, null).ratio)).toEqual([75, 50, 50, 50, 50, 50, 20, 20, 50, 50, 75, null]);
+  });
+
+  it("reconstitue les chaînes de cotes à l'échelle et retrouve leurs cotes totales", async () => {
+    const pages = await readPdfText(new Uint8Array(readFileSync(plan!)));
+    const niveau0 = dimensionChains(pages[1]!.items, 50);
+    // Chaîne 1,55 + 0,80 + 4,83 vérifiée par sa cote totale 7,18 ; trame de 13 entraxes de 2,77 m.
+    expect(niveau0.some((c) => c.items.map((i) => i.text).join(" + ") === "1.55 + 80 + 4.83" && c.total?.text === "7.18")).toBe(true);
+    expect(niveau0.some((c) => c.items.length === 13 && c.items.every((i) => i.text === "2.77") && c.sum === "36.01")).toBe(true);
+    expect(niveau0.every((c) => c.verified)).toBe(true);
+    const niveau2 = dimensionChains(pages[3]!.items, 50);
+    expect(niveau2.some((c) => c.sum === "36.01" && c.total?.text === "36.01")).toBe(true);
   });
 });
 

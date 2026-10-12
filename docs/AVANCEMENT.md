@@ -98,6 +98,15 @@ prix : `docs/BIBLIOTHEQUE-PRIX.md`. Lecture des plans et métré : `docs/METRE-T
 | G | Parcours navigateur des nouvelles fonctions (source publique chargée, quarantaine examinée, fiche et comparaison, rapprochement DPGF, génération du dossier), contrôle sans débordement de l'onglet Dossier sur téléphone ; tests sur les fichiers d'exemple de l'affaire TAL-2026-0001 (texte vectoriel et échelles des 12 planches de PLAN METRIKA, import de la DPGF d'exemple), exécutés quand leurs chemins sont fournis, ces documents privés n'étant pas versionnés | fait | 164 tests serveur, 2 tests sur les fichiers d'exemple, 19 parcours navigateur, aucune erreur dans le navigateur |
 | H | Bilan de la mission | fait | section « Bilan de la mission » ci-dessous |
 
+## Amélioration professionnelle V4 (octobre 2026)
+
+Grille de tests et constats d'audit : `docs/V4-AUDIT-ET-TESTS.md`.
+
+| Phase | Contenu | État | Vérification |
+| --- | --- | --- | --- |
+| 1 | Audit du code et des documents de TAL-2026-0003 (couvertures, pagination, sous-détails, DPGF, métré) ; tests de référence | fait | 164 tests serveur et 19 parcours navigateur au vert avant toute modification ; défauts mesurés page par page sur les PDF de l'affaire |
+| 2 | Pertes appliquées une seule fois (quantité nette, taux, quantité brute, montant ; consommation qui comprend déjà les pertes détectée et corrigée sur les données existantes par le contrôle indépendant) ; décomposition impossible dite sans tableau vide ni total à zéro ; coût nul, non renseigné, partiel, estimatif ou calculé ; totaux partiels nommés comme tels, jamais « 0,00 » pour un prix inconnu ; statut imprimé calculé (brouillon, généré avec réserves, vérification automatique réussie, prêt pour revue, validé par un professionnel) ; chaînes de cotes reconstituées et contrôlées à l'échelle ; métré des postes restés à métrer à partir des planches lues, données manquantes dites précisément | fait | 187 tests serveur (dont 18 sur le calcul des pertes et des états de coût, 6 de bout en bout sur le chiffrage, 5 sur le métré), chaînes vérifiées sur PLAN METRIKA |
+
 ## Bilan de la mission
 
 **Ce qui fonctionne et a été vérifié**

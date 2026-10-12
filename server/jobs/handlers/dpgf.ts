@@ -7,11 +7,13 @@
  *    applicables dans la bibliothèque pour chaque poste (proposés à l'économiste, jamais appliqués d'office),
  *    version figée.
  */
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { callAgent } from "../../ai/client.js";
-import { type CctpBlock, dpgfChapter } from "../../ai/schemas.js";
+import { lotRuleText } from "../../ai/lot-rules.js";
+import { type CctpBlock, dpgfChapter, metrePostes } from "../../ai/schemas.js";
 import { schema } from "../../db/index.js";
 import { metreQuantity, renumber } from "../../services/dpgf.js";
+import { buildReadings, insertProposedMeasures, METRE_RULES } from "../../services/plan-readings.js";
 import { findCandidates } from "../../services/pricing.js";
 import { blocksText, checkDpgf, replaceIssues } from "../../services/quality.js";
 import { sameUnit } from "../../services/units.js";
@@ -35,10 +37,31 @@ Règles strictes :
 - pas de remplissage, pas de doublon.
 Réponds en français.`;
 
+const METRE_POSTES_INSTRUCTIONS = `Tu es économiste de la construction et métreur. Des postes de DPGF restent sans quantité : établis leur métré à partir des relevés de plans fournis, dans l'unité du poste.
+- pour chaque poste, propose une ou plusieurs mesures dans l'unité du poste, ou aucune mesure si les relevés ne le permettent pas ;
+- une mesure ne reprend que ce que le poste décrit : n'y ajoute pas d'ouvrage d'un autre poste ;
+- pour un poste non mesurable, liste dans « missing » chaque donnée manquante, précisément ;
+- réponds pour chaque poste demandé avec son « lineId ».
+${METRE_RULES}
+Les quantités seront calculées par le serveur à partir de tes formules. Réponds en français.`;
+
+/** Postes demandés à chaque appel du métreur. */
+const METRE_BATCH = 12;
+
 async function dpgfOf(ctx: StepContext): Promise<string> {
   const prepared = ctx.results.get("preparation") as { dpgfId?: string } | undefined;
   if (!prepared?.dpgfId) throw new Error("DPGF introuvable.");
   return prepared.dpgfId;
+}
+
+/** Postes sans quantité qui se mesurent (les forfaits valent 1). */
+async function postesToMeasure(ctx: StepContext, dpgfId: string) {
+  const lines = await ctx.db
+    .select()
+    .from(schema.dpgfLine)
+    .where(and(eq(schema.dpgfLine.dpgfId, dpgfId), eq(schema.dpgfLine.kind, "poste"), isNull(schema.dpgfLine.quantity)))
+    .orderBy(asc(schema.dpgfLine.position));
+  return lines.filter((l) => l.unit && l.unit !== "ens");
 }
 
 export const dpgfHandler: JobHandler = {
@@ -48,6 +71,8 @@ export const dpgfHandler: JobHandler = {
     if (name === "preparation") return "Préparation de la DPGF";
     if (name === "controle") return "Quantités, contrôle qualité et version";
     if (name.startsWith("chapitre:")) return `Postes du chapitre ${name.split(":")[1]} du CCTP`;
+    if (name === "metre_postes") return "Postes à métrer : relevés disponibles";
+    if (name.startsWith("metre_postes:")) return `Métré des postes à métrer, série ${Number(name.split(":")[1]) + 1}`;
     return name;
   },
   initialSteps: () => ["preparation", "controle"],
@@ -78,7 +103,96 @@ export const dpgfHandler: JobHandler = {
           status: "en_generation",
         })
         .returning({ id: schema.dpgf.id });
-      return { result: { dpgfId: created!.id, chapters: chapters.length }, addSteps: chapters.map((c) => `chapitre:${c.number}`) };
+      // Métré des postes restés à métrer : seulement si des planches de l'affaire ont été lues.
+      const [read] = await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(schema.drawing)
+        .where(and(eq(schema.drawing.projectId, projectId), sql`${schema.drawing.extraction} is not null`));
+      const steps = [...chapters.map((c) => `chapitre:${c.number}`), ...(Number(read?.n ?? 0) > 0 ? ["metre_postes"] : [])];
+      return { result: { dpgfId: created!.id, chapters: chapters.length }, addSteps: steps };
+    }
+
+    if (name === "metre_postes") {
+      // Postes restés à métrer : métrés à partir des relevés de plans de l'affaire, par séries.
+      const dpgfId = await dpgfOf(ctx);
+      const postes = await postesToMeasure(ctx, dpgfId);
+      if (postes.length === 0) return { result: { postes: 0 } };
+      const { readings } = await buildReadings(db, projectId);
+      if (readings.length === 0) {
+        for (const p of postes) {
+          if (p.quantitySource?.startsWith("À métrer")) await db.update(schema.dpgfLine).set({ quantitySource: "À métrer : aucune planche analysée pour l’affaire" }).where(eq(schema.dpgfLine.id, p.id));
+        }
+        await ctx.log(`${postes.length} poste(s) à métrer : aucune planche lue pour l’affaire, quantités laissées à établir.`);
+        return { result: { postes: postes.length, batches: 0 } };
+      }
+      const batches: string[][] = [];
+      for (let i = 0; i < postes.length; i += METRE_BATCH) batches.push(postes.slice(i, i + METRE_BATCH).map((p) => p.id));
+      await ctx.log(`${postes.length} poste(s) à métrer à partir de ${readings.length} planche(s) lue(s).`);
+      return { result: { postes: postes.length, batches }, addSteps: batches.map((_, i) => `metre_postes:${i}`) };
+    }
+
+    if (name.startsWith("metre_postes:")) {
+      const dpgfId = await dpgfOf(ctx);
+      const { batches } = (ctx.results.get("metre_postes") ?? { batches: [] }) as { batches: string[][] };
+      const ids = batches[Number(name.split(":")[1])] ?? [];
+      const postes = (await postesToMeasure(ctx, dpgfId)).filter((p) => ids.includes(p.id));
+      if (postes.length === 0) return { result: { measured: 0 } };
+      const readingsData = await buildReadings(db, projectId);
+      const [cctp] = await db.select().from(schema.cctpDocument).where(eq(schema.cctpDocument.id, input.cctpDocumentId));
+      const lot = cctp?.lotId ? (await db.select().from(schema.projectLot).where(eq(schema.projectLot.id, cctp.lotId)))[0] : undefined;
+      const output = await callAgent({
+        agent: "metreur",
+        role: "generation",
+        projectId,
+        jobId: ctx.job.id,
+        instructions: METRE_POSTES_INSTRUCTIONS,
+        input: [
+          `Lot : ${lot ? `${lot.code} ${lot.name}` : "non précisé"}.`,
+          lotRuleText(lot?.tradeFamily),
+          `Postes à métrer (JSON) :\n${JSON.stringify(postes.map((p) => ({ lineId: p.id, numero: p.code, designation: p.designation, description: p.description, unite: p.unit })))}`,
+          `Relevés des planches (JSON) :\n${JSON.stringify(readingsData.readings)}`,
+        ].join("\n\n"),
+        schema: metrePostes,
+        schemaName: "metre_postes",
+        summary: `Métré des postes ${postes.map((p) => p.code).join(", ")}`,
+        maxOutputTokens: 20_000,
+        effort: "medium",
+      });
+      let measured = 0;
+      const warnings = [...output.warnings];
+      const existingCodes = new Set((await db.select({ code: schema.workItem.code }).from(schema.workItem).where(eq(schema.workItem.projectId, projectId))).map((w) => w.code));
+      for (const poste of postes) {
+        const answer = output.postes.find((a) => a.lineId === poste.id);
+        const missing = (answer?.missing ?? []).map((m) => m.trim()).filter(Boolean);
+        const measurements = (answer?.measurements ?? []).filter((m) => sameUnit(m.unit, poste.unit!));
+        if (measurements.length === 0) {
+          const reason = missing.length ? missing.join(" ; ") : "aucune mesure possible avec les relevés disponibles";
+          await db.update(schema.dpgfLine).set({ quantitySource: `À métrer : ${reason}`.slice(0, 600) }).where(eq(schema.dpgfLine.id, poste.id));
+          continue;
+        }
+        // Ouvrage du métré propre au poste : même désignation et même unité, référence au numéro du poste.
+        let code = `P${poste.code ?? poste.position}`;
+        while (existingCodes.has(code)) code = `${code}b`;
+        existingCodes.add(code);
+        const workItemId = await db.transaction(async (tx) => {
+          const [item] = await tx
+            .insert(schema.workItem)
+            .values({ projectId, lotId: lot?.id ?? null, code, designation: poste.designation, description: poste.description, unit: poste.unit, missingData: missing.slice(0, 12), origin: "proposition_ia", jobId: ctx.job.id })
+            .returning({ id: schema.workItem.id });
+          const inserted = await insertProposedMeasures(tx, { projectId, lotId: lot?.id ?? null, workItemId: item!.id, code, measurements, readings: readingsData });
+          warnings.push(...inserted.warnings);
+          return item!.id;
+        });
+        const metre = await metreQuantity(db, workItemId, poste.unit!);
+        await db
+          .update(schema.dpgfLine)
+          .set(metre ? { workItemId, quantity: metre.quantity, quantitySource: metre.source } : { workItemId, quantitySource: `À métrer : ${missing.join(" ; ") || "mesure incalculable"}`.slice(0, 600) })
+          .where(eq(schema.dpgfLine.id, poste.id));
+        if (metre) measured++;
+      }
+      for (const w of warnings.slice(0, 20)) await ctx.log(w);
+      await ctx.log(`${measured} poste(s) sur ${postes.length} métré(s) à partir des plans ; les autres disent la donnée qui manque.`);
+      return { result: { measured, postes: postes.length } };
     }
 
     if (name.startsWith("chapitre:")) {
