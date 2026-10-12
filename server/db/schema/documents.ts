@@ -4,6 +4,7 @@
  */
 import { type AnyPgColumn, boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import type { DecompositionState, LossMode } from "../../../shared/amounts.js";
+import type { RenderedFileCheck } from "../../../shared/audit.js";
 import type { AuditSummary } from "../../../shared/dossier.js";
 import type { MeasureDeduction, MeasureInputSource } from "../../../shared/metre.js";
 import { createdAt, fine, id, money, percent, qty, updatedAt } from "./columns.js";
@@ -281,6 +282,25 @@ export const dossierAudit = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("dossier_audit_project_idx").on(t.projectId, t.createdAt)],
+);
+
+/**
+ * Contrôle des fichiers produits d'un dossier (génération du dossier ou export complet) : mise en page et
+ * structure de chaque fichier, avec l'empreinte du contenu rendu ; une modification ultérieure le rend caduc.
+ */
+export const exportCheck = pgTable(
+  "export_check",
+  {
+    id: id(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    jobId: uuid("job_id"),
+    fingerprint: text("fingerprint").notNull(),
+    files: jsonb("files").$type<RenderedFileCheck[]>().notNull().default([]),
+    createdAt: createdAt(),
+  },
+  (t) => [index("export_check_project_idx").on(t.projectId, t.createdAt)],
 );
 
 /**

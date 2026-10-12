@@ -4,8 +4,6 @@
  */
 import { and, asc, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { Hono } from "hono";
-import { PRICE_ORIGIN_LABELS } from "../../../shared/enums.js";
-import { appliesToDpgfLine } from "../../../shared/prices.js";
 import { applyPricesRequest, dpgfGenerationRequest, dpgfLineInput, dpgfUpdate, priceMatchRequest } from "../../../shared/schemas.js";
 import { modelFor } from "../../ai/client.js";
 import type { AdminEnv } from "../../auth/guard.js";
@@ -13,7 +11,8 @@ import { getDb, schema } from "../../db/index.js";
 import { createJob } from "../../jobs/runner.js";
 import { auditAction } from "../../services/audit.js";
 import { computeTotals, lineAmount, renumber } from "../../services/dpgf.js";
-import { exclTax, findCandidates } from "../../services/pricing.js";
+import { applyLibraryPrice } from "../../services/dpgf-prices.js";
+import { findCandidates } from "../../services/pricing.js";
 import { checkDpgf, hasBlockingIssues, replaceIssues } from "../../services/quality.js";
 import { readSetting } from "../../services/settings.js";
 import { sameUnit } from "../../services/units.js";
@@ -99,43 +98,15 @@ export const dpgfRoutes = new Hono<AdminEnv>()
     const errors: Array<{ lineId: string; message: string }> = [];
     let applied = 0;
     for (const a of data.assignments) {
-      const line = lines.find((x) => x.id === a.lineId);
-      const found = prices.find((x) => x.price.id === a.priceItemId);
-      const fail = (message: string) => errors.push({ lineId: a.lineId, message });
-      if (!line || line.kind !== "poste") {
-        fail("Poste introuvable dans cette DPGF.");
-        continue;
-      }
-      if (!found || found.price.archivedAt || found.price.verificationStatus === "rejete") {
-        fail("Prix introuvable, archivé ou rejeté.");
-        continue;
-      }
-      const price = found.price;
-      if (price.currency !== doc.currency || price.country !== project!.country) {
-        fail(`Prix en ${price.currency} pour ${price.country}, DPGF en ${doc.currency}.`);
-        continue;
-      }
-      if (!appliesToDpgfLine(price)) {
-        fail("Prix de fourniture ou ratio d’opération : il sert aux sous-détails, pas au prix d’un poste.");
-        continue;
-      }
-      if (!sameUnit(price.unit, line.unit)) {
-        fail(`Unité du prix (${price.unit}) différente de celle du poste (${line.unit ?? "aucune"}).`);
-        continue;
-      }
-      const ht = exclTax(price.unitPrice, price.taxBasis, price.vatRate);
-      if (ht === null) {
-        fail("Prix TTC sans taux de TVA : il ne peut pas être ramené hors taxes.");
-        continue;
-      }
-      const zone = price.city ?? price.region;
-      const when = price.period ? `valeur ${price.period}` : `prix du ${price.priceDate.split("-").reverse().join("/")}`;
-      const priceSource = [`Bibliothèque : ${price.designation}`, zone, when, found.sourceName ?? PRICE_ORIGIN_LABELS[price.origin], price.taxBasis === "TTC" ? "TTC ramené HT" : null].filter(Boolean).join(", ");
-      await db
-        .update(l)
-        .set({ unitPrice: ht, amount: lineAmount(line.quantity, ht), priceItemId: price.id, priceSource, status: "a_verifier" })
-        .where(eq(l.id, line.id));
-      applied++;
+      const refused = await applyLibraryPrice(
+        db,
+        lines.find((x) => x.id === a.lineId),
+        prices.find((x) => x.price.id === a.priceItemId),
+        doc,
+        project!.country,
+      );
+      if (refused) errors.push({ lineId: a.lineId, message: refused });
+      else applied++;
     }
     if (applied) {
       await touch(id);

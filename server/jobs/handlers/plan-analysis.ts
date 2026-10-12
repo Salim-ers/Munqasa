@@ -12,13 +12,14 @@ import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { PDFDocument } from "pdf-lib";
 import type { DimensionCheck } from "../../../shared/metre.js";
 import { aiFiles, callAgent } from "../../ai/client.js";
-import { lotRuleText } from "../../ai/lot-rules.js";
+import { lotRuleText, lotsRuleText } from "../../ai/lot-rules.js";
 import { metreProposal, type PlanExtraction, planExtraction } from "../../ai/schemas.js";
 import { schema } from "../../db/index.js";
 import { readPdfText, type TextItem } from "../../services/pdf-text.js";
 import { buildReadings, insertProposedMeasures, METRE_RULES, type TextLayer } from "../../services/plan-readings.js";
 import { checkDimension, type DimensionChain, dimensionChains, numberTokens, resolveScale, scalesIn, textExcerpt } from "../../services/plan-text.js";
 import { getStorage } from "../../services/storage.js";
+import { normalizeUnit } from "../../services/units.js";
 import { type JobHandler, RetriableStepError } from "../types.js";
 
 /** Relevé enregistré : celui de l'agent, complété par le contrôle de chaque cote dans le texte vectoriel. */
@@ -40,7 +41,10 @@ const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 export interface PlanAnalysisInput {
   fileIds: string[];
+  /** Lot du métré. */
   lotId: string | null;
+  /** Lots lus sur les mêmes planches (génération du dossier sur plusieurs lots) ; sinon le lot du métré. */
+  lotIds?: string[];
 }
 
 /** Dernier fichier lu, gardé le temps d'une invocation (les pages d'un même PDF se suivent). */
@@ -83,10 +87,10 @@ async function loadPdf(bytes: Uint8Array): Promise<PDFDocument> {
   }
 }
 
-const READER_INSTRUCTIONS = `Tu es métreur-projeteur en bâtiment. Tu lis UNE page de plan et tu relèves uniquement ce qui y figure réellement, pour le lot indiqué dans la demande.
+const READER_INSTRUCTIONS = `Tu es métreur-projeteur en bâtiment. Tu lis UNE page de plan et tu relèves uniquement ce qui y figure réellement, pour le ou les lots indiqués dans la demande.
 Relève :
 - le cartouche : titre, numéro de planche, nature du plan, niveau, échelle telle qu'écrite, indice ou révision tel qu'écrit ;
-- les éléments du lot visibles sur la page, avec leurs cotes lisibles, leur nombre s'il est lisible ou indiqué, leur matériau s'il est écrit ; pour un mur, une façade, une dalle ou un ouvrage linéaire, relève les cotes qui le mesurent (longueur de façade, entraxes, épaisseur, cotes générales) quand la chaîne de cotes qui le mesure est identifiable ;
+- les éléments des lots indiqués visibles sur la page, avec leurs cotes lisibles, leur nombre s'il est lisible ou indiqué, leur matériau s'il est écrit ; pour un mur, une façade, une dalle ou un ouvrage linéaire, relève les cotes qui le mesurent (longueur de façade, entraxes, épaisseur, cotes générales) quand la chaîne de cotes qui le mesure est identifiable ;
 - sur les coupes et élévations, un élément « Niveaux et hauteurs » (catégorie « autre ») portant, telles qu'écrites, l'altitude de chaque niveau, la hauteur d'étage, la hauteur sous plafond, l'épaisseur des planchers et la hauteur des acrotères ;
 - les notes et légendes utiles au lot.
 Règles strictes :
@@ -100,10 +104,30 @@ Réponds en français.`;
 
 const METREUR_INSTRUCTIONS = `Tu es économiste de la construction et métreur. À partir des relevés de plans fournis, établis les ouvrages du lot indiqué et leurs métrés.
 - chaque ouvrage a un code (GO-01, GO-02…), une désignation précise, une unité (m3, m2, ml, u, kg), et ses caractéristiques avec leur source (planche et élément) ;
+- les ouvrages déjà établis et conservés (liste fournie) restent tels quels : ne les propose pas à nouveau, et numérote les nouveaux ouvrages à la suite de leurs codes ;
 - regroupe les éléments identiques (même section, même hauteur) avec une variable de nombre n ;
 - un ouvrage que les relevés ne permettent pas de mesurer reste dans la liste, sans mesure, avec ses données manquantes dans « missing ».
 ${METRE_RULES}
 Les quantités seront calculées par le serveur à partir de tes formules. Réponds en français.`;
+
+const sameWork = (a: { designation: string; unit: string | null }, b: { designation: string; unit: string | null }) =>
+  a.designation.trim().toLowerCase().replace(/\s+/g, " ") === b.designation.trim().toLowerCase().replace(/\s+/g, " ") && normalizeUnit(a.unit) === normalizeUnit(b.unit);
+
+/** Code libre le plus proche : même préfixe, numéro suivant le plus grand déjà pris (GO-01 pris : GO-03 si GO-02 l'est aussi). */
+export function nextFreeCode(code: string, used: Set<string>): string {
+  if (!used.has(code)) return code;
+  const match = /^(.*?)(\d+)$/.exec(code);
+  if (!match) {
+    let n = 2;
+    while (used.has(`${code}-${n}`)) n++;
+    return `${code}-${n}`;
+  }
+  const [, prefix, digits] = match as unknown as [string, string, string];
+  const taken = [...used].map((c) => (c.startsWith(prefix) && /^\d+$/.test(c.slice(prefix.length)) ? Number(c.slice(prefix.length)) : 0));
+  let n = Math.max(Number(digits), ...taken) + 1;
+  while (used.has(`${prefix}${String(n).padStart(digits.length, "0")}`)) n++;
+  return `${prefix}${String(n).padStart(digits.length, "0")}`;
+}
 
 /** Chaînes de cotes d'une page, résumées pour le lecteur. */
 function chainsText(chains: DimensionChain[]): string {
@@ -205,8 +229,9 @@ export const planAnalysisHandler: JobHandler = {
       const textScales = textItems ? scalesIn(textItems.map((i) => i.text).join("  ")) : [];
       // Chaînes de cotes reconstituées à l'échelle écrite sur la page (sans échelle unique, écartements non contrôlés).
       const chains = textItems ? dimensionChains(textItems, textScales.length === 1 ? textScales[0]! : null) : [];
-      const lots = input.lotId ? await db.select({ tradeFamily: schema.projectLot.tradeFamily }).from(schema.projectLot).where(eq(schema.projectLot.id, input.lotId)) : [];
-      const label = `Planche : ${file.originalName}, page ${drawing.pageNumber}${file.pageCount ? ` sur ${file.pageCount}` : ""}. Relève son contenu selon les règles.\n${lotRuleText(lots[0]?.tradeFamily)}`;
+      const lotIds = input.lotIds?.length ? input.lotIds : input.lotId ? [input.lotId] : [];
+      const lots = lotIds.length ? await db.select({ tradeFamily: schema.projectLot.tradeFamily }).from(schema.projectLot).where(inArray(schema.projectLot.id, lotIds)) : [];
+      const label = `Planche : ${file.originalName}, page ${drawing.pageNumber}${file.pageCount ? ` sur ${file.pageCount}` : ""}. Relève son contenu selon les règles.\n${lots.length > 1 ? lotsRuleText(lots.map((l) => l.tradeFamily)) : lotRuleText(lots[0]?.tradeFamily)}`;
       const prompt = textItems
         ? `${label}\n\nTexte vectoriel exact de la page, extrait du PDF :\n${textExcerpt(textItems)}${chains.length ? `\n\nChaînes de cotes reconstituées par le serveur (cotes qui se suivent sur une même ligne de cote) :\n${chainsText(chains)}` : ""}`
         : `${label}\n\nCette page n’a pas de texte vectoriel (plan scanné ou image) : lis les cotes sur l’image et signale toute lecture incertaine.`;
@@ -313,13 +338,27 @@ export const planAnalysisHandler: JobHandler = {
 
       const lots = await db.select().from(schema.projectLot).where(eq(schema.projectLot.projectId, projectId));
       const lot = lots.find((l) => l.id === input.lotId) ?? lots.find((l) => l.tradeFamily === "gros_oeuvre") ?? null;
+      // Ouvrages conservés : saisis, ou proposés puis vérifiés. Ils gardent leur identifiant et leurs mesures :
+      // le métreur ne les propose pas une seconde fois, avec une autre quantité.
+      const lotItems = await db
+        .select()
+        .from(schema.workItem)
+        .where(and(eq(schema.workItem.projectId, projectId), lot ? eq(schema.workItem.lotId, lot.id) : isNull(schema.workItem.lotId)));
+      const verified = lotItems.length
+        ? await db
+            .selectDistinct({ workItemId: schema.measurement.workItemId })
+            .from(schema.measurement)
+            .where(and(inArray(schema.measurement.workItemId, lotItems.map((i) => i.id)), eq(schema.measurement.status, "verifie")))
+        : [];
+      const kept = lotItems.filter((i) => i.origin !== "proposition_ia" || verified.some((v) => v.workItemId === i.id));
+      const keptText = kept.length ? `\nOuvrages déjà établis et conservés (JSON) :\n${JSON.stringify(kept.map((i) => ({ code: i.code, designation: i.designation, unite: i.unit })))}` : "";
       const proposal = await callAgent({
         agent: "metreur",
         role: "generation",
         projectId,
         jobId: ctx.job.id,
         instructions: METREUR_INSTRUCTIONS,
-        input: `Lot : ${lot ? `${lot.code} ${lot.name}` : "gros œuvre"}.\n${lotRuleText(lot?.tradeFamily)}\nRelevés des planches (JSON) :\n${JSON.stringify(readings)}`,
+        input: `Lot : ${lot ? `${lot.code} ${lot.name}` : "gros œuvre"}.\n${lotRuleText(lot?.tradeFamily)}${keptText}\nRelevés des planches (JSON) :\n${JSON.stringify(readings)}`,
         schema: metreProposal,
         schemaName: "metre",
         summary: `Métré à partir de ${readings.length} planche(s)`,
@@ -346,7 +385,18 @@ export const planAnalysisHandler: JobHandler = {
           .delete(schema.measurement)
           .where(and(eq(schema.measurement.projectId, projectId), eq(schema.measurement.source, "proposition_ia"), eq(schema.measurement.status, "a_verifier"), isNull(schema.measurement.workItemId)));
 
+        // Codes déjà pris dans l'affaire (ouvrages conservés, autres lots) : un nouveau code ne les reprend jamais.
+        const used = new Set((await tx.select({ code: schema.workItem.code }).from(schema.workItem).where(eq(schema.workItem.projectId, projectId))).map((w) => w.code).filter((c): c is string => Boolean(c)));
         for (const item of proposal.workItems) {
+          const existing = kept.find((k) => sameWork(k, item));
+          if (existing) {
+            warnings.push(`${existing.code ?? item.code} ${existing.designation} : ouvrage déjà établi, conservé avec ses mesures, non proposé une seconde fois.`);
+            continue;
+          }
+          const code = nextFreeCode(item.code, used);
+          used.add(code);
+          if (code !== item.code) warnings.push(`${item.code} déjà pris dans l’affaire : nouvel ouvrage numéroté ${code}.`);
+          item.code = code;
           const missing = item.missing.map((m) => m.trim()).filter(Boolean).slice(0, 12);
           const [created] = await tx
             .insert(schema.workItem)

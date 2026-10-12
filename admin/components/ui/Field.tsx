@@ -153,11 +153,11 @@ export function optionsOf<K extends string>(labels: Record<K, string>, keys?: re
   return (keys ?? (Object.keys(labels) as K[])).map((value) => ({ value, label: labels[value] }));
 }
 
-export function Checkbox({ label, checked, onChange }: { label: ReactNode; checked: boolean; onChange: (v: boolean) => void }) {
+export function Checkbox({ label, checked, onChange, disabled = false }: { label: ReactNode; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   const id = useId();
   return (
-    <label htmlFor={id} className="flex cursor-pointer select-none items-center gap-2.5 text-xs text-ink-2">
-      <input id={id} type="checkbox" className="size-4 accent-[var(--accent)]" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    <label htmlFor={id} className={cn("flex select-none items-center gap-2.5 text-xs text-ink-2", disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer")}>
+      <input id={id} type="checkbox" className="size-4 accent-[var(--accent)]" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
       {label}
     </label>
   );

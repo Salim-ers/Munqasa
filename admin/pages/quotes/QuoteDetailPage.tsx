@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Archive, ArchiveRestore, CircleAlert, CircleCheck, Copy, FileSpreadsheet, FileText, FileType2, FolderPlus, Library, ListPlus, Moon, Pencil, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Archive, ArchiveRestore, CircleAlert, CircleCheck, Copy, FileSpreadsheet, FileText, FileType2, FolderPlus, Library, ListPlus, Moon, Pencil, Plus, ScanSearch, ShieldCheck, Trash2 } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
+import type { ExportAudit } from "../../../shared/audit";
 import { MARGIN_MODE_LABELS, MARGIN_MODES, QUOTE_EVENT_LABELS, QUOTE_STATUS_LABELS, RATE_BASE_LABELS, RATE_BASES, TAX_REGIME_LABELS, TAX_REGIMES, type QuoteLineKind } from "../../../shared/enums";
 import { JobProgress } from "../../components/JobProgress";
 import { type DownloadGroup, DownloadMenu } from "../../components/DownloadMenu";
+import { ExportAuditView } from "../../components/ExportAudit";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { Card, CardHeader } from "../../components/ui/Card";
@@ -48,6 +50,28 @@ function ordered(lines: QuoteLine[]): Array<{ line: QuoteLine; depth: number; co
   };
   walk(roots, "", 0);
   return out;
+}
+
+/** Contrôle avant export du devis : trois formats rendus et relus, quinze points ; à refaire après une modification. */
+function QuoteAuditCard({ quoteId, version }: { quoteId: string; version: string }) {
+  const [audit, setAudit] = useState<ExportAudit | null>(null);
+  const run = useMutation({
+    mutationFn: () => api<{ audit: ExportAudit }>(`/quotes/${quoteId}/controle`, { body: {} }),
+    onSuccess: (res) => setAudit(res.audit),
+    onError: (e) => toast.error(quoteError(e)),
+  });
+  useEffect(() => setAudit(null), [version]);
+  return (
+    <Card className="p-4 sm:p-5">
+      <CardHeader title="Contrôle avant export" subtitle={audit ? undefined : "Quinze points vérifiés, PDF, Excel et Word relus."} />
+      <div className="mt-3 grid gap-3">
+        {audit ? <ExportAuditView audit={audit} renderingNote={`PDF, Excel et Word rendus et relus à l’instant : ${audit.rendering.anomalies} anomalie(s) de rendu.`} /> : null}
+        <Button size="sm" variant="secondary" icon={<ScanSearch className="size-3.5" />} loading={run.isPending} onClick={() => run.mutate()}>
+          {audit ? "Contrôler de nouveau" : "Contrôler avant l’export"}
+        </Button>
+      </div>
+    </Card>
+  );
 }
 
 /** Raison pour laquelle un prix est incertain (mêmes règles que le serveur). */
@@ -280,6 +304,7 @@ export function QuoteDetailPage() {
                   </ul>
                 )}
               </Card>
+              <QuoteAuditCard quoteId={id} version={q.updatedAt} />
             </div>
           </div>
         </TabPanel>

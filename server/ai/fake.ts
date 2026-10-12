@@ -147,6 +147,10 @@ const builders: Record<string, (input: string) => unknown> = {
     const postes = jsonAfter(input, "Postes (JSON)") as Array<{ key: string; prixCandidats: Array<{ id: string }> }>;
     return { choices: postes.map((p) => ({ key: p.key, priceItemId: p.prixCandidats[0]?.id ?? null, justification: p.prixCandidats.length ? "Candidat le plus proche" : null })) };
   },
+  prix_postes: (input) => {
+    const postes = jsonAfter(input, "Postes (JSON)") as Array<{ key: string; prixCandidats: Array<{ id: string }> }>;
+    return { choices: postes.map((p) => ({ key: p.key, priceItemId: p.prixCandidats[0]?.id ?? null, justification: p.prixCandidats.length ? "Candidat le plus proche" : null })) };
+  },
   releve_plan: () => ({
     sheet: { title: "Plan de fondations", number: "GO-01", kind: "plan_niveau", level: "Fondations", scale: "1/100", revision: "B", readable: true },
     elements: [

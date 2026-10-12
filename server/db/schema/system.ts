@@ -1,5 +1,6 @@
 /** Contrôle qualité, journal d'audit, notifications. */
 import { index, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import type { AuditPoint } from "../../../shared/audit.js";
 import { createdAt, id, updatedAt } from "./columns.js";
 import { documentTypeEnum, issueCategoryEnum, issueSeverityEnum, issueStatusEnum, notificationKindEnum } from "./enums.js";
 import { project } from "./projects.js";
@@ -17,6 +18,8 @@ export const qualityIssue = pgTable(
     severity: issueSeverityEnum("severity").notNull(),
     category: issueCategoryEnum("category").notNull(),
     message: text("message").notNull(),
+    /** Point du contrôle avant export auquel l'anomalie se rattache (null pour les anomalies antérieures). */
+    auditPoint: text("audit_point").$type<AuditPoint>(),
     /** Éléments concernés (identifiants de lignes, sections, mesures…). */
     targets: jsonb("targets").$type<Array<{ type: string; id: string }>>().notNull().default([]),
     status: issueStatusEnum("status").notNull().default("ouverte"),

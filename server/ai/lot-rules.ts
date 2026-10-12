@@ -53,3 +53,11 @@ export function lotRuleText(tradeFamily: string | null | undefined): string {
   const rule = LOT_RULES[tradeFamily ?? ""] ?? LOT_RULES.gros_oeuvre!;
   return `Lot concerné : ${rule.label}. Éléments à relever en priorité : ${rule.elements}. Unités usuelles : ${rule.units}. Aucun seuil de déduction n’est supposé : chaque vide mesuré est déduit explicitement, sauf règle contraire donnée par la consigne.`;
 }
+
+/** Consigne pour plusieurs lots lus sur les mêmes planches : éléments et unités de chacun. */
+export function lotsRuleText(tradeFamilies: Array<string | null | undefined>): string {
+  const families = [...new Set(tradeFamilies.map((f) => (f && LOT_RULES[f] ? f : "gros_oeuvre")))];
+  if (families.length <= 1) return lotRuleText(families[0]);
+  const rules = families.map((f) => LOT_RULES[f]!);
+  return `Lots concernés : ${rules.map((r) => `${r.label}, éléments à relever en priorité : ${r.elements} ; unités usuelles : ${r.units}`).join(". ")}. Aucun seuil de déduction n’est supposé : chaque vide mesuré est déduit explicitement, sauf règle contraire donnée par la consigne.`;
+}

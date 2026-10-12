@@ -121,13 +121,32 @@ describe("lecture des plans et métré", () => {
     expect(validated.json.measurement.status).toBe("verifie");
   });
 
-  it("garde ce qui a été validé quand l'analyse est relancée", async () => {
+  it("garde ce qui a été validé quand l'analyse est relancée, sans le proposer une seconde fois", async () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
+    const summary = (items: Array<{ code: string; measurements: Array<{ status: string }> }>) => items.map((w) => `${w.code}:${w.measurements.map((x) => x.status).join(",")}`).sort();
+    const metreLog = async (jobId: string) => ((await admin.request(`/api/admin/agents/jobs/${jobId}`)).json.job.steps.find((st: { name: string }) => st.name === "metre").log as Array<{ message: string }>).map((l) => l.message);
     const res = await admin.request(`/api/admin/projects/${projectId}/analyses`, { body: { fileIds: [fileId], consent: true } });
     expect(res.json.job.status).toBe("termine");
-    const metre = (await admin.request(`/api/admin/projects/${projectId}/metre`)).json;
-    const statuses = metre.workItems.map((w: { measurements: Array<{ status: string }> }) => w.measurements.map((x) => x.status).join(","));
-    expect(statuses.sort()).toEqual(["a_verifier", "verifie"]);
+    // L'ouvrage vérifié garde son identifiant et sa mesure : aucun second GO-01 avec une autre quantité.
+    let metre = (await admin.request(`/api/admin/projects/${projectId}/metre`)).json;
+    expect(summary(metre.workItems)).toEqual(["GO-01:verifie"]);
+    expect(await metreLog(res.json.job.id)).toContain("GO-01 Béton armé pour semelles filantes : ouvrage déjà établi, conservé avec ses mesures, non proposé une seconde fois.");
+
+    // Un autre ouvrage proposé sous un code déjà pris reçoit le code libre suivant.
+    const original = fakeBuilder("metre")!;
+    setFakeBuilder("metre", (input) => {
+      const out = original(input) as { workItems: Array<{ designation: string }> };
+      out.workItems[0]!.designation = "Béton armé pour semelles filantes, reprise de la planche";
+      return out;
+    });
+    try {
+      const again = await admin.request(`/api/admin/projects/${projectId}/analyses`, { body: { fileIds: [fileId], consent: true } });
+      expect(await metreLog(again.json.job.id)).toContain("GO-01 déjà pris dans l’affaire : nouvel ouvrage numéroté GO-02.");
+      metre = (await admin.request(`/api/admin/projects/${projectId}/metre`)).json;
+      expect(summary(metre.workItems)).toEqual(["GO-01:verifie", "GO-02:a_verifier"]);
+    } finally {
+      setFakeBuilder("metre", original);
+    }
   });
 
   it("écarte un PDF endommagé et poursuit avec les autres fichiers", async () => {
@@ -160,7 +179,20 @@ describe("lecture des plans et métré", () => {
     expect(second.scaleRatio).toBe("100.0000");
     expect(second.verification.scale).toBe("échelle 1/100 lue sur l’image du cartouche");
 
-    const metre = (await admin.request(`/api/admin/projects/${projectId}/metre`)).json;
+    // Mesure fraîchement proposée (ouvrage distinct de GO-01, vérifié et conservé) : sa confiance vient des cotes relues.
+    const original = fakeBuilder("metre")!;
+    setFakeBuilder("metre", (input) => {
+      const out = original(input) as { workItems: Array<{ designation: string }> };
+      out.workItems[0]!.designation = "Béton armé pour semelles filantes, reprise de la planche";
+      return out;
+    });
+    let metre: Awaited<ReturnType<TestBrowser["request"]>>["json"] = null;
+    try {
+      await admin.request(`/api/admin/projects/${projectId}/analyses`, { body: { fileIds: [fileId], consent: true } });
+      metre = (await admin.request(`/api/admin/projects/${projectId}/metre`)).json;
+    } finally {
+      setFakeBuilder("metre", original);
+    }
     const measure = metre.workItems.flatMap((w: { measurements: unknown[] }) => w.measurements).find((m: { status: string }) => m.status === "a_verifier");
     expect(measure).toMatchObject({ confidence: "elevee", quantity: "10.2000", grossQuantity: "10.2000", deductions: [] });
     expect(measure.inputSources.map((x: { name: string; origin: string; computed: boolean; mismatch: string | null; dimensions: Array<{ check: string; value: string }> }) => [x.name, x.origin, x.computed, x.mismatch, x.dimensions.map((d) => `${d.value} ${d.check}`)])).toEqual([

@@ -18,6 +18,7 @@ const ALIASES: Record<string, string> = {
   ens: "ens",
   ensemble: "ens",
   ft: "ens",
+  ff: "ens",
   fft: "ens",
   forfait: "ens",
   kg: "kg",
@@ -34,6 +35,13 @@ const ALIASES: Record<string, string> = {
 export function normalizeUnit(unit: string | null | undefined): string {
   const key = (unit ?? "").trim().toLowerCase().replace(/\s+/g, "");
   return ALIASES[key] ?? key;
+}
+
+/** Unités reconnues : formes ci-dessus, distances, durées, pourcentage et « pour mémoire ». */
+const KNOWN = new Set([...Object.values(ALIASES), "km", "cm", "mm", "mois", "sem", "semaine", "an", "%", "pm", "t.km", "m3.km"]);
+
+export function isKnownUnit(unit: string | null | undefined): boolean {
+  return KNOWN.has(normalizeUnit(unit));
 }
 
 export function sameUnit(a: string | null | undefined, b: string | null | undefined): boolean {

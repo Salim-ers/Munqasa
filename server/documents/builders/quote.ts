@@ -342,6 +342,9 @@ function writeQuoteSheet(workbook: ExcelJS.Workbook, data: QuoteDocData, pal: Pa
     row.getCell(4).numFmt = QTY_FORMAT;
     row.getCell(5).numFmt = money$;
     row.getCell(7).numFmt = money$;
+    // Provenances du prix et de la quantité : textes parfois longs, renvoyés à la ligne.
+    row.getCell(9).alignment = { wrapText: true, vertical: "top" };
+    row.getCell(10).alignment = { wrapText: true, vertical: "top" };
   };
   // Sous-totaux de section : SOUS.TOTAL sur les lignes qui suivent jusqu'à la section suivante de même niveau.
   const sectionRows: Array<{ row: number; end: number; id: string }> = [];

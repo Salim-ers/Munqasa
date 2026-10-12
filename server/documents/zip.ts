@@ -1,33 +1,31 @@
 /**
  * Dossier complet d'une affaire en un fichier ZIP : chaque document dans son format natif et en PDF,
  * les versions figées, le rapport de contrôle et un index. Un document qui ne peut pas être rendu est
- * signalé dans l'index, sans bloquer le reste du dossier. L'index reprend le contrôle de mise en page de
- * chaque fichier : les anomalies restantes y sont dites, fichier par fichier.
+ * signalé dans l'index, sans bloquer le reste du dossier.
+ *
+ * Contrôle avant export : chaque fichier produit est relu (mise en page, pagination, structure), ce contrôle
+ * est enregistré avec l'empreinte du contenu, les contrôles qualité sont rejoués, et l'index reprend les
+ * quinze points vérifiés avec leurs anomalies. Le dossier n'est jamais dit validé tant qu'une anomalie
+ * bloquante subsiste.
  */
 import { and, asc, eq, inArray } from "drizzle-orm";
 import JSZip from "jszip";
+import { AUDIT_STATE_LABELS, type RenderedFileCheck } from "../../shared/audit.js";
 import { type Database, schema } from "../db/index.js";
+import { dossierFingerprint } from "../services/dossier.js";
+import { dossierExportAudit, recordExportCheck } from "../services/export-audit.js";
 import type { DocTheme } from "./brand.js";
 import { fileName } from "./context.js";
-import { type ExportFormat, type ExportResult, renderExport, renderVersion } from "./registry.js";
+import { dossierDocuments } from "./dossier-files.js";
+import { type ExportResult, renderExport, renderVersion } from "./registry.js";
 import { layoutSummary } from "./render-checked.js";
 
-export async function buildDossier(db: Database, projectId: string, theme: DocTheme): Promise<{ buffer: Buffer; fileName: string; files: number; failures: string[] }> {
+export async function buildDossier(db: Database, projectId: string, theme: DocTheme): Promise<{ buffer: Buffer; fileName: string; files: number; failures: string[]; verdict: string }> {
   const [project] = await db.select().from(schema.project).where(eq(schema.project.id, projectId));
   if (!project) throw new Error("Affaire introuvable.");
-  const [cctps, dpgfs, items, drawings] = await Promise.all([
-    db.select().from(schema.cctpDocument).where(eq(schema.cctpDocument.projectId, projectId)).orderBy(asc(schema.cctpDocument.createdAt)),
-    db.select().from(schema.dpgf).where(eq(schema.dpgf.projectId, projectId)).orderBy(asc(schema.dpgf.createdAt)),
-    db.select({ id: schema.workItem.id }).from(schema.workItem).where(eq(schema.workItem.projectId, projectId)).limit(1),
-    db.select({ id: schema.drawing.id }).from(schema.drawing).where(eq(schema.drawing.projectId, projectId)).limit(1),
-  ]);
-  const breakdowns = dpgfs.length
-    ? await db
-        .selectDistinct({ dpgfId: schema.dpgfLine.dpgfId })
-        .from(schema.priceBreakdown)
-        .innerJoin(schema.dpgfLine, eq(schema.dpgfLine.id, schema.priceBreakdown.dpgfLineId))
-        .where(inArray(schema.dpgfLine.dpgfId, dpgfs.map((d) => d.id)))
-    : [];
+  // Empreinte du contenu au moment du rendu : une modification pendant l'export rend ce contrôle caduc.
+  const fingerprint = await dossierFingerprint(db, projectId);
+  const documents = await dossierDocuments(db, projectId);
   const versions = await db
     .select()
     .from(schema.documentVersion)
@@ -39,10 +37,11 @@ export async function buildDossier(db: Database, projectId: string, theme: DocTh
   const index: string[] = [];
   const failures: string[] = [];
   const layout: string[] = [];
+  const checks: RenderedFileCheck[] = [];
   let checked = 0;
   let files = 0;
 
-  const add = async (folder: string, label: string, render: () => Promise<ExportResult>) => {
+  const add = async (folder: string, label: string, render: () => Promise<ExportResult>, record: { kind: string; format: "pdf" | "docx" | "xlsx" } | null) => {
     try {
       const result = await render();
       root.folder(folder)!.file(result.fileName, result.buffer);
@@ -50,6 +49,7 @@ export async function buildDossier(db: Database, projectId: string, theme: DocTh
       if (result.layout) {
         checked++;
         if (result.layout.issues.length) layout.push(`${folder}/${result.fileName} : ${layoutSummary(result.layout)}`);
+        if (record) checks.push({ document: result.title, kind: record.kind, format: record.format, pages: result.layout.pages, issues: result.layout.issues.map((i) => ({ kind: i.kind, page: i.page, detail: i.detail })) });
       }
       files++;
     } catch (error) {
@@ -58,22 +58,19 @@ export async function buildDossier(db: Database, projectId: string, theme: DocTh
       index.push(`${folder}/${label} : non produit (${reason})`);
     }
   };
-  const both = async (folder: string, label: string, formats: ExportFormat[], render: (format: ExportFormat) => Promise<ExportResult>) => {
-    for (const format of formats) await add(folder, `${label} (${format})`, () => render(format));
-  };
 
-  for (const doc of cctps) await both("01 CCTP", doc.title, ["docx", "pdf"], (f) => renderExport(db, "cctp", doc.id, f, theme));
-  for (const doc of dpgfs) {
-    await both("02 DPGF", doc.title, ["xlsx", "pdf"], (f) => renderExport(db, "dpgf", doc.id, f, theme));
-    await both("03 BPU", doc.title, ["xlsx", "pdf"], (f) => renderExport(db, "bpu", doc.id, f, theme));
-    await both("04 DQE", doc.title, ["xlsx", "pdf"], (f) => renderExport(db, "dqe", doc.id, f, theme));
-    await both("05 Estimation", doc.title, ["xlsx", "pdf"], (f) => renderExport(db, "estimation", doc.id, f, theme));
-    if (breakdowns.some((b) => b.dpgfId === doc.id)) await both("06 Sous-détails", doc.title, ["xlsx", "pdf"], (f) => renderExport(db, "sous_details", doc.id, f, theme));
+  for (const doc of documents) {
+    for (const format of doc.formats) {
+      await add(doc.folder, `${doc.label} (${format})`, () => renderExport(db, doc.kind, doc.id, format, theme), format === "csv" ? null : { kind: doc.kind, format });
+    }
   }
-  if (items.length) await both("07 Métrés", "Note de métrés", ["xlsx", "pdf"], (f) => renderExport(db, "metre", projectId, f, theme));
-  if (drawings.length) await both("08 Rapports", "Rapport d’analyse des plans", ["pdf"], (f) => renderExport(db, "analyse", projectId, f, theme));
-  await both("08 Rapports", "Rapport de contrôle qualité", ["pdf"], (f) => renderExport(db, "controle", projectId, f, theme));
-  for (const v of versions) await add("09 Versions", `${v.documentType} version ${v.version}`, () => renderVersion(db, v.id, "pdf", theme));
+
+  // Contrôle avant export : fichiers relus, contrôles qualité rejoués, quinze points.
+  await recordExportCheck(db, projectId, checks, null, fingerprint);
+  const audit = await dossierExportAudit(db, projectId);
+
+  await add("08 Rapports", "Rapport de contrôle qualité (pdf)", () => renderExport(db, "controle", projectId, "pdf", theme), null);
+  for (const v of versions) await add("09 Versions", `${v.documentType} version ${v.version}`, () => renderVersion(db, v.id, "pdf", theme), null);
 
   const date = new Date().toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short", timeZone: project.country === "FR" ? "Europe/Paris" : "Africa/Casablanca" });
   const readme = [
@@ -83,6 +80,10 @@ export async function buildDossier(db: Database, projectId: string, theme: DocTh
     "Contenu :",
     ...index.map((line) => `  ${line}`),
     "",
+    "Contrôle avant export :",
+    `  ${audit.verdictLabel}.`,
+    ...audit.points.map((p) => `  ${p.label} : ${AUDIT_STATE_LABELS[p.state].toLowerCase()}${p.details.length ? `, ${p.details.join(" ; ")}` : ""}`),
+    "",
     "Contrôle de mise en page :",
     ...(layout.length ? layout.map((line) => `  ${line}`) : [`  ${checked} fichier(s) contrôlé(s) après génération : aucune anomalie détectée (marges, superpositions, pages presque vides, titres isolés, en-têtes, pieds et numérotation, couverture, contenu complet).`]),
     "",
@@ -90,5 +91,5 @@ export async function buildDossier(db: Database, projectId: string, theme: DocTh
   ].join("\r\n");
   root.file("Contenu du dossier.txt", `﻿${readme}`);
   const buffer = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE", compressionOptions: { level: 6 } });
-  return { buffer, fileName: fileName(project.reference, "Dossier complet", "zip"), files, failures };
+  return { buffer, fileName: fileName(project.reference, "Dossier complet", "zip"), files, failures, verdict: audit.verdict };
 }

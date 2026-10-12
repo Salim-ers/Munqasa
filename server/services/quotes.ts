@@ -7,6 +7,7 @@
  * le devis y est copié avec sa provenance : une mise à jour de la bibliothèque ne modifie jamais un devis.
  */
 import { and, asc, desc, eq, inArray, isNull, lt, sql } from "drizzle-orm";
+import type { AuditPoint } from "../../shared/audit.js";
 import { MARGIN_MODES, PRICE_ORIGIN_LABELS, type QuoteSource, type QuoteStatus, RATE_BASES, type MarginMode, type RateBase } from "../../shared/enums.js";
 import { lotLabel } from "../../shared/lots.js";
 import { isHistoricalPrice } from "../../shared/prices.js";
@@ -18,6 +19,7 @@ import { exclTax } from "./pricing.js";
 import { computeQuote, type QuoteCalcSettings, type QuoteTotals } from "./quote-calc.js";
 import { nextReference } from "./references.js";
 import { readSetting } from "./settings.js";
+import { isKnownUnit, normalizeUnit } from "./units.js";
 
 export type QuoteRow = typeof schema.quote.$inferSelect;
 export type QuoteLineRow = typeof schema.quoteLine.$inferSelect;
@@ -84,6 +86,8 @@ export async function recomputeQuote(db: Database, id: string): Promise<QuoteTot
 
 export interface QuoteCheck {
   severity: "bloquante" | "majeure" | "mineure";
+  /** Point du contrôle avant export (shared/audit.ts). */
+  point: AuditPoint;
   message: string;
   lineId?: string;
 }
@@ -110,23 +114,38 @@ export function quoteChecks(quote: QuoteRow, lines: QuoteLineRow[], totals: Quot
   const checks: QuoteCheck[] = [];
   const items = lines.filter((l) => l.kind === "ligne");
   const label = (l: QuoteLineRow) => l.designation.slice(0, 80);
-  if (items.length === 0) checks.push({ severity: "bloquante", message: "Le devis ne contient aucune ligne chiffrable." });
+  if (items.length === 0) checks.push({ severity: "bloquante", point: "statuts", message: "Le devis ne contient aucune ligne chiffrable." });
   for (const l of items) {
     const f = totals.lines[l.id];
-    if (!f?.unitPrice) checks.push({ severity: "bloquante", message: `Prix à établir : ${label(l)}`, lineId: l.id });
-    if (l.quantity === null) checks.push({ severity: "bloquante", message: `Quantité à préciser : ${label(l)}`, lineId: l.id });
-    if (quote.taxRegime === "normal" && f?.net && f.vatRate === null) checks.push({ severity: "bloquante", message: `Taux de TVA à préciser : ${label(l)}`, lineId: l.id });
+    if (!f?.unitPrice) checks.push({ severity: "bloquante", point: "prix", message: `Prix à établir : ${label(l)}`, lineId: l.id });
+    else if (new Dec(f.unitPrice).lte(0)) checks.push({ severity: "mineure", point: "prix", message: `Prix unitaire nul ou négatif, à confirmer : ${label(l)}`, lineId: l.id });
+    if (l.quantity === null) checks.push({ severity: "bloquante", point: "quantites", message: `Quantité à préciser : ${label(l)}`, lineId: l.id });
+    else if (new Dec(l.quantity).lte(0)) checks.push({ severity: "majeure", point: "quantites", message: `Quantité nulle ou négative : ${label(l)}`, lineId: l.id });
+    if (!l.unit?.trim()) checks.push({ severity: "mineure", point: "unites", message: `Unité non renseignée : ${label(l)}`, lineId: l.id });
+    else if (!isKnownUnit(l.unit)) checks.push({ severity: "mineure", point: "unites", message: `Unité non reconnue « ${l.unit} » : ${label(l)}`, lineId: l.id });
+    if (quote.taxRegime === "normal" && f?.net && f.vatRate === null) checks.push({ severity: "bloquante", point: "taxes", message: `Taux de TVA à préciser : ${label(l)}`, lineId: l.id });
     const uncertain = priceUncertainty(l);
-    if (uncertain) checks.push({ severity: "majeure", message: `Prix incertain, ${uncertain} : ${label(l)}`, lineId: l.id });
+    if (uncertain) checks.push({ severity: "majeure", point: "prix", message: `Prix incertain, ${uncertain} : ${label(l)}`, lineId: l.id });
     const qty = quantityUncertainty(l);
-    if (qty) checks.push({ severity: "majeure", message: `${qty.charAt(0).toUpperCase()}${qty.slice(1)} : ${label(l)}`, lineId: l.id });
+    if (qty) checks.push({ severity: "majeure", point: "quantites", message: `${qty.charAt(0).toUpperCase()}${qty.slice(1)} : ${label(l)}`, lineId: l.id });
+    if (l.priceSnapshot && l.priceSnapshot.currency !== quote.currency) checks.push({ severity: "bloquante", point: "prix", message: `Prix copié en ${l.priceSnapshot.currency} dans un devis en ${quote.currency} : ${label(l)}`, lineId: l.id });
   }
-  if (quote.taxRegime === "exoneration" && !quote.taxExemptionBasis?.trim()) checks.push({ severity: "bloquante", message: "Exonération de TVA sans fondement légal : précisez le texte qui l’accorde." });
-  if ((quote.taxRegime === "autoliquidation" || quote.taxRegime === "franchise") && country && country !== "FR") checks.push({ severity: "bloquante", message: "Ce régime de TVA relève du code général des impôts français : il ne s’applique pas à une entité marocaine." });
-  if (!quote.clientId && !quote.clientSnapshot) checks.push({ severity: "majeure", message: "Client non renseigné." });
-  if (!quote.validityDays) checks.push({ severity: "majeure", message: "Durée de validité à préciser." });
-  if (!quote.paymentTerms?.trim()) checks.push({ severity: "mineure", message: "Conditions de règlement non renseignées." });
-  if (quote.depositRate && quote.depositAmount) checks.push({ severity: "majeure", message: "Acompte défini deux fois, en taux et en montant : gardez l’un ou l’autre." });
+  // Lignes en double : même désignation et même unité dans la même section.
+  const seen = new Set<string>();
+  for (const l of items) {
+    const key = `${l.parentId}:${l.designation.trim().toLowerCase()}:${normalizeUnit(l.unit)}`;
+    if (seen.has(key)) checks.push({ severity: "mineure", point: "doublons", message: `Ligne en double : ${label(l)}`, lineId: l.id });
+    seen.add(key);
+  }
+  for (const o of lines.filter((l) => l.kind === "option")) {
+    if (!totals.lines[o.id]?.net) checks.push({ severity: "mineure", point: "prix", message: `Option sans montant : ${label(o)}`, lineId: o.id });
+  }
+  if (quote.taxRegime === "exoneration" && !quote.taxExemptionBasis?.trim()) checks.push({ severity: "bloquante", point: "taxes", message: "Exonération de TVA sans fondement légal : précisez le texte qui l’accorde." });
+  if ((quote.taxRegime === "autoliquidation" || quote.taxRegime === "franchise") && country && country !== "FR") checks.push({ severity: "bloquante", point: "taxes", message: "Ce régime de TVA relève du code général des impôts français : il ne s’applique pas à une entité marocaine." });
+  if (!quote.clientId && !quote.clientSnapshot) checks.push({ severity: "majeure", point: "references_documents", message: "Client non renseigné." });
+  if (!quote.validityDays) checks.push({ severity: "majeure", point: "references_documents", message: "Durée de validité à préciser." });
+  if (!quote.paymentTerms?.trim()) checks.push({ severity: "mineure", point: "references_documents", message: "Conditions de règlement non renseignées." });
+  if (quote.depositRate && quote.depositAmount) checks.push({ severity: "majeure", point: "totaux", message: "Acompte défini deux fois, en taux et en montant : gardez l’un ou l’autre." });
   return checks;
 }
 
@@ -175,6 +194,8 @@ export interface QuoteCreateInput {
   projectId?: string | null;
   clientId?: string | null;
   dpgfId?: string | null;
+  /** Plusieurs DPGF de la même affaire (un lot chacune) : une section par DPGF. */
+  dpgfIds?: string[];
   lotIds?: string[];
   priceItemIds?: string[];
   companyProfileId?: string | null;
@@ -281,17 +302,36 @@ export async function createQuote(db: Database, input: QuoteCreateInput): Promis
   const project = input.projectId ? (await db.select().from(schema.project).where(eq(schema.project.id, input.projectId)))[0] : null;
   if (input.projectId && !project) throw new QuoteError("Affaire introuvable.", 400);
   if ((input.mode === "projet" || input.mode === "metre") && !project) throw new QuoteError("Choisissez l’affaire du devis.", 400);
-  if (input.mode === "dpgf" && !input.dpgfId) throw new QuoteError("Choisissez la DPGF du devis.", 400);
+  if (input.mode === "dpgf" && !input.dpgfId && !input.dpgfIds?.length) throw new QuoteError("Choisissez la DPGF du devis.", 400);
   if (input.mode === "bibliotheque" && !input.priceItemIds?.length) throw new QuoteError("Choisissez au moins un prix de la bibliothèque.", 400);
 
   let dpgfLines: NewLine[] = [];
   let dpgfDoc: typeof schema.dpgf.$inferSelect | null = null;
+  let dpgfCount = 0;
+  let mixedVat = false;
   let projectRow = project ?? null;
   if (input.mode === "dpgf") {
     const lots = input.lotIds?.length ? new Set(input.lotIds) : null;
-    const loaded = await linesFromDpgf(db, input.dpgfId!, lots);
-    dpgfLines = loaded.lines;
-    dpgfDoc = loaded.dpgf;
+    const ids = input.dpgfIds?.length ? [...new Set(input.dpgfIds)] : [input.dpgfId!];
+    const loaded: Array<Awaited<ReturnType<typeof linesFromDpgf>>> = [];
+    for (const id of ids) loaded.push(await linesFromDpgf(db, id, lots));
+    dpgfDoc = loaded[0]!.dpgf;
+    dpgfCount = loaded.length;
+    if (loaded.some((x) => x.dpgf.projectId !== dpgfDoc!.projectId)) throw new QuoteError("Les DPGF choisies appartiennent à des affaires différentes.", 400);
+    if (loaded.some((x) => x.dpgf.currency !== dpgfDoc!.currency)) throw new QuoteError("Les DPGF choisies sont établies dans des devises différentes.", 400);
+    if (loaded.length === 1) dpgfLines = loaded[0]!.lines;
+    else {
+      // Une section par DPGF, au nom de son lot ; chaque ligne garde le taux de TVA de sa DPGF s'ils diffèrent.
+      const lotRows = await db.select().from(schema.projectLot).where(eq(schema.projectLot.projectId, dpgfDoc.projectId));
+      const rate = (v: string | null) => (v === null ? null : Number(v));
+      mixedVat = loaded.some((x) => rate(x.dpgf.vatRate) !== rate(dpgfDoc!.vatRate));
+      for (const { dpgf, lines } of loaded) {
+        const lot = lotRows.find((l) => l.id === dpgf.lotId);
+        const key = `dpgf:${dpgf.id}`;
+        dpgfLines.push({ key, kind: "section", designation: lot ? lotLabel(lot) : dpgf.title, lotId: dpgf.lotId, lotLabel: lot ? lotLabel(lot) : null });
+        dpgfLines.push(...lines.map((l) => ({ ...l, parentKey: l.parentKey ?? key, ...(mixedVat && l.kind === "ligne" ? { vatRate: dpgf.vatRate } : {}) })));
+      }
+    }
     if (!projectRow) projectRow = (await db.select().from(schema.project).where(eq(schema.project.id, dpgfDoc.projectId)))[0] ?? null;
   }
   const company = await companyFor(db, input.companyProfileId, projectRow?.country ?? null);
@@ -313,7 +353,7 @@ export async function createQuote(db: Database, input: QuoteCreateInput): Promis
       siteName: projectRow?.name ?? null,
       siteAddress: projectRow ? [projectRow.siteAddress, projectRow.city].filter(Boolean).join(", ") || null : null,
       currency,
-      vatRate: dpgfDoc?.vatRate ?? company?.defaultVatRate ?? null,
+      vatRate: mixedVat ? null : (dpgfDoc?.vatRate ?? company?.defaultVatRate ?? null),
       paymentTerms: company?.paymentTerms ?? null,
       legalMentions: company?.quoteLegalMentions ?? null,
       source: input.mode,
@@ -345,7 +385,7 @@ export async function createQuote(db: Database, input: QuoteCreateInput): Promis
     }
   }
   if (lines.length) await insertLines(db, quote!.id, lines);
-  await db.insert(schema.quoteEvent).values({ quoteId: quote!.id, kind: "creation", note: `${input.mode === "vierge" ? "Devis vierge" : `Créé ${{ projet: "depuis l’affaire", dpgf: "depuis la DPGF", metre: "depuis le métré", bibliotheque: "depuis la bibliothèque", ia: "pour l’IA", vierge: "" }[input.mode]}`}${lots.length ? `, ${lots.map((l) => `lot ${l.code}`).join(", ")}` : ""}` });
+  await db.insert(schema.quoteEvent).values({ quoteId: quote!.id, kind: "creation", note: `${input.mode === "vierge" ? "Devis vierge" : `Créé ${{ projet: "depuis l’affaire", dpgf: dpgfCount > 1 ? `depuis ${dpgfCount} DPGF` : "depuis la DPGF", metre: "depuis le métré", bibliotheque: "depuis la bibliothèque", ia: "pour l’IA", vierge: "" }[input.mode]}`}${lots.length ? `, ${lots.map((l) => `lot ${l.code}`).join(", ")}` : ""}` });
   await recomputeQuote(db, quote!.id);
   return (await loadQuote(db, quote!.id)).quote;
 }

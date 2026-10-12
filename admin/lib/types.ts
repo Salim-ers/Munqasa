@@ -757,6 +757,7 @@ export interface QuoteTotals {
 
 export interface QuoteCheck {
   severity: "bloquante" | "majeure" | "mineure";
+  point: import("../../shared/audit").AuditPoint;
   message: string;
   lineId?: string;
 }

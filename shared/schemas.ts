@@ -31,6 +31,7 @@ import {
   TAX_REGIMES,
 } from "./enums.js";
 import { TRADE_KEYS } from "./trades.js";
+import { GENERATION_DOCUMENTS } from "./dossier.js";
 
 /** Messages d'erreur en français, lisibles par l'utilisateur (interface comme serveur). */
 z.config({
@@ -359,16 +360,25 @@ export const dpgfGenerationRequest = z.object({
 });
 
 /** « Générer le dossier » : plans à lire, options du CCTP, de la DPGF et des sous-détails, accord d'envoi. */
+/**
+ * Génération du dossier : documents à produire et lots couverts (un CCTP et une DPGF par lot). Sans liste de
+ * documents, l'ancienne forme reste comprise (métré si des plans sont choisis, CCTP, DPGF, sous-détails si
+ * demandés, sur un lot). L'accord d'envoi à l'API n'est exigé que si un agent doit être appelé.
+ */
 export const dossierGenerationRequest = z.object({
   fileIds: z.array(z.string().uuid()).max(30),
   lotId: optionalUuid,
+  lotIds: z.array(z.string().uuid()).max(40).optional(),
+  documents: z.array(z.enum(GENERATION_DOCUMENTS)).min(1, { error: "Choisissez au moins un document à produire." }).max(GENERATION_DOCUMENTS.length).optional(),
   detailLevel: z.enum(CCTP_LEVELS),
   referenceIds: z.array(z.string().uuid()).max(300),
   vatRate: optionalRate,
   instructions: optionalText(3000),
-  withSousDetails: z.boolean(),
-  consent: z.literal(true, { error: "Confirmez l’envoi des plans et des informations de l’affaire à l’API OpenAI." }),
+  withSousDetails: z.boolean().optional(),
+  consent: z.boolean().optional(),
 });
+
+export const CONSENT_MESSAGE = "Confirmez l’envoi des plans et des informations de l’affaire à l’API OpenAI.";
 
 /** Déclaration de validation d'un dossier par un professionnel. */
 export const dossierValidationRequest = z.object({

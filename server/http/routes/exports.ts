@@ -14,6 +14,7 @@ import type { DocumentKind } from "../../documents/model.js";
 import { layoutSummary } from "../../documents/render-checked.js";
 import { buildDossier } from "../../documents/zip.js";
 import { auditAction } from "../../services/audit.js";
+import { refreshDocumentChecks } from "../../services/dossier.js";
 import { parsePriceFilters } from "../../services/price-filters.js";
 import { readSetting } from "../../services/settings.js";
 import { notFound, ValidationError } from "../validate.js";
@@ -51,6 +52,8 @@ async function guarded<T>(work: () => Promise<T>): Promise<T> {
 export async function exportResponse(c: Context<AdminEnv>, kind: Exclude<DocumentKind, "bibliotheque" | "devis">, id: string, format: ExportFormat): Promise<Response> {
   const db = await getDb();
   const lotId = c.req.query("lot");
+  // Contrôle avant export : les contrôles du document sont rejoués, le statut imprimé en tient compte.
+  await refreshDocumentChecks(db, kind, id);
   const result = await guarded(() => renderExport(db, kind, id, format, themeOf(c), { lotId: lotId && UUID.test(lotId) ? lotId : null }));
   await auditAction(c, `${kind}.export`, "project", result.projectId ?? id, { document: result.title, format, theme: themeOf(c), miseEnPage: layoutSummary(result.layout) });
   return download(result);
@@ -86,7 +89,7 @@ export const exportRoutes = new Hono<AdminEnv>()
         throw error;
       }
     });
-    await auditAction(c, "dossier.export", "project", projectId, { fichiers: result.files, echecs: result.failures.length, theme: themeOf(c) });
+    await auditAction(c, "dossier.export", "project", projectId, { fichiers: result.files, echecs: result.failures.length, theme: themeOf(c), controle: result.verdict });
     return download({ buffer: result.buffer, fileName: result.fileName, contentType: CONTENT_TYPES.zip });
   })
   .get("/:kind/:id/:format", async (c) => {

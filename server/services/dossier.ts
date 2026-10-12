@@ -9,6 +9,7 @@
  */
 import { createHash } from "node:crypto";
 import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm";
+import { PAGINATION_KINDS } from "../../shared/audit.js";
 import { type AuditFix, DOSSIER_LEVEL_LABELS, DOSSIER_LEVELS, type DossierLevel, type LevelCriterion } from "../../shared/dossier.js";
 import { type Database, schema } from "../db/index.js";
 import { recomputeBreakdown } from "./breakdowns.js";
@@ -17,6 +18,7 @@ import { FormulaError } from "./formula.js";
 import { computeMeasure } from "./metre.js";
 import { grossQuantity, lossesAlreadyIncluded } from "./pricing.js";
 import { checkBreakdowns, checkCctp, checkDpgf, type IssueDraft, replaceIssues } from "./quality.js";
+import { sameUnit } from "./units.js";
 
 const fmt = (v: string | null) => (v === null ? "vide" : String(Number(v)));
 
@@ -126,36 +128,172 @@ export async function recomputeDossier(db: Database, projectId: string): Promise
 
 /* ---------- Contrôles ---------- */
 
-/** Métré : mesures incalculables ou de confiance faible, mesures à vérifier, ouvrages sans mesure. */
+/**
+ * Métré : mesures incalculables, de confiance faible, dont la quantité enregistrée diffère de sa formule ou
+ * dont l'unité diffère de celle de l'ouvrage, mesures reliées à un plan supprimé, doublons, ouvrages sans
+ * mesure ou rattachés à un lot étranger à l'affaire.
+ */
 export async function checkMetre(db: Database, projectId: string): Promise<IssueDraft[]> {
   const items = await db.select().from(schema.workItem).where(eq(schema.workItem.projectId, projectId));
   const measures = await db.select().from(schema.measurement).where(eq(schema.measurement.projectId, projectId));
+  const lots = await db.select({ id: schema.projectLot.id }).from(schema.projectLot).where(eq(schema.projectLot.projectId, projectId));
+  const drawings = measures.some((m) => m.drawingId)
+    ? await db
+        .select({ id: schema.drawing.id, deletedAt: schema.sourceFile.deletedAt })
+        .from(schema.drawing)
+        .innerJoin(schema.sourceFile, eq(schema.sourceFile.id, schema.drawing.sourceFileId))
+        .where(eq(schema.drawing.projectId, projectId))
+    : [];
   const issues: IssueDraft[] = [];
   const label = (m: { label: string; workItemId: string | null }) => [items.find((i) => i.id === m.workItemId)?.code, m.label].filter(Boolean).join(" ");
-  for (const m of measures) {
-    if (m.status === "rejete") continue;
+  const live = measures.filter((m) => m.status !== "rejete");
+  for (const m of live) {
     const target = [{ type: "measurement", id: m.id }];
-    if (m.quantity === null) issues.push({ severity: "majeure", category: "calcul", message: `Mesure incalculable : ${label(m)}`, targets: target });
-    else if (m.confidence === "faible" && m.status === "a_verifier") issues.push({ severity: "majeure", category: "source_manquante", message: `Mesure de confiance faible à vérifier : ${label(m)}`, targets: target });
+    if (m.quantity === null) issues.push({ severity: "majeure", category: "calcul", point: "formules", message: `Mesure incalculable : ${label(m)}`, targets: target });
+    else if (m.confidence === "faible" && m.status === "a_verifier") issues.push({ severity: "majeure", category: "source_manquante", point: "quantites", message: `Mesure de confiance faible à vérifier : ${label(m)}`, targets: target });
+    if (m.status === "verifie" && m.quantity === null) issues.push({ severity: "majeure", category: "incoherence", point: "statuts", message: `Mesure vérifiée sans quantité : ${label(m)}`, targets: target });
+    // Formule rejouée : la quantité enregistrée doit être celle que donnent la formule et ses valeurs.
+    if (m.formula && m.quantity !== null) {
+      try {
+        const result = computeMeasure(m.formula, m.inputs, m.deductions.map((d) => ({ label: d.label, formula: d.formula })));
+        if (result.net === null || Number(result.net) !== Number(m.quantity)) {
+          issues.push({ severity: "majeure", category: "calcul", point: "formules", message: `Quantité enregistrée différente du calcul de sa formule (${fmt(m.quantity)} au lieu de ${fmt(result.net)} ${m.unit}) : ${label(m)}`, targets: target });
+        }
+      } catch (error) {
+        if (!(error instanceof FormulaError)) throw error;
+        issues.push({ severity: "majeure", category: "calcul", point: "formules", message: `Formule incalculable (${error.message.replace(/\.$/, "")}) : ${label(m)}`, targets: target });
+      }
+    }
+    const item = items.find((i) => i.id === m.workItemId);
+    if (item?.unit && m.unit && !sameUnit(item.unit, m.unit)) {
+      issues.push({ severity: "majeure", category: "unite", point: "unites", message: `Mesure dans une autre unité que son ouvrage, non comptée (${m.unit} au lieu de ${item.unit}) : ${label(m)}`, targets: target });
+    }
+    if (m.drawingId && !drawings.some((d) => d.id === m.drawingId && d.deletedAt === null)) {
+      issues.push({ severity: "mineure", category: "tracabilite", point: "references_documents", message: `Mesure reliée à un plan supprimé : ${label(m)}`, targets: target });
+    }
   }
   const pending = measures.filter((m) => m.status === "a_verifier").length;
-  if (pending) issues.push({ severity: "information", category: "reserve", message: `${pending} mesure(s) à vérifier avant la validation professionnelle.`, targets: [] });
+  if (pending) issues.push({ severity: "information", category: "reserve", point: "quantites", message: `${pending} mesure(s) à vérifier avant la validation professionnelle.`, targets: [] });
+
+  // Mesures en double : même ouvrage, même libellé, même formule et mêmes valeurs.
+  const seen = new Map<string, string>();
+  for (const m of live) {
+    const key = JSON.stringify([m.workItemId, m.label.trim().toLowerCase(), m.formula, Object.entries(m.inputs).sort()]);
+    const first = seen.get(key);
+    if (first) issues.push({ severity: "mineure", category: "doublon", point: "doublons", message: `Mesure en double : ${label(m)}`, targets: [{ type: "measurement", id: first }, { type: "measurement", id: m.id }] });
+    else seen.set(key, m.id);
+  }
+  const byCode = new Map<string, typeof items>();
+  for (const item of items) if (item.code?.trim()) byCode.set(item.code.trim(), [...(byCode.get(item.code.trim()) ?? []), item]);
+  for (const [code, list] of byCode) {
+    if (list.length > 1) issues.push({ severity: "majeure", category: "doublon", point: "doublons", message: `Code d’ouvrage en double : ${code} (${list.map((i) => i.designation).join(", ")})`, targets: list.map((i) => ({ type: "work_item", id: i.id })) });
+  }
   for (const item of items) {
+    const name = [item.code, item.designation].filter(Boolean).join(" ");
     if (!measures.some((m) => m.workItemId === item.id && m.status !== "rejete")) {
-      issues.push({ severity: "mineure", category: "completude", message: `Ouvrage sans mesure : ${[item.code, item.designation].filter(Boolean).join(" ")}`, targets: [{ type: "work_item", id: item.id }] });
+      issues.push({ severity: "mineure", category: "completude", point: "ouvrages", message: `Ouvrage sans mesure : ${name}`, targets: [{ type: "work_item", id: item.id }] });
+    }
+    if (item.lotId && !lots.some((l) => l.id === item.lotId)) {
+      issues.push({ severity: "bloquante", category: "incoherence", point: "lots", message: `Ouvrage rattaché à un lot qui n’appartient pas à l’affaire : ${name}`, targets: [{ type: "work_item", id: item.id }] });
     }
   }
   return issues;
 }
 
-/** Dossier : présence du CCTP et de la DPGF, postes sans prix. */
+/** Gravité d'une anomalie de rendu : texte tronqué, superposé ou hors marge, ou pagination fausse, sont majeurs. */
+const RENDER_MAJOR = ["contenu_manquant", "chevauchement", "marge", ...PAGINATION_KINDS];
+const RENDER_LABELS: Record<string, string> = {
+  marge: "Texte hors des marges",
+  chevauchement: "Textes superposés",
+  page_presque_vide: "Page presque vide",
+  titre_isole: "Titre seul en bas de page",
+  en_tete: "En-tête absent",
+  pied_de_page: "Pied de page absent",
+  numerotation: "Numérotation des pages incohérente",
+  couverture: "Couverture incomplète",
+  contenu_manquant: "Texte du document absent du rendu",
+  structure: "Structure du fichier",
+};
+
+/**
+ * Dossier : présence du CCTP et de la DPGF, numéros de lot uniques, documents restés en génération ou
+ * validés malgré une anomalie bloquante, et anomalies de rendu du dernier contrôle des fichiers produits
+ * s'il porte sur le contenu actuel.
+ */
 export async function checkDossier(db: Database, projectId: string): Promise<IssueDraft[]> {
   const issues: IssueDraft[] = [];
-  const cctps = await db.select({ id: schema.cctpDocument.id }).from(schema.cctpDocument).where(and(eq(schema.cctpDocument.projectId, projectId), ne(schema.cctpDocument.status, "archive")));
-  const dpgfs = await db.select({ id: schema.dpgf.id }).from(schema.dpgf).where(and(eq(schema.dpgf.projectId, projectId), ne(schema.dpgf.status, "archive")));
-  if (cctps.length === 0) issues.push({ severity: "bloquante", category: "completude", message: "Aucun CCTP établi pour l’affaire.", targets: [] });
-  if (dpgfs.length === 0) issues.push({ severity: "bloquante", category: "completude", message: "Aucune DPGF établie pour l’affaire.", targets: [] });
+  const cctps = await db.select().from(schema.cctpDocument).where(and(eq(schema.cctpDocument.projectId, projectId), ne(schema.cctpDocument.status, "archive")));
+  const dpgfs = await db.select().from(schema.dpgf).where(and(eq(schema.dpgf.projectId, projectId), ne(schema.dpgf.status, "archive")));
+  if (cctps.length === 0) issues.push({ severity: "bloquante", category: "completude", point: "statuts", message: "Aucun CCTP établi pour l’affaire.", targets: [] });
+  if (dpgfs.length === 0) issues.push({ severity: "bloquante", category: "completude", point: "statuts", message: "Aucune DPGF établie pour l’affaire.", targets: [] });
+
+  const lots = await db.select().from(schema.projectLot).where(eq(schema.projectLot.projectId, projectId));
+  const byCode = new Map<string, typeof lots>();
+  for (const lot of lots) byCode.set(lot.code.trim(), [...(byCode.get(lot.code.trim()) ?? []), lot]);
+  for (const [code, list] of byCode) {
+    if (list.length > 1) issues.push({ severity: "majeure", category: "doublon", point: "lots", message: `Numéro de lot en double : ${code} (${list.map((l) => l.name).join(", ")})`, targets: [] });
+  }
+
+  const documents = [...cctps.map((c) => ({ type: "cctp" as const, id: c.id, title: c.title, status: c.status })), ...dpgfs.map((d) => ({ type: "dpgf" as const, id: d.id, title: d.title, status: d.status }))];
+  if (documents.some((d) => d.status === "en_generation")) {
+    const [running] = await db
+      .select({ id: schema.generationJob.id })
+      .from(schema.generationJob)
+      .where(and(eq(schema.generationJob.projectId, projectId), inArray(schema.generationJob.kind, [...CONTENT_JOBS]), inArray(schema.generationJob.status, ["en_attente", "en_cours"])))
+      .limit(1);
+    if (!running) {
+      for (const d of documents.filter((x) => x.status === "en_generation")) {
+        issues.push({ severity: "majeure", category: "incoherence", point: "statuts", message: `Document resté en génération sans traitement en cours : ${d.title}`, targets: [] });
+      }
+    }
+  }
+  const validated = documents.filter((d) => d.status === "valide");
+  if (validated.length) {
+    const blocking = await db
+      .select({ documentId: schema.qualityIssue.documentId })
+      .from(schema.qualityIssue)
+      .where(and(eq(schema.qualityIssue.projectId, projectId), eq(schema.qualityIssue.status, "ouverte"), eq(schema.qualityIssue.severity, "bloquante"), inArray(schema.qualityIssue.documentType, ["cctp", "dpgf", "sous_detail"])));
+    for (const d of validated) {
+      if (blocking.some((b) => b.documentId === d.id)) issues.push({ severity: "bloquante", category: "incoherence", point: "statuts", message: `Document validé alors qu’une anomalie bloquante reste ouverte : ${d.title}`, targets: [] });
+    }
+  }
+
+  // Fichiers produits : anomalies de rendu du dernier contrôle, s'il porte sur le contenu actuel.
+  const [rendered] = await db.select().from(schema.exportCheck).where(eq(schema.exportCheck.projectId, projectId)).orderBy(desc(schema.exportCheck.createdAt)).limit(1);
+  if (rendered && rendered.fingerprint === (await dossierFingerprint(db, projectId))) {
+    for (const file of rendered.files) {
+      for (const issue of file.issues) {
+        issues.push({
+          severity: RENDER_MAJOR.includes(issue.kind) ? "majeure" : "mineure",
+          category: "reserve",
+          point: PAGINATION_KINDS.includes(issue.kind) ? "pagination" : "mise_en_page",
+          message: `${RENDER_LABELS[issue.kind] ?? "Mise en page"}, ${file.document} en ${file.format.toUpperCase()}${issue.page ? `, page ${issue.page}` : ""} : ${issue.detail}`,
+          targets: [],
+        });
+      }
+    }
+  }
   return issues;
+}
+
+/**
+ * Contrôles d'un document rejoués juste avant son export, pour que le statut imprimé reflète les anomalies
+ * actuelles. Le rapport de contrôle rejoue tous les contrôles du dossier.
+ */
+export async function refreshDocumentChecks(db: Database, kind: string, id: string): Promise<void> {
+  if (kind === "cctp") {
+    const [doc] = await db.select({ projectId: schema.cctpDocument.projectId }).from(schema.cctpDocument).where(eq(schema.cctpDocument.id, id));
+    if (doc) await replaceIssues(db, { projectId: doc.projectId, documentType: "cctp", documentId: id }, await checkCctp(db, id));
+  } else if (kind === "dpgf" || kind === "bpu" || kind === "dqe" || kind === "estimation" || kind === "sous_details") {
+    const [doc] = await db.select({ projectId: schema.dpgf.projectId }).from(schema.dpgf).where(eq(schema.dpgf.id, id));
+    if (!doc) return;
+    if (kind === "sous_details") await replaceIssues(db, { projectId: doc.projectId, documentType: "sous_detail", documentId: id }, await checkBreakdowns(db, id));
+    else await replaceIssues(db, { projectId: doc.projectId, documentType: "dpgf", documentId: id }, await checkDpgf(db, id));
+  } else if (kind === "metre") {
+    await replaceIssues(db, { projectId: id, documentType: "metre", documentId: id }, await checkMetre(db, id));
+  } else if (kind === "controle") {
+    await runDossierChecks(db, id);
+  }
 }
 
 /** Rejoue tous les contrôles du dossier et renvoie le nombre d'anomalies ouvertes par gravité. */

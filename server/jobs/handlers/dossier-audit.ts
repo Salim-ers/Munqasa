@@ -1,15 +1,18 @@
 /**
- * Agent de contrôle indépendant du dossier (agent 5), sans appel à un modèle :
+ * Agent de contrôle indépendant du dossier (agent auditeur), sans appel à un modèle :
  * 1. recalculs : quantités du métré, quantités de DPGF reprises du métré, prix reportés des sous-détails
  *    validés, montants, sous-détails ; chaque erreur calculable est corrigée et journalisée ;
- * 2. contrôles : tous les contrôles qualité rejoués (CCTP, DPGF, sous-détails, métré, dossier), contrôle
- *    enregistré avec son empreinte, niveau de validation recalculé.
+ * 2. fichiers produits : chaque document rendu comme à l'export, mise en page et pagination relues
+ *    (voir dossier-render.ts) ;
+ * 3. contrôles : tous les contrôles qualité rejoués (CCTP, DPGF, sous-détails, métré, dossier, rendu),
+ *    contrôle enregistré avec son empreinte, niveau de validation recalculé.
  */
 import { and, eq } from "drizzle-orm";
 import type { AuditFix } from "../../../shared/dossier.js";
 import { schema } from "../../db/index.js";
 import { dossierFingerprint, dossierStatus, recomputeDossier, runDossierChecks } from "../../services/dossier.js";
 import type { JobHandler, StepContext } from "../types.js";
+import { RENDER_LABEL, renderStep, renderStepLabel } from "./dossier-render.js";
 
 /** Étapes du contrôle, réutilisées par la génération du dossier. */
 export async function auditStep(name: string, ctx: StepContext): Promise<{ result: unknown }> {
@@ -34,12 +37,24 @@ export async function auditStep(name: string, ctx: StepContext): Promise<{ resul
   return { result: { auditId: audit!.id, issues: counts, level: status.level, fixes: recalcul.fixes.length } };
 }
 
+/** Résultats des étapes d'un sous-ensemble (« rendu: »), sous leurs propres noms. */
+function within(results: Map<string, unknown>, prefix: string): Map<string, unknown> {
+  return new Map([...results].filter(([k]) => k.startsWith(prefix)).map(([k, v]) => [k.slice(prefix.length), v]));
+}
+
 export const dossierAuditHandler: JobHandler = {
   kind: "controle_qualite",
   title: () => "Contrôle indépendant du dossier",
-  stepLabel: (name) => (name === "recalculs" ? "Recalcul des quantités, montants et sous-détails" : name === "controles" ? "Contrôles qualité et niveau de validation" : name),
-  initialSteps: () => ["recalculs", "controles"],
-  run: (name, ctx) => auditStep(name, ctx),
+  stepLabel: (name) =>
+    name === "recalculs" ? "Recalcul des quantités, montants et sous-détails" : name === "controles" ? "Contrôles qualité et niveau de validation" : name.startsWith("rendu:") ? `${RENDER_LABEL} : ${renderStepLabel(name.slice(6))}` : name,
+  initialSteps: () => ["recalculs", "rendu:preparation", "rendu:bilan", "controles"],
+  async run(name, ctx) {
+    if (name.startsWith("rendu:")) {
+      const outcome = await renderStep(name.slice(6), { ...ctx, results: within(ctx.results, "rendu:") });
+      return { result: outcome.result, addSteps: outcome.addSteps?.map((s) => `rendu:${s}`) };
+    }
+    return auditStep(name, ctx);
+  },
   async finished(job, db) {
     const [step] = await db
       .select({ result: schema.generationStep.result })

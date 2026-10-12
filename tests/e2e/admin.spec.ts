@@ -469,6 +469,9 @@ test.describe.serial("administration", () => {
     await expect(page.getByText("Niveau du dossier")).toBeVisible();
     await page.getByRole("button", { name: "Générer le dossier" }).first().click();
     const dialog = page.getByRole("dialog", { name: "Générer le dossier" });
+    // Documents proposés par défaut : CCTP, DPGF et sous-détails ; le devis se demande.
+    await expect(dialog.getByRole("checkbox", { name: "CCTP", exact: true })).toBeChecked();
+    await expect(dialog.getByRole("checkbox", { name: "Devis", exact: true })).not.toBeChecked();
     await dialog.getByLabel("Taux de TVA de la DPGF, en %").fill("20");
     await dialog.getByText(/J’accepte que les pages des plans choisis/).click();
     await dialog.getByRole("button", { name: "Générer le dossier" }).click();
@@ -476,6 +479,25 @@ test.describe.serial("administration", () => {
     await expect(page.getByText("Contrôle indépendant : Contrôles qualité et niveau de validation")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Niveau du dossier" }).or(page.getByText("Niveau du dossier")).first()).toBeVisible();
     await expect(page.getByText(/Reste à faire :/).first()).toBeVisible();
+    // Contrôle avant export : quinze points, fichiers produits contrôlés par la génération.
+    const audit = page.getByRole("list", { name: "Points contrôlés avant l’export" });
+    await expect(audit.getByText("Cohérence des ouvrages", { exact: true })).toBeVisible();
+    await expect(audit.getByText("Pagination", { exact: true })).toBeVisible();
+    await expect(page.getByText(/Fichiers produits contrôlés le/)).toBeVisible();
+  });
+
+  test("prépare un devis depuis la DPGF existante sans solliciter l'IA", async () => {
+    await page.goto(`${projectUrl}?onglet=dossier`);
+    await page.getByRole("button", { name: "Générer le dossier" }).first().click();
+    const dialog = page.getByRole("dialog", { name: "Générer le dossier" });
+    for (const name of ["Métré depuis les plans", "CCTP", "DPGF", "Sous-détails de prix"]) {
+      const box = dialog.getByRole("checkbox", { name, exact: true });
+      if ((await box.isEnabled()) && (await box.isChecked())) await box.uncheck();
+    }
+    await dialog.getByRole("checkbox", { name: "Devis", exact: true }).check();
+    await expect(dialog.getByText("Aucun agent n’est appelé : le devis reprend les DPGF existantes des lots cochés, rien n’est transmis à l’API OpenAI.")).toBeVisible();
+    await dialog.getByRole("button", { name: "Générer le dossier" }).click();
+    await expect(page.getByText(/Devis : Devis depuis les DPGF/).first()).toBeVisible({ timeout: 120_000 });
   });
 
   test("crée un devis depuis l'affaire, le chiffre, le télécharge, puis en fait préparer un par l'IA", async () => {
@@ -505,6 +527,11 @@ test.describe.serial("administration", () => {
     await page.getByRole("button", { name: "Télécharger", exact: true }).click();
     const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: "Télécharger en PDF" }).click()]);
     expect(download.suggestedFilename()).toMatch(/\.pdf$/);
+
+    // Contrôle avant export : trois formats rendus et relus, quinze points.
+    await page.getByRole("button", { name: "Contrôler avant l’export" }).click();
+    await expect(page.getByRole("list", { name: "Points contrôlés avant l’export" }).getByText("Totaux", { exact: true })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/PDF, Excel et Word rendus et relus à l’instant : 0 anomalie\(s\) de rendu\./)).toBeVisible();
 
     await page.goto("/administration/devis");
     await expect(page.getByRole("link", { name: /^DEV-\d{4}-\d{4}$/ }).first()).toBeVisible();

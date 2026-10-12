@@ -14,6 +14,7 @@ import { renderQuote, renderQuoteVersion } from "../../documents/builders/quote.
 import { layoutSummary } from "../../documents/render-checked.js";
 import { createJob } from "../../jobs/runner.js";
 import { auditAction } from "../../services/audit.js";
+import { quoteExportAudit } from "../../services/export-audit.js";
 import { QuoteCalcError } from "../../services/quote-calc.js";
 import {
   assertEditable,
@@ -226,6 +227,14 @@ export const quoteRoutes = new Hono<AdminEnv>()
     await auditAction(c, "devis.duplication", "quote", copy.id, { reference: copy.number });
     return c.json({ quote: copy }, 201);
   })
+  /** Contrôle avant export : contrôles du devis, totaux et quantités vérifiés, trois formats rendus et relus. */
+  .post("/:id/controle", async (c) => {
+    const id = uuidParam(c);
+    const db = await getDb();
+    const audit = await guarded(() => quoteExportAudit(db, id, { render: true, theme: themeOf(c) }));
+    await auditAction(c, "devis.controle", "quote", id, { verdict: audit.verdict, bloquants: audit.counts.bloquante });
+    return c.json({ audit });
+  })
   .post("/:id/:action{soumettre|valider|rouvrir|envoyer|relancer|accepter|refuser|nouvelle-version|archiver|restaurer}", async (c) => {
     const id = uuidParam(c);
     const db = await getDb();
@@ -273,9 +282,15 @@ export const quoteLineRoutes = new Hono<AdminEnv>()
     const data = await patchBody(c, quoteLineInput.omit({ kind: true, parentId: true }));
     // Prix modifié à la main : la provenance devient une saisie, la copie de la bibliothèque est conservée pour mémoire.
     const priceChanged = ("unitPrice" in data && data.unitPrice !== line.unitPrice) || ("pricingMode" in data && data.pricingMode !== line.pricingMode);
+    // Quantité modifiée à la main : elle ne se dit plus reprise de la DPGF ou du métré (le lien reste pour mémoire).
+    const quantityChanged = "quantity" in data && (data.quantity === null ? line.quantity !== null : line.quantity === null || Number(data.quantity) !== Number(line.quantity));
     await db
       .update(ql)
-      .set({ ...data, ...(priceChanged ? { priceOrigin: data.unitPrice === null && data.pricingMode !== "decompose" ? null : "Saisie", priceItemId: null, priceConfirmed: true } : {}) })
+      .set({
+        ...data,
+        ...(priceChanged ? { priceOrigin: data.unitPrice === null && data.pricingMode !== "decompose" ? null : "Saisie", priceItemId: null, priceConfirmed: true } : {}),
+        ...(quantityChanged ? { quantitySource: data.quantity === null ? "À préciser" : "Saisie" } : {}),
+      })
       .where(eq(ql.id, id));
     await touched(quote.id, quote.status);
     await guarded(() => recomputeQuote(db, quote.id));

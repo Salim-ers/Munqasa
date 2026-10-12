@@ -136,3 +136,20 @@ s'exécutent quand leurs chemins sont fournis (`TALAB_SAMPLE_PLAN`, `TALAB_SAMPL
 | IA : « 120 m² de murs » dans la description | quantité 120 citée comme source, prix du candidat de la bibliothèque |
 | IA : quantité inventée, prix hors candidats | écartés, ligne à préciser et à établir |
 | Navigateur | devis créé depuis l’affaire, ligne chiffrée par le serveur, export PDF, devis préparé par l’IA, téléphone sans débordement |
+
+### Chaîne des agents et contrôle avant export (`tests/server/agents-pipeline.test.ts`, `tests/server/dossier.test.ts`, parcours navigateur)
+
+| Cas | Résultat attendu |
+| --- | --- |
+| DPGF demandée sans CCTP, devis sans DPGF, métré sans plan, agent sans accord, lot d’une autre affaire | refusés au lancement, motif précis, rien ne démarre |
+| CCTP et DPGF demandés | seuls les agents CCTP et DPGF travaillent, puis contrôle des fichiers produits et contrôle indépendant |
+| Prix des postes demandés, bibliothèque avec un prix actuel, un prix de 2019 et une valeur réglementaire | seul le prix actuel est appliqué, ramené HT, provenance et mention de l’agent inscrites, poste à vérifier ; le poste sans candidat reste à chiffrer |
+| Devis seul depuis une DPGF existante | aucun appel à un agent, chaque ligne désigne son poste et en reprend la quantité, une reprise ne crée pas de second devis |
+| Quantité modifiée dans le devis | provenance « Saisie », lien vers le poste conservé |
+| Deux lots, CCTP, DPGF et devis | un CCTP et une DPGF par lot, étapes nommées par lot, un devis avec une section par lot |
+| Métré relancé après vérification d’une mesure | ouvrage vérifié conservé, jamais reproposé ; un nouvel ouvrage prend le code libre suivant |
+| Contrôle avant export du dossier | quinze points ; montant faux bloquant et verdict défavorable ; document validé malgré l’anomalie signalé ; contrôle des fichiers caduc après modification, à jour après le contrôle indépendant |
+| Doublon de code, mesure dans une autre unité, quantité différente de sa formule | signalés aux points Doublons, Unités et Formules |
+| Dossier complet | index avec les quinze points et leurs anomalies, contrôle des fichiers enregistré |
+| Contrôle avant export d’un devis | trois formats rendus et relus à 0 anomalie, prix et quantités à établir bloquants |
+| Navigateur | choix des documents et des lots, devis sans IA, carte du contrôle avant export du dossier et du devis, téléphone sans débordement |

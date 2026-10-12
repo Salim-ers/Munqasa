@@ -97,6 +97,15 @@ du métré. Deux étapes, avec des garde-fous appliqués par le serveur :
 L'agent n'écrit ni condition, ni délai, ni mention : ce sont celles de l'entité émettrice. Les points à
 confirmer qu'il signale sont inscrits dans l'historique du devis, qui reste un brouillon à vérifier.
 
+## Contrôle avant export
+
+Carte *Contrôle avant export* du devis : le PDF, l'Excel et le Word sont rendus comme au téléchargement et relus
+(mise en page, pagination, structure), puis les quinze points du contrôle avant export sont vérifiés (voir
+`docs/DOSSIER.md`) : contrôles du devis, montant de chaque ligne et totaux enregistrés comparés au moteur,
+quantités reprises d'une DPGF comparées au poste source tant que le devis se modifie, lignes en double, unités,
+DPGF d'origine archivée, statut incompatible avec un point bloquant. Le verdict n'est jamais favorable tant qu'un
+point bloquant subsiste. Le contrôle est à refaire après chaque modification du devis.
+
 ## Exports
 
 PDF, Excel et Word, version claire ou sombre, contrôlés comme les autres documents (mise en page du PDF,

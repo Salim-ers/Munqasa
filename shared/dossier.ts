@@ -44,6 +44,23 @@ export const DOCUMENT_LEVEL_LABELS: Record<DocumentLevel, string> = {
   valide_professionnel: "Validé par un professionnel",
 };
 
+/**
+ * Documents qu'une génération du dossier peut produire. Seuls les agents nécessaires aux documents demandés
+ * travaillent ; un document déjà établi pour le lot (CCTP pour la DPGF, DPGF pour les sous-détails, les prix
+ * ou le devis) est repris plutôt que refait. Le contrôle indépendant et le contrôle des fichiers produits
+ * terminent toujours la génération.
+ */
+export const GENERATION_DOCUMENTS = ["metre", "cctp", "dpgf", "sous_details", "prix", "devis"] as const;
+export type GenerationDocument = (typeof GENERATION_DOCUMENTS)[number];
+export const GENERATION_DOCUMENT_LABELS: Record<GenerationDocument, string> = {
+  metre: "Métré depuis les plans",
+  cctp: "CCTP",
+  dpgf: "DPGF",
+  sous_details: "Sous-détails de prix",
+  prix: "Prix des postes depuis la bibliothèque",
+  devis: "Devis",
+};
+
 /** Correction appliquée par le contrôle indépendant à une erreur calculable. */
 export interface AuditFix {
   kind: "mesure" | "quantite_dpgf" | "montant_dpgf" | "prix_sous_detail" | "sous_detail" | "pertes";
