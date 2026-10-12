@@ -11,6 +11,7 @@ import type { DocTheme } from "../../documents/brand.js";
 import { CONTENT_TYPES, type ExportFormat, type ExportResult, FORMATS, ID_SCOPE, renderExport, renderLibrary, renderVersion, UnsupportedFormat } from "../../documents/registry.js";
 import { ExportNotFound } from "../../documents/context.js";
 import type { DocumentKind } from "../../documents/model.js";
+import { layoutSummary } from "../../documents/render-checked.js";
 import { buildDossier } from "../../documents/zip.js";
 import { auditAction } from "../../services/audit.js";
 import { parsePriceFilters } from "../../services/price-filters.js";
@@ -23,13 +24,15 @@ export function themeOf(c: Context): DocTheme {
   return c.req.query("theme") === "sombre" ? "sombre" : "clair";
 }
 
-export function download(result: Pick<ExportResult, "buffer" | "fileName" | "contentType">): Response {
+export function download(result: Pick<ExportResult, "buffer" | "fileName" | "contentType"> & { layout?: ExportResult["layout"] }): Response {
   const ascii = result.fileName.normalize("NFKD").replace(/[^\x20-\x7e]/g, "").replace(/["\\]/g, "") || "document";
   return new Response(new Uint8Array(result.buffer), {
     headers: {
       "content-type": result.contentType,
       "content-disposition": `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(result.fileName)}`,
       "cache-control": "private, no-store",
+      // Anomalies de mise en page ou de structure restantes après contrôle du fichier produit.
+      ...(result.layout ? { "x-talab-mise-en-page": String(result.layout.issues.length) } : {}),
     },
   });
 }
@@ -49,7 +52,7 @@ export async function exportResponse(c: Context<AdminEnv>, kind: Exclude<Documen
   const db = await getDb();
   const lotId = c.req.query("lot");
   const result = await guarded(() => renderExport(db, kind, id, format, themeOf(c), { lotId: lotId && UUID.test(lotId) ? lotId : null }));
-  await auditAction(c, `${kind}.export`, "project", result.projectId ?? id, { document: result.title, format, theme: themeOf(c) });
+  await auditAction(c, `${kind}.export`, "project", result.projectId ?? id, { document: result.title, format, theme: themeOf(c), miseEnPage: layoutSummary(result.layout) });
   return download(result);
 }
 

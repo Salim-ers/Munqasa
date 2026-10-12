@@ -57,3 +57,18 @@ s'exécutent quand leurs chemins sont fournis (`TALAB_SAMPLE_PLAN`, `TALAB_SAMPL
 | Poste de DPGF à métrer, cote relevée | quantité calculée par le serveur, ouvrage et mesure tracés dans la note de métrés |
 | Poste de DPGF non mesurable | « À métrer : » suivi de la donnée manquante, aucune quantité supposée |
 | Cote absente du texte vectoriel, déduction | confiance faible, déduction soustraite, correction manuelle tracée |
+
+### Composition et mise en page (`tests/server/layout.test.ts`, `tests/server/exports.test.ts`, `tests/samples/dossier.test.ts`)
+
+| Cas | Résultat attendu |
+| --- | --- |
+| CCTP court, CCTP de 40 à 100 pages | aucune anomalie : marges, superpositions, pages presque vides, titres isolés, en-têtes, pieds, numérotation, couverture, contenu complet |
+| DPGF longue (288 postes) | aucune anomalie, colonnes dans la page, Excel imprimable (A4, largeur d'une page, en-tête répété, pied paginé) |
+| Sous-détails sur plusieurs pages, en paysage | aucune anomalie, décompositions impossibles comprises |
+| Thème sombre, titre et avertissement très longs | couverture sans superposition, corps du titre réduit au besoin |
+| Tableau de sept colonnes, mots longs | aucun mot coupé dans les en-têtes, aucun dépassement de marge |
+| PDF volontairement défectueux | dépassement de marge, superposition, page presque vide, en-tête et pied absents, contenu manquant détectés |
+| Titre signalé seul en bas de page | recomposition avec un saut forcé avant lui, au plus quatre compositions |
+| 21 exports de l'API (PDF, Word, Excel, thème sombre) | en-tête `x-talab-mise-en-page` à 0 |
+| Dossier ZIP | index « Contrôle de mise en page » : fichiers contrôlés, anomalies restantes dites fichier par fichier |
+| Dossier réel TAL-2026-0003 recomposé | 0 anomalie sur les sous-détails (93 pages), la DPGF (14 pages) et le CCTP (43 pages) ; béton des bandeaux à 833,5453 ; huit décompositions impossibles identifiées |

@@ -3,15 +3,38 @@
  * en-têtes et pieds de page, sommaire automatique, titres jamais isolés en bas de page, tableaux dont
  * l'en-tête se répète à chaque page et dont les lignes ne sont pas coupées, polices embarquées.
  * Les polices et logos sont lus en mémoire : aucun accès au disque ni au réseau pendant le rendu.
+ *
+ * Composition :
+ * - couverture : décor (logo, arche, sigle, filet de pied) en arrière-plan, titre et grille d'informations dans
+ *   le flux, l'un sous l'autre, dimensionnés d'après la longueur réelle des textes : rien ne peut se superposer ;
+ * - un titre reste avec le bloc qui le suit : s'il ne tiendrait pas sur la même page, il passe à la suivante ;
+ * - le sommaire n'impose pas de page : le premier chapitre commence à sa suite si la dernière page du sommaire
+ *   est presque vide, sur une nouvelle page sinon ;
+ * - colonnes des tableaux élargies jusqu'à leur plus long mot, somme égale à la largeur utile ;
+ * - options de recomposition (sauts forcés, sommaire et espacements resserrés) utilisées par le contrôle du
+ *   rendu quand il détecte une anomalie.
  */
 import pdfmake from "pdfmake";
 import type { Content, ContentTable, CustomTableLayout, TDocumentDefinitions } from "pdfmake/interfaces.js";
 import { archSvg, asset, FONTS, LOGO_RATIO, logo, mm, PAGE, type Palette, palette, printable, scriptRuns, TYPE } from "./brand.js";
+import { fitColumns } from "./columns.js";
+import { coverLayout } from "./cover.js";
+import { lineCount } from "./measure.js";
 import { type Block, type Cell, cellOf, type DocModel, type Inline, plain, type RenderOptions, type Row } from "./model.js";
 import type { DocumentIdentity } from "../../shared/settings.js";
 
 type Pdf = typeof pdfmake & { virtualfs: { writeFileSync(name: string, data: Buffer): void } };
 let configured = false;
+
+/** Options de recomposition, fixées par le contrôle du rendu après une première composition. */
+export interface PdfLayoutOptions {
+  /** Blocs (index dans le modèle) précédés d'un saut de page forcé. */
+  forcedBreaks?: number[];
+  /** Sommaire resserré (sa dernière page était presque vide). */
+  compactToc?: boolean;
+  /** Espacements légèrement resserrés (dernière page presque vide). */
+  compact?: boolean;
+}
 
 function configure() {
   if (configured) return;
@@ -79,8 +102,83 @@ const CALLOUT: Record<"info" | "warning" | "danger" | "success", (pal: Palette) 
   success: () => "#5E7A3A",
 };
 
-function tableNode(block: Extract<Block, { type: "table" }>, pal: Palette, contentWidth: number): Content {
+/** Retrait intérieur gauche et droit des cellules (points). */
+const CELL_PADDING = 4;
+
+/* ---------- Hauteurs estimées (titres solidaires du bloc suivant) ---------- */
+
+/** Interligne effectif de pdfmake : hauteur de ligne de la police × interligne du document (mesuré : 1,885 × corps). */
+const LINE = (size: number) => size * 1.366 * TYPE.lineHeight;
+const SERIF_LINE = (size: number) => size * 1.3 * 1.1;
+
+/**
+ * Le sommaire laisserait-il une dernière page presque vide ? Hauteur estimée de ses entrées (mesurée : ligne de
+ * texte, retrait de 2 points en haut et en bas de chaque ligne du tableau du sommaire, marge propre à l'entrée).
+ * Resserré si sa dernière page n'en porterait que le cinquième, ou s'il la remplirait à quelques points près
+ * (une ligne de trop basculerait seule sur une nouvelle page).
+ */
+function tocTailIsShort(blocks: Block[], contentWidth: number, innerHeight: number): boolean {
+  let total = 22 * 1.3 * TYPE.lineHeight + 14;
+  for (const b of blocks) {
+    if (b.type !== "heading" || b.toc === false || b.level > 2) continue;
+    const text = `${b.number ? `${b.number} ` : ""}${b.text}`;
+    const lines = lineCount(printable(text), contentWidth - (b.level === 1 ? 30 : 44), TYPE.body, b.level === 1 ? "semibold" : "regular");
+    total += (b.level === 1 ? 8 : 1) + 4 + lines * LINE(TYPE.body);
+  }
+  const pages = Math.ceil(total / innerHeight);
+  const fill = total - (pages - 1) * innerHeight;
+  return pages >= 2 && (fill < innerHeight * 0.2 || fill > innerHeight * 0.94);
+}
+
+/** Hauteur d'un titre, de sa première ligne à son contenu (marge du haut exclue). */
+function headingHeight(block: Extract<Block, { type: "heading" }>, contentWidth: number): number {
+  const text = `${block.number ? `${block.number} ` : ""}${block.text}`;
+  if (block.level === 1) return lineCount(printable(text), contentWidth - 19, TYPE.h1, "serif") * SERIF_LINE(TYPE.h1) + 5 + 0.6 + 10;
+  const size = block.level === 2 ? TYPE.h2 : TYPE.h3;
+  return lineCount(printable(text), contentWidth, size, "semibold") * LINE(size) + 4;
+}
+
+/** Hauteur du début insécable d'un bloc : ce qui doit suivre un titre sur la même page. */
+function startHeight(blocks: Block[], index: number, contentWidth: number, depth = 0): number {
+  const block = blocks[index];
+  if (!block) return 0;
+  const lines = (text: string, width: number, size: number, max: number) => Math.min(lineCount(printable(text), width, size), max) * LINE(size);
+  switch (block.type) {
+    case "heading":
+      return headingHeight(block, contentWidth) + (block.level === 1 ? 0 : block.level === 2 ? 10 : 7) + (depth < 2 ? startHeight(blocks, index + 1, contentWidth, depth + 1) : 0);
+    case "paragraph":
+      return lines(plain(block.content), contentWidth, block.tone === "small" ? TYPE.small : TYPE.body, 2);
+    case "list":
+      return block.items[0] ? lines(plain(block.items[0]), contentWidth - 24, TYPE.body, 2) : 0;
+    case "requirement":
+    case "note":
+      return lines(plain(block.content), contentWidth - 17, TYPE.body, 2) + 12;
+    case "callout":
+      return LINE(TYPE.body) + 2 + lines(plain(block.content), contentWidth - 17, TYPE.body, 40) + 12;
+    case "keyValues": {
+      const rows = block.rows.length <= 16 ? block.rows : block.rows.slice(0, 2);
+      return rows.reduce((h, [, v]) => h + Math.max(lineCount(printable(v), contentWidth * 0.68, TYPE.body), 1) * LINE(TYPE.body) + 6, 2);
+    }
+    case "table": {
+      const size = block.dense ? TYPE.tableSmall : TYPE.table;
+      const pad = (block.dense ? 2.5 : 3.5) * 2;
+      const widths = fitColumns(block, { contentWidth, size, padding: CELL_PADDING * 2 }).map((w) => Math.max(w - CELL_PADDING * 2, 4));
+      const rowHeight = (texts: string[]) => Math.max(...texts.map((t, i) => t.split("\n").reduce((n, line) => n + lineCount(printable(line), widths[i] ?? contentWidth, size), 0)), 1) * LINE(size) + pad + 1;
+      const header = rowHeight(block.columns.map((c) => c.label));
+      const first = block.rows[0] ? rowHeight(block.rows[0].cells.map((c) => cellOf(c).text)) : 0;
+      return (block.caption ? LINE(TYPE.small) + 3 : 0) + 2 + header + first;
+    }
+    case "references":
+      return LINE(TYPE.small);
+    case "pageBreak":
+      return 0;
+  }
+}
+
+function tableNode(block: Extract<Block, { type: "table" }>, pal: Palette, contentWidth: number, compact: boolean): Content {
   const size = block.dense ? TYPE.tableSmall : TYPE.table;
+  // Largeurs extérieures ajustées au plus long mot de chaque colonne ; pdfmake attend les largeurs intérieures.
+  const widths = fitColumns(block, { contentWidth, size, padding: CELL_PADDING * 2 }).map((w) => Math.max(w - CELL_PADDING * 2, 4));
   const header = block.columns.map((c) => ({
     text: printable(c.label),
     bold: true,
@@ -120,12 +218,13 @@ function tableNode(block: Extract<Block, { type: "table" }>, pal: Palette, conte
     return cells;
   });
   const kinds = block.rows.map((r) => r.kind ?? "item");
+  const pad = (block.dense ? 2.5 : 3.5) - (compact ? 0.5 : 0);
   const node: ContentTable = {
     table: {
       headerRows: 1,
       dontBreakRows: true,
       keepWithHeaderRows: 1,
-      widths: block.columns.map((c) => (c.width === undefined || c.width === "*" ? "*" : Math.round((c.width / 100) * contentWidth))),
+      widths,
       body: [header, ...body] as never,
     },
     layout: {
@@ -136,12 +235,12 @@ function tableNode(block: Extract<Block, { type: "table" }>, pal: Palette, conte
       },
       vLineWidth: () => 0,
       hLineColor: (i: number) => (i <= 1 ? pal.secondary : kinds[i - 1] === "total" ? pal.ink : pal.rule),
-      paddingLeft: () => 4,
-      paddingRight: () => 4,
-      paddingTop: () => (block.dense ? 2.5 : 3.5),
-      paddingBottom: () => (block.dense ? 2.5 : 3.5),
+      paddingLeft: () => CELL_PADDING,
+      paddingRight: () => CELL_PADDING,
+      paddingTop: () => pad,
+      paddingBottom: () => pad,
     },
-    margin: [0, 2, 0, 10],
+    margin: [0, 2, 0, compact ? 8 : 10],
   };
   const stack: Content[] = [];
   if (block.caption) stack.push({ text: printable(block.caption), fontSize: TYPE.small, color: pal.muted, margin: [0, 0, 0, 3] });
@@ -149,7 +248,8 @@ function tableNode(block: Extract<Block, { type: "table" }>, pal: Palette, conte
   return { stack };
 }
 
-function blockNodes(block: Block, pal: Palette, contentWidth: number): Content[] {
+function blockNodes(block: Block, pal: Palette, contentWidth: number, compact: boolean): Content[] {
+  const after = compact ? 4 : 5;
   switch (block.type) {
     case "heading": {
       if (block.level === 1) {
@@ -189,7 +289,7 @@ function blockNodes(block: Block, pal: Palette, contentWidth: number): Content[]
           ],
           fontSize: size,
           color: block.level === 3 ? pal.muted : pal.ink,
-          margin: [0, block.level === 2 ? 10 : 7, 0, 4],
+          margin: [0, block.level === 2 ? (compact ? 8 : 10) : compact ? 6 : 7, 0, 4],
           headlineLevel: block.level,
           ...(block.level === 2 && block.toc !== false ? { tocItem: true, tocMargin: [14, 1, 0, 0], tocStyle: { color: pal.muted, lineHeight: 1.25 } } : {}),
           ...(block.pageBreakBefore ? { pageBreak: "before" as const } : {}),
@@ -203,20 +303,20 @@ function blockNodes(block: Block, pal: Palette, contentWidth: number): Content[]
           alignment: "justify",
           fontSize: block.tone === "small" ? TYPE.small : TYPE.body,
           color: block.tone === "muted" ? pal.muted : pal.ink,
-          margin: [0, 0, 0, 5],
+          margin: [0, 0, 0, after],
         },
       ];
     case "list": {
       const items = block.items.map((item) => ({ text: textNodes(item, pal), alignment: "justify" as const, margin: [0, 0, 0, 2] as [number, number, number, number] }));
-      if (block.ordered === "bullets") return [{ ul: items, markerColor: pal.secondary, margin: [10, 0, 0, 6] }];
-      return [{ ol: items, type: block.ordered === "letters" ? "lower-alpha" : "decimal", separator: ")", markerColor: pal.primary, margin: [10, 0, 0, 6] } as unknown as Content];
+      if (block.ordered === "bullets") return [{ ul: items, markerColor: pal.secondary, margin: [10, 0, 0, after + 1] }];
+      return [{ ol: items, type: block.ordered === "letters" ? "lower-alpha" : "decimal", separator: ")", markerColor: pal.primary, margin: [10, 0, 0, after + 1] } as unknown as Content];
     }
     case "requirement":
       return [
         {
           table: { widths: ["*"], body: [[{ text: textNodes(block.content, pal), alignment: "justify", color: pal.ink }]] },
           layout: bandLayout(pal.primary, pal.surfaceAlt),
-          margin: [0, 2, 0, 7],
+          margin: [0, 2, 0, after + 2],
         },
       ];
     case "note":
@@ -227,7 +327,7 @@ function blockNodes(block: Block, pal: Palette, contentWidth: number): Content[]
             body: [[{ text: [{ text: `${block.label ?? "Note"} : `, bold: true, color: pal.muted }, ...textNodes(block.content, pal)], alignment: "justify", color: pal.muted, fontSize: TYPE.body - 0.5 }]],
           },
           layout: bandLayout(pal.secondary, pal.theme === "sombre" ? pal.surfaceAlt : "#FBF9F5", 1.2),
-          margin: [0, 2, 0, 7],
+          margin: [0, 2, 0, after + 2],
         },
       ];
     case "callout": {
@@ -240,7 +340,7 @@ function blockNodes(block: Block, pal: Palette, contentWidth: number): Content[]
           },
           layout: bandLayout(color, pal.surfaceAlt),
           unbreakable: true,
-          margin: [0, 2, 0, 8],
+          margin: [0, 2, 0, after + 3],
         } as unknown as Content,
       ];
     }
@@ -258,17 +358,19 @@ function blockNodes(block: Block, pal: Palette, contentWidth: number): Content[]
             hLineWidth: (i: number, node: { table: { body: unknown[] } }) => (i === 0 || i === node.table.body.length ? 0 : 0.4),
             vLineWidth: () => 0,
             hLineColor: () => pal.rule,
-            paddingTop: () => 3,
-            paddingBottom: () => 3,
+            paddingTop: () => (compact ? 2.5 : 3),
+            paddingBottom: () => (compact ? 2.5 : 3),
             paddingLeft: () => 0,
           },
-          margin: [0, 2, 0, 8],
+          // Une courte liste de valeurs (résultat d'un sous-détail, synthèse) n'est pas coupée entre deux pages.
+          ...(block.rows.length <= 16 ? { unbreakable: true } : {}),
+          margin: [0, 2, 0, after + 3],
         } as unknown as Content,
       ];
     case "table":
-      return [tableNode(block, pal, contentWidth)];
+      return [tableNode(block, pal, contentWidth, compact)];
     case "references":
-      return block.codes.length ? [{ text: [{ text: "Références : ", bold: true }, { text: printable(block.codes.join(", ")) }], fontSize: TYPE.small, color: pal.muted, margin: [0, 0, 0, 7] }] : [];
+      return block.codes.length ? [{ text: [{ text: "Références : ", bold: true }, { text: printable(block.codes.join(", ")) }], fontSize: TYPE.small, color: pal.muted, margin: [0, 0, 0, after + 2] }] : [];
     case "pageBreak":
       return [{ text: "", pageBreak: "after" }];
   }
@@ -276,27 +378,47 @@ function blockNodes(block: Block, pal: Palette, contentWidth: number): Content[]
 
 const dateFr = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 
-function coverNodes(doc: DocModel, pal: Palette, page: { width: number; height: number }): Content[] {
+/** Décor de la couverture (arrière-plan de la page 1) : logo, phase, arche, sigle, filet et pied. */
+function coverBackground(doc: DocModel, pal: Palette, page: { width: number; height: number }): Content[] {
   const m = doc.meta;
-  const side = mm(PAGE.marginSide);
+  const g = coverLayout(m, page);
   const logoWidth = mm(46);
-  const archWidth = Math.min(page.width * 0.4, 240);
-  const archX = page.width - side - archWidth + 10;
-  const archY = page.height * 0.2;
-  const textWidth = page.width - side * 2 - archWidth * 0.55;
-  const info: Array<[string, string | null]> = [
-    ["Maître d’ouvrage", m.client],
-    ["Localisation", m.project.location],
-    ["Référence du dossier", m.project.reference],
-    ["Lot", m.lot],
-    ["Version", m.version !== null ? `${m.version}, du ${dateFr.format(m.date)}` : dateFr.format(m.date)],
-    ["Statut", m.status],
-    ["Phase", m.project.phase],
-    ["Établi par", m.company],
+  return [
+    { image: "logo", width: logoWidth, height: logoWidth / LOGO_RATIO.logo, absolutePosition: { x: g.side, y: mm(18) } },
+    {
+      columns: [{ width: page.width - g.side * 2, text: printable((m.project.phase ?? "Dossier de consultation").toUpperCase()), fontSize: 7, characterSpacing: 1.4, color: pal.muted, alignment: "right" }],
+      absolutePosition: { x: g.side, y: mm(24) },
+    } as unknown as Content,
+    { svg: archSvg(pal.secondary, pal.primary, 1.1, pal.surfaceAlt), width: g.arch.width, height: g.arch.width * 1.2, absolutePosition: { x: g.arch.x, y: g.arch.y } },
+    {
+      columns: [{ width: g.arch.width * 0.3, text: printable(m.shortLabel), font: "Serif", fontSize: Math.min(26, (g.arch.width * 0.28) / (0.52 * Math.max(m.shortLabel.length, 1))), color: pal.primary, alignment: "center" }],
+      absolutePosition: { x: g.arch.x + g.arch.width * 0.35, y: g.arch.y + g.arch.width * 1.2 * 0.68 },
+    } as unknown as Content,
+    {
+      canvas: [{ type: "line", x1: 0, y1: 0, x2: page.width - g.side * 2, y2: 0, lineWidth: 1, lineColor: pal.primary }],
+      absolutePosition: { x: g.side, y: page.height - mm(20) },
+    },
+    {
+      columns: [
+        { width: (page.width - g.side * 2) / 2, text: printable(m.footerText), fontSize: 7.2, color: pal.muted },
+        { width: (page.width - g.side * 2) / 2, text: printable(`${m.project.reference}  |  ${dateFr.format(m.date)}`), fontSize: 7.2, color: pal.muted, alignment: "right" },
+      ],
+      absolutePosition: { x: g.side, y: page.height - mm(17) },
+    } as unknown as Content,
   ];
-  const rows = info.filter((r): r is [string, string] => Boolean(r[1]));
-  const half = Math.ceil(rows.length / 2);
+}
+
+/**
+ * Titre et grille d'informations de la couverture, dans le flux de la page 1 : la grille suit le titre, quelle
+ * que soit la longueur du titre ou de l'avertissement ; position et corps du titre calculés par coverLayout.
+ */
+function coverFlow(doc: DocModel, pal: Palette, page: { width: number; height: number }): Content[] {
+  const m = doc.meta;
+  const g = coverLayout(m, page);
+  const half = Math.ceil(g.rows.length / 2);
+  const columnWidth = (g.gridWidth - 24) / 2;
   const column = (items: Array<[string, string]>) => ({
+    width: columnWidth,
     stack: items.map(([label, value]) => ({
       stack: [
         { text: printable(label.toUpperCase()), fontSize: 6.6, characterSpacing: 0.9, color: pal.faint },
@@ -306,80 +428,85 @@ function coverNodes(doc: DocModel, pal: Palette, page: { width: number; height: 
     })),
   });
   return [
-    { image: "logo", width: logoWidth, height: logoWidth / LOGO_RATIO.logo, absolutePosition: { x: side, y: mm(18) } },
-    {
-      columns: [{ width: page.width - side * 2, text: printable((m.project.phase ?? "Dossier de consultation").toUpperCase()), fontSize: 7, characterSpacing: 1.4, color: pal.muted, alignment: "right" }],
-      absolutePosition: { x: side, y: mm(24) },
-    } as unknown as Content,
-    { svg: archSvg(pal.secondary, pal.primary, 1.1, pal.surfaceAlt), width: archWidth, height: archWidth * 1.2, absolutePosition: { x: archX, y: archY } },
-    {
-      columns: [{ width: archWidth * 0.3, text: printable(m.shortLabel), font: "Serif", fontSize: Math.min(26, (archWidth * 0.28) / (0.52 * Math.max(m.shortLabel.length, 1))), color: pal.primary, alignment: "center" }],
-      absolutePosition: { x: archX + archWidth * 0.35, y: archY + archWidth * 1.2 * 0.68 },
-    } as unknown as Content,
+    // Espace réservé au décor (logo, arche) : le bloc de titre commence à sa hauteur calculée.
+    { canvas: [{ type: "rect", x: 0, y: 0, w: 1, h: 1, color: pal.page }], margin: [0, Math.max(g.top - mm(PAGE.marginTop) - 1, 0), 0, 0] } as unknown as Content,
     {
       columns: [
         {
-          width: textWidth,
+          width: g.textWidth,
           stack: [
-        { text: printable(m.typeLabel.toUpperCase()), fontSize: TYPE.coverKicker, characterSpacing: 1.6, color: pal.primary, bold: true, margin: [0, 0, 0, 10] },
-        { text: textNodes([m.title], pal, "Serif"), font: "Serif", fontSize: TYPE.coverTitle, lineHeight: 1.05, color: pal.ink, margin: [0, 0, 0, 12] },
-        { text: textNodes([m.project.name], pal), fontSize: TYPE.coverProject, color: pal.ink, margin: [0, 0, 0, 10] },
-        rule(textWidth * 0.6, pal.secondary, 1, [0, 0, 0, 0]),
+            { text: printable(m.typeLabel.toUpperCase()), fontSize: TYPE.coverKicker, characterSpacing: 1.6, color: pal.primary, bold: true, margin: [0, 0, 0, 10] },
+            { text: textNodes([m.title], pal, "Serif"), font: "Serif", fontSize: g.titleSize, lineHeight: 1.05, color: pal.ink, margin: [0, 0, 0, 12] },
+            { text: textNodes([m.project.name], pal), fontSize: TYPE.coverProject, color: pal.ink, margin: [0, 0, 0, 10] },
+            rule(g.textWidth * 0.6, pal.secondary, 1, [0, 0, 0, 0]),
             ...(m.disclaimer ? [{ text: printable(m.disclaimer), fontSize: 7.6, color: pal.muted, margin: [0, 10, 0, 0] as [number, number, number, number] }] : []),
           ],
         },
       ],
-      absolutePosition: { x: side, y: page.height * 0.5 },
+      margin: [0, 0, 0, 22],
     } as unknown as Content,
-    {
-      columns: [
-        { width: (page.width - side * 2 - 24) / 2, ...column(rows.slice(0, half)) },
-        { width: (page.width - side * 2 - 24) / 2, ...column(rows.slice(half)) },
-      ],
-      columnGap: 24,
-      absolutePosition: { x: side, y: page.height * 0.69 },
-    } as unknown as Content,
-    {
-      canvas: [{ type: "line", x1: 0, y1: 0, x2: page.width - side * 2, y2: 0, lineWidth: 1, lineColor: pal.primary }],
-      absolutePosition: { x: side, y: page.height - mm(20) },
-    },
-    {
-      columns: [
-        { width: (page.width - side * 2) / 2, text: printable(m.footerText), fontSize: 7.2, color: pal.muted },
-        { width: (page.width - side * 2) / 2, text: printable(`${m.project.reference}  |  ${dateFr.format(m.date)}`), fontSize: 7.2, color: pal.muted, alignment: "right" },
-      ],
-      absolutePosition: { x: side, y: page.height - mm(17) },
-    } as unknown as Content,
+    { columns: [column(g.rows.slice(0, half)), column(g.rows.slice(half))], columnGap: 24 } as unknown as Content,
   ];
 }
 
-export async function renderPdf(doc: DocModel, identity: DocumentIdentity, options: RenderOptions): Promise<Buffer> {
+export async function renderPdf(doc: DocModel, identity: DocumentIdentity, options: RenderOptions & { layout?: PdfLayoutOptions }): Promise<Buffer> {
   configure();
   const pal = palette(options.theme, identity);
+  const layout = options.layout ?? {};
+  const compact = Boolean(layout.compact);
+  const forced = new Set(layout.forcedBreaks ?? []);
   const landscape = doc.meta.orientation === "landscape";
   const page = landscape ? { width: 841.89, height: 595.28 } : { width: 595.28, height: 841.89 };
   const side = mm(PAGE.marginSide);
   const contentWidth = page.width - side * 2;
   const m = doc.meta;
 
-  // La couverture est tracée en arrière-plan de la page 1, hors marges : rien ne peut déborder sur la page 2.
-  const cover = coverNodes(doc, pal, page);
+  // Couverture : décor en arrière-plan de la page 1, titre et informations dans le flux, puis saut de page.
+  const cover = coverBackground(doc, pal, page);
   const night: Content = { canvas: [{ type: "rect", x: 0, y: 0, w: page.width, h: page.height, color: pal.page }] };
-  const content: Content[] = [{ text: " ", pageBreak: "after" }];
+  const content: Content[] = [...coverFlow(doc, pal, page)];
+  const innerHeight = page.height - mm(PAGE.marginTop) - mm(PAGE.marginBottom);
+  // Sommaire resserré quand sa dernière page ne porterait que quelques entrées (ou à la demande du contrôle).
+  const compactToc = Boolean(layout.compactToc) || (m.toc && tocTailIsShort(doc.blocks, contentWidth, innerHeight));
   if (m.toc) {
     content.push({
       toc: {
-        title: { text: "Sommaire", font: "Serif", fontSize: 22, color: pal.primary, margin: [0, 0, 0, 14] },
+        title: { text: "Sommaire", font: "Serif", fontSize: 22, color: pal.primary, margin: [0, 0, 0, compactToc ? 8 : 14] },
         numberStyle: { color: pal.muted },
       },
+      pageBreak: "before",
     } as unknown as Content);
-    content.push({ text: "", pageBreak: "after" });
   }
+  // Racine de chaque bloc repérée par « b<index> » : sert à garder un titre avec le bloc qui le suit.
+  const headings = new Set<number>();
+  // Chapitres sur une nouvelle page, sauf si la page en cours est presque vide (fin de chapitre très courte).
+  const softBreaks = new Set<number>();
+  // Place à réserver sous chaque titre : sa hauteur et le début insécable du bloc qui le suit.
+  const needs = new Map<number, number>();
   doc.blocks.forEach((block, i) => {
-    const nodes = blockNodes(block, pal, contentWidth);
-    // Premier chapitre : pas de saut de page avant (la page précédente est le sommaire ou la couverture).
-    if (i === 0 && block.type === "heading" && block.pageBreakBefore) {
-      for (const n of nodes) delete (n as { pageBreak?: unknown }).pageBreak;
+    if (block.type === "heading") needs.set(i, headingHeight(block, contentWidth) + startHeight(doc.blocks, i + 1, contentWidth) + 2);
+  });
+  doc.blocks.forEach((block, i) => {
+    const nodes = blockNodes(block, pal, contentWidth, compact);
+    if (nodes.length === 0) return;
+    const first = nodes[0] as { id?: string; pageBreak?: string; margin?: number[]; tocMargin?: unknown; stack?: Array<{ columns?: Array<{ tocMargin?: unknown }> }> };
+    if (i === 0) {
+      // Premier bloc : nouvelle page après la couverture ; après le sommaire, la règle du sommaire décide.
+      if (m.toc) {
+        delete first.pageBreak;
+        if (block.type === "heading" && block.level === 1) first.margin = [0, 18, 0, 0];
+      } else first.pageBreak = "before";
+    } else if (forced.has(i)) first.pageBreak = "before";
+    else if (first.pageBreak === "before" && block.type === "heading" && block.level === 1) {
+      delete first.pageBreak;
+      softBreaks.add(i);
+      first.margin = [0, 18, 0, 0];
+    }
+    first.id = `b${i}`;
+    if (block.type === "heading") headings.add(i);
+    if (compactToc && block.type === "heading") {
+      const target = block.level === 1 ? first.stack?.[0]?.columns?.[1] : first;
+      if (target && "tocMargin" in target) target.tocMargin = block.level === 1 ? [0, 3, 0, 0] : [14, 0, 0, 0];
     }
     content.push(...nodes);
   });
@@ -430,8 +557,22 @@ export async function renderPdf(doc: DocModel, identity: DocumentIdentity, optio
         margin: [side, 6, side, 0],
       } as unknown as Content;
     },
-    // Un titre n'est jamais laissé seul en bas de page.
-    pageBreakBefore: (current, queries) => Boolean((current as { headlineLevel?: number }).headlineLevel) && queries.getFollowingNodesOnPage().length === 0,
+    pageBreakBefore: (current, queries) => {
+      const id = (current as { id?: string }).id;
+      const index = id && /^b\d+$/.test(id) ? Number(id.slice(1)) : null;
+      if (index === null) return false;
+      const ratio = (current as { startPosition?: { verticalRatio?: number } }).startPosition?.verticalRatio ?? 0;
+      // Premier chapitre après le sommaire : nouvelle page seulement si le sommaire occupe déjà sa page.
+      if (index === 0 && m.toc && ratio > 0.3) return true;
+      // Chapitre : nouvelle page dès que la page en cours est entamée au-delà du tiers.
+      if (softBreaks.has(index) && ratio > 0.35) return true;
+      if (!headings.has(index)) return false;
+      // Un titre reste avec le bloc qui le suit : place restante insuffisante pour le titre et le début de ce
+      // bloc, ou bloc suivant renvoyé à la page suivante : le titre passe à la page suivante.
+      if ((1 - ratio) * innerHeight < (needs.get(index) ?? 0)) return true;
+      const next = `b${index + 1}`;
+      return index + 1 < doc.blocks.length && !queries.getFollowingNodesOnPage().some((n) => (n as { id?: string }).id === next);
+    },
     content,
   };
   const pdf = pdfmake.createPdf(definition);

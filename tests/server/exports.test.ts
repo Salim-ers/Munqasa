@@ -249,7 +249,40 @@ describe("bibliothèque, versions et dossier complet", () => {
     const index = await zip.file(names.find((n) => n.endsWith("Contenu du dossier.txt"))!)!.async("string");
     expect(index).toContain("Rapport de contrôle qualité");
     expect(index).not.toContain("non produit");
+    // Chaque fichier du dossier est contrôlé après génération ; l'index le dit.
+    expect(index).toMatch(/Contrôle de mise en page :\r\n {2}\d+ fichier\(s\) contrôlé\(s\) après génération : aucune anomalie détectée/);
   });
+
+  it("chaque export est contrôlé après génération et n'annonce aucune anomalie de mise en page", async () => {
+    const exports = [
+      `cctp/${cctpId}/pdf`,
+      `cctp/${cctpId}/docx`,
+      `cctp/${cctpId}/pdf?theme=sombre`,
+      `dpgf/${dpgfId}/pdf`,
+      `dpgf/${dpgfId}/xlsx`,
+      `bpu/${dpgfId}/pdf`,
+      `bpu/${dpgfId}/xlsx`,
+      `dqe/${dpgfId}/pdf`,
+      `dqe/${dpgfId}/xlsx`,
+      `estimation/${dpgfId}/pdf`,
+      `estimation/${dpgfId}/xlsx`,
+      `sous_details/${dpgfId}/pdf`,
+      `sous_details/${dpgfId}/xlsx`,
+      `metre/${projectId}/pdf`,
+      `metre/${projectId}/xlsx`,
+      `metre/${projectId}/docx`,
+      `analyse/${projectId}/pdf`,
+      `analyse/${projectId}/docx`,
+      `controle/${projectId}/pdf`,
+      "bibliotheque/pdf",
+      "bibliotheque/xlsx",
+    ];
+    for (const path of exports) {
+      const res = await get(path);
+      expect(res.status, path).toBe(200);
+      expect(res.headers.get("x-talab-mise-en-page"), path).toBe("0");
+    }
+  }, 120_000);
 
   it("refuse un format ou un document inconnu", async () => {
     expect((await get(`cctp/${cctpId}/xlsx`)).status).toBe(400);

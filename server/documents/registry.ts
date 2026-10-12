@@ -1,7 +1,8 @@
 /**
  * Moteur d'export centralisé : pour chaque type de document, les formats disponibles et leur rendu.
  * Toutes les versions d'un même document (Word, PDF, Excel) partent de la même lecture de la base.
- * Un échec de rendu n'affecte jamais les données : il suffit de relancer l'export.
+ * Chaque fichier produit est contrôlé (mise en page du PDF, structure du Word et de l'Excel) ; son rapport
+ * accompagne le résultat. Un échec de rendu n'affecte jamais les données : il suffit de relancer l'export.
  */
 import { eq } from "drizzle-orm";
 import type { DocumentIdentity } from "../../shared/settings.js";
@@ -15,9 +16,9 @@ import { loadMetre, metreModel, metreWorkbook } from "./builders/metre.js";
 import { analysisModel, controlModel } from "./builders/reports.js";
 import { readSetting } from "../services/settings.js";
 import { ExportNotFound, fileName } from "./context.js";
+import type { LayoutReport } from "./layout-check.js";
 import type { DocModel, DocumentKind } from "./model.js";
-import { renderDocx } from "./render-docx.js";
-import { renderPdf } from "./render-pdf.js";
+import { checkedWorkbook, renderDocxChecked, renderPdfChecked } from "./render-checked.js";
 
 export type ExportFormat = "pdf" | "docx" | "xlsx" | "csv";
 
@@ -62,13 +63,15 @@ export interface ExportResult {
   contentType: string;
   projectId: string | null;
   title: string;
+  /** Contrôle du fichier produit : anomalies de mise en page ou de structure restantes (null pour le CSV). */
+  layout: LayoutReport | null;
 }
 
 export class UnsupportedFormat extends Error {}
 
-async function fromModel(model: DocModel, format: ExportFormat, theme: DocTheme, identity: DocumentIdentity): Promise<Buffer> {
-  if (format === "pdf") return renderPdf(model, identity, { theme });
-  if (format === "docx") return renderDocx(model, identity, { theme });
+async function fromModel(model: DocModel, format: ExportFormat, theme: DocTheme, identity: DocumentIdentity): Promise<{ buffer: Buffer; layout: LayoutReport }> {
+  if (format === "pdf") return renderPdfChecked(model, identity, { theme });
+  if (format === "docx") return renderDocxChecked(model, identity, { theme });
   throw new UnsupportedFormat(`Format ${format} indisponible pour ce document.`);
 }
 
@@ -82,8 +85,8 @@ const DPGF_BUILDERS = {
 async function dpgfFamily(data: DpgfData, kind: keyof typeof DPGF_BUILDERS, format: ExportFormat, theme: DocTheme): Promise<ExportResult> {
   const [model, workbook] = DPGF_BUILDERS[kind];
   const doc = model(data);
-  const buffer = format === "xlsx" ? await workbook(data, theme) : await fromModel(doc, format, theme, data.ctx.identity);
-  return { buffer, fileName: fileName(data.ctx.project.reference, doc.meta.title, format), contentType: CONTENT_TYPES[format], projectId: data.ctx.project.id, title: doc.meta.title };
+  const { buffer, layout } = format === "xlsx" ? await checkedWorkbook(await workbook(data, theme)) : await fromModel(doc, format, theme, data.ctx.identity);
+  return { buffer, layout, fileName: fileName(data.ctx.project.reference, doc.meta.title, format), contentType: CONTENT_TYPES[format], projectId: data.ctx.project.id, title: doc.meta.title };
 }
 
 /** Rend un document : CCTP par son identifiant, documents de la DPGF par celui de la DPGF, rapports et métré par celui de l'affaire. */
@@ -92,7 +95,7 @@ export async function renderExport(db: Database, kind: Exclude<DocumentKind, "bi
   switch (kind) {
     case "cctp": {
       const { ctx, model, title } = await buildCctp(db, id);
-      return { buffer: await fromModel(model, format, theme, ctx.identity), fileName: fileName(ctx.project.reference, title, format), contentType: CONTENT_TYPES[format], projectId: ctx.project.id, title };
+      return { ...(await fromModel(model, format, theme, ctx.identity)), fileName: fileName(ctx.project.reference, title, format), contentType: CONTENT_TYPES[format], projectId: ctx.project.id, title };
     }
     case "dpgf":
     case "bpu":
@@ -102,19 +105,19 @@ export async function renderExport(db: Database, kind: Exclude<DocumentKind, "bi
     case "sous_details": {
       const data = await loadBreakdowns(db, id);
       const model = breakdownsModel(data);
-      const buffer = format === "xlsx" ? await breakdownsWorkbook(data, theme) : await fromModel(model, format, theme, data.ctx.identity);
-      return { buffer, fileName: fileName(data.ctx.project.reference, model.meta.title, format), contentType: CONTENT_TYPES[format], projectId: data.ctx.project.id, title: model.meta.title };
+      const { buffer, layout } = format === "xlsx" ? await checkedWorkbook(await breakdownsWorkbook(data, theme)) : await fromModel(model, format, theme, data.ctx.identity);
+      return { buffer, layout, fileName: fileName(data.ctx.project.reference, model.meta.title, format), contentType: CONTENT_TYPES[format], projectId: data.ctx.project.id, title: model.meta.title };
     }
     case "metre": {
       const data = await loadMetre(db, id, options.lotId ?? null);
       const model = metreModel(data);
-      const buffer = format === "xlsx" ? await metreWorkbook(data, theme) : await fromModel(model, format, theme, data.ctx.identity);
-      return { buffer, fileName: fileName(data.ctx.project.reference, model.meta.title, format), contentType: CONTENT_TYPES[format], projectId: id, title: model.meta.title };
+      const { buffer, layout } = format === "xlsx" ? await checkedWorkbook(await metreWorkbook(data, theme)) : await fromModel(model, format, theme, data.ctx.identity);
+      return { buffer, layout, fileName: fileName(data.ctx.project.reference, model.meta.title, format), contentType: CONTENT_TYPES[format], projectId: id, title: model.meta.title };
     }
     case "analyse":
     case "controle": {
       const { ctx, model } = kind === "analyse" ? await analysisModel(db, id) : await controlModel(db, id);
-      return { buffer: await fromModel(model, format, theme, ctx.identity), fileName: fileName(ctx.project.reference, model.meta.title, format), contentType: CONTENT_TYPES[format], projectId: id, title: model.meta.title };
+      return { ...(await fromModel(model, format, theme, ctx.identity)), fileName: fileName(ctx.project.reference, model.meta.title, format), contentType: CONTENT_TYPES[format], projectId: id, title: model.meta.title };
     }
   }
 }
@@ -124,9 +127,14 @@ export async function renderLibrary(db: Database, filters: LibraryFilters, forma
   if (!FORMATS.bibliotheque.includes(format)) throw new UnsupportedFormat(`Format ${format} indisponible pour la bibliothèque.`);
   const prices = await loadPrices(db, filters);
   const model = await libraryModel(prices, filters);
-  const buffer = format === "csv" ? libraryCsv(prices) : format === "xlsx" ? await libraryWorkbook(prices, filters, theme) : await renderPdf(model, await readSetting("identite_documentaire"), { theme });
+  const { buffer, layout } =
+    format === "csv"
+      ? { buffer: libraryCsv(prices), layout: null }
+      : format === "xlsx"
+        ? await checkedWorkbook(await libraryWorkbook(prices, filters, theme))
+        : await renderPdfChecked(model, await readSetting("identite_documentaire"), { theme });
   const stamp = new Date().toISOString().slice(0, 10);
-  return { buffer, fileName: fileName("Talab Solutions", `${model.meta.title} ${stamp}`, format), contentType: CONTENT_TYPES[format], projectId: null, title: model.meta.title };
+  return { buffer, layout, fileName: fileName("Talab Solutions", `${model.meta.title} ${stamp}`, format), contentType: CONTENT_TYPES[format], projectId: null, title: model.meta.title };
 }
 
 /** Version figée d'un CCTP ou d'une DPGF, rendue telle qu'elle était à son enregistrement. */
@@ -139,7 +147,7 @@ export async function renderVersion(db: Database, versionId: string, format: Exp
     if (format !== "pdf" && format !== "docx") throw new UnsupportedFormat("Une version de CCTP s’exporte en Word ou en PDF.");
     const snapshot = version.snapshot as { document: Parameters<typeof cctpFrom>[1]; sections: Parameters<typeof cctpFrom>[2] };
     const { ctx, model, title } = await cctpFrom(db, snapshot.document, snapshot.sections, info);
-    return { buffer: await fromModel(model, format, theme, ctx.identity), fileName: fileName(ctx.project.reference, `${title} ${suffix}`, format), contentType: CONTENT_TYPES[format], projectId: ctx.project.id, title: `${title}, ${suffix}` };
+    return { ...(await fromModel(model, format, theme, ctx.identity)), fileName: fileName(ctx.project.reference, `${title} ${suffix}`, format), contentType: CONTENT_TYPES[format], projectId: ctx.project.id, title: `${title}, ${suffix}` };
   }
   if (version.documentType === "dpgf") {
     if (format !== "pdf" && format !== "xlsx") throw new UnsupportedFormat("Une version de DPGF s’exporte en Excel ou en PDF.");

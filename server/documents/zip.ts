@@ -1,7 +1,8 @@
 /**
  * Dossier complet d'une affaire en un fichier ZIP : chaque document dans son format natif et en PDF,
  * les versions figées, le rapport de contrôle et un index. Un document qui ne peut pas être rendu est
- * signalé dans l'index, sans bloquer le reste du dossier.
+ * signalé dans l'index, sans bloquer le reste du dossier. L'index reprend le contrôle de mise en page de
+ * chaque fichier : les anomalies restantes y sont dites, fichier par fichier.
  */
 import { and, asc, eq, inArray } from "drizzle-orm";
 import JSZip from "jszip";
@@ -9,6 +10,7 @@ import { type Database, schema } from "../db/index.js";
 import type { DocTheme } from "./brand.js";
 import { fileName } from "./context.js";
 import { type ExportFormat, type ExportResult, renderExport, renderVersion } from "./registry.js";
+import { layoutSummary } from "./render-checked.js";
 
 export async function buildDossier(db: Database, projectId: string, theme: DocTheme): Promise<{ buffer: Buffer; fileName: string; files: number; failures: string[] }> {
   const [project] = await db.select().from(schema.project).where(eq(schema.project.id, projectId));
@@ -36,6 +38,8 @@ export async function buildDossier(db: Database, projectId: string, theme: DocTh
   const root = zip.folder(fileName(project.reference, "Dossier", "zip").replace(/\.zip$/, ""))!;
   const index: string[] = [];
   const failures: string[] = [];
+  const layout: string[] = [];
+  let checked = 0;
   let files = 0;
 
   const add = async (folder: string, label: string, render: () => Promise<ExportResult>) => {
@@ -43,6 +47,10 @@ export async function buildDossier(db: Database, projectId: string, theme: DocTh
       const result = await render();
       root.folder(folder)!.file(result.fileName, result.buffer);
       index.push(`${folder}/${result.fileName}`);
+      if (result.layout) {
+        checked++;
+        if (result.layout.issues.length) layout.push(`${folder}/${result.fileName} : ${layoutSummary(result.layout)}`);
+      }
       files++;
     } catch (error) {
       const reason = error instanceof Error ? error.message : "erreur inconnue";
@@ -74,6 +82,9 @@ export async function buildDossier(db: Database, projectId: string, theme: DocTh
     "",
     "Contenu :",
     ...index.map((line) => `  ${line}`),
+    "",
+    "Contrôle de mise en page :",
+    ...(layout.length ? layout.map((line) => `  ${line}`) : [`  ${checked} fichier(s) contrôlé(s) après génération : aucune anomalie détectée (marges, superpositions, pages presque vides, titres isolés, en-têtes, pieds et numérotation, couverture, contenu complet).`]),
     "",
     "Les documents de travail restent à vérifier et à valider par un professionnel habilité avant tout usage contractuel.",
   ].join("\r\n");

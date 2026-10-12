@@ -175,12 +175,12 @@ export function metreModel(data: MetreData): DocModel {
       type: "table",
       dense: true,
       columns: [
-        { label: "Mesure", width: 24 },
-        { label: "Méthode et formule", width: 17 },
+        { label: "Mesure", width: 20 },
+        { label: "Méthode et formule", width: 15 },
         { label: "Valeurs", width: "*" },
-        { label: "Quantité", width: 12, align: "right" },
+        { label: "Quantité", width: 11, align: "right" },
         { label: "Statut", width: 10 },
-        { label: "Source", width: 18 },
+        { label: "Source", width: 17 },
       ],
       rows,
     });

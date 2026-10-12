@@ -10,6 +10,7 @@ import {
   Document,
   Footer,
   FrameAnchorType,
+  FrameWrap,
   Header,
   HeadingLevel,
   HorizontalPositionRelativeFrom,
@@ -35,6 +36,8 @@ import JSZip from "jszip";
 import sharp from "sharp";
 import type { DocumentIdentity } from "../../shared/settings.js";
 import { archSvg, asset, FONTS, hasArabic, LOGO_RATIO, logo, PAGE, type Palette, palette, printable, scriptRuns, TYPE } from "./brand.js";
+import { fitColumns } from "./columns.js";
+import { coverLayout } from "./cover.js";
 import { type Block, type Cell, cellOf, type DocModel, type Inline, type RenderOptions, type Row } from "./model.js";
 
 const twips = (mmValue: number) => Math.round((mmValue * 1440) / 25.4);
@@ -104,9 +107,8 @@ const CALLOUT: Record<"info" | "warning" | "danger" | "success", (pal: Palette) 
 
 function tableOf(block: Extract<Block, { type: "table" }>, pal: Palette, contentTwips: number): Table {
   const size = block.dense ? TYPE.tableSmall : TYPE.table;
-  const fixed = block.columns.reduce((sum, c) => sum + (typeof c.width === "number" ? c.width : 0), 0);
-  const flexible = block.columns.filter((c) => c.width === undefined || c.width === "*").length;
-  const widths = block.columns.map((c) => (typeof c.width === "number" ? Math.round((c.width / 100) * contentTwips) : Math.round(((100 - fixed) / 100) * contentTwips / Math.max(flexible, 1))));
+  // Largeurs communes au PDF : chaque colonne au moins aussi large que son plus long mot, somme = largeur utile.
+  const widths = fitColumns(block, { contentWidth: contentTwips / 20, size, padding: 8 }).map((w) => Math.floor(w * 20));
   const none = { style: BorderStyle.NONE, size: 0, color: "auto" };
   const margins = { top: block.dense ? 40 : 60, bottom: block.dense ? 40 : 60, left: 80, right: 80 };
   const align = (a?: string) => (a === "right" ? AlignmentType.RIGHT : a === "center" ? AlignmentType.CENTER : AlignmentType.LEFT);
@@ -258,31 +260,21 @@ export async function renderDocx(doc: DocModel, identity: DocumentIdentity, opti
   const pageH = landscape ? 595.28 : 841.89;
   const sidePt = (PAGE.marginSide * 72) / 25.4;
   const contentTwips = ptTwips(pageW - sidePt * 2);
-  const archW = Math.min(pageW * 0.4, 240);
-  const archX = pageW - sidePt - archW + 10;
-  const archY = pageH * 0.2;
-  const textW = pageW - sidePt * 2 - archW * 0.55;
+  const g = coverLayout(m, { width: pageW, height: pageH });
   const logoW = (46 * 72) / 25.4;
+  // Retrait à droite du bloc de titre : il garde la largeur calculée (il ne croise pas l'arche en paysage).
+  const titleIndent = ptTwips(pageW - sidePt * 2 - g.textWidth);
 
   const absoluteFrame = (x: number, y: number, width: number) => ({
     type: "absolute" as const,
     position: { x: ptTwips(x), y: ptTwips(y) },
     width: ptTwips(width),
+    wrap: FrameWrap.THROUGH,
     anchor: { horizontal: FrameAnchorType.PAGE, vertical: FrameAnchorType.PAGE },
   });
 
-  const info: Array<[string, string | null]> = [
-    ["Maître d’ouvrage", m.client],
-    ["Localisation", m.project.location],
-    ["Référence du dossier", m.project.reference],
-    ["Lot", m.lot],
-    ["Version", m.version !== null ? `${m.version}, du ${dateFr.format(m.date)}` : dateFr.format(m.date)],
-    ["Statut", m.status],
-    ["Phase", m.project.phase],
-    ["Établi par", m.company],
-  ];
-  const rows = info.filter((r): r is [string, string] => Boolean(r[1]));
-  const halfRows = Math.ceil(rows.length / 2);
+  const halfRows = Math.ceil(g.rows.length / 2);
+  const gridTwips = ptTwips(g.gridWidth);
   const none = { style: BorderStyle.NONE, size: 0, color: "auto" };
   const infoCell = (items: Array<[string, string]>) =>
     new TableCell({
@@ -294,8 +286,11 @@ export async function renderDocx(doc: DocModel, identity: DocumentIdentity, opti
       ]),
     });
 
+  // Titre et grille dans le flux de la page 1, l'un sous l'autre : aucune position absolue pour un texte variable.
+  const anchorHeight = 12;
   const cover: Array<Paragraph | Table> = [
     new Paragraph({
+      spacing: { after: 0, line: ptTwips(anchorHeight), lineRule: "exact" as never },
       children: [
         new ImageRun({
           type: "png",
@@ -311,10 +306,10 @@ export async function renderDocx(doc: DocModel, identity: DocumentIdentity, opti
         new ImageRun({
           type: "png",
           data: await archPng(pal),
-          transformation: { width: px(archW), height: px(archW * 1.2) },
+          transformation: { width: px(g.arch.width), height: px(g.arch.width * 1.2) },
           floating: {
-            horizontalPosition: { relative: HorizontalPositionRelativeFrom.PAGE, offset: emu(archX) },
-            verticalPosition: { relative: VerticalPositionRelativeFrom.PAGE, offset: emu(archY) },
+            horizontalPosition: { relative: HorizontalPositionRelativeFrom.PAGE, offset: emu(g.arch.x) },
+            verticalPosition: { relative: VerticalPositionRelativeFrom.PAGE, offset: emu(g.arch.y) },
             wrap: { type: TextWrappingType.NONE },
             behindDocument: true,
           },
@@ -327,43 +322,33 @@ export async function renderDocx(doc: DocModel, identity: DocumentIdentity, opti
       children: [new TextRun({ text: printable((m.project.phase ?? "Dossier de consultation").toUpperCase()), size: 14, characterSpacing: 28, color: hex(pal.muted) })],
     }),
     new Paragraph({
-      frame: absoluteFrame(archX + archW * 0.35, archY + archW * 1.2 * 0.68, archW * 0.3),
+      frame: absoluteFrame(g.arch.x + g.arch.width * 0.35, g.arch.y + g.arch.width * 1.2 * 0.68, g.arch.width * 0.3),
       alignment: AlignmentType.CENTER,
-      children: [new TextRun({ text: printable(m.shortLabel), font: SERIF, size: half(Math.min(26, (archW * 0.28) / (0.52 * Math.max(m.shortLabel.length, 1)))), color: hex(pal.primary) })],
+      children: [new TextRun({ text: printable(m.shortLabel), font: SERIF, size: half(Math.min(26, (g.arch.width * 0.28) / (0.52 * Math.max(m.shortLabel.length, 1)))), color: hex(pal.primary) })],
     }),
     new Paragraph({
-      frame: absoluteFrame(sidePt, pageH * 0.5, textW),
-      spacing: { after: 200 },
+      indent: { right: titleIndent },
+      spacing: { before: ptTwips(Math.max(g.top - (PAGE.marginTop * 72) / 25.4 - anchorHeight, 0)), after: 200 },
       children: [new TextRun({ text: printable(m.typeLabel.toUpperCase()), font: STRONG, size: half(TYPE.coverKicker), characterSpacing: 32, color: hex(pal.primary) })],
     }),
     new Paragraph({
-      frame: absoluteFrame(sidePt, pageH * 0.5, textW),
-      spacing: { after: 240, line: 250 },
-      children: runs([m.title], pal, { size: TYPE.coverTitle, font: SERIF }),
+      indent: { right: titleIndent },
+      spacing: { after: 240, line: Math.round(240 * 1.05) },
+      children: runs([m.title], pal, { size: g.titleSize, font: SERIF }),
     }),
     new Paragraph({
-      frame: absoluteFrame(sidePt, pageH * 0.5, textW),
-      spacing: { after: 160 },
+      indent: { right: titleIndent },
+      spacing: { after: m.disclaimer ? 120 : 440 },
       border: { bottom: { color: hex(pal.secondary), style: BorderStyle.SINGLE, size: 8, space: 10 } },
       children: runs([m.project.name], pal, { size: TYPE.coverProject }),
     }),
-    ...(m.disclaimer
-      ? [new Paragraph({ frame: absoluteFrame(sidePt, pageH * 0.5, textW), spacing: { before: 120 }, children: runs([m.disclaimer], pal, { size: 7.6, color: pal.muted }) })]
-      : []),
+    ...(m.disclaimer ? [new Paragraph({ indent: { right: titleIndent }, spacing: { before: 120, after: 440 }, children: runs([m.disclaimer], pal, { size: 7.6, color: pal.muted }) })] : []),
     new Table({
-      width: { size: contentTwips, type: WidthType.DXA },
-      columnWidths: [Math.round(contentTwips / 2), contentTwips - Math.round(contentTwips / 2)],
+      width: { size: gridTwips, type: WidthType.DXA },
+      columnWidths: [Math.round(gridTwips / 2), gridTwips - Math.round(gridTwips / 2)],
       borders: { top: none, bottom: none, left: none, right: none, insideHorizontal: none, insideVertical: none },
-      float: {
-        horizontalAnchor: "page",
-        verticalAnchor: "page",
-        absoluteHorizontalPosition: ptTwips(sidePt),
-        absoluteVerticalPosition: ptTwips(pageH * 0.69),
-      },
-      rows: [new TableRow({ children: [infoCell(rows.slice(0, halfRows)), infoCell(rows.slice(halfRows))] })],
-    } as ConstructorParameters<typeof Table>[0]),
-    // Un tableau flottant se place sur la page du paragraphe qui le suit : ce paragraphe reste en page 1.
-    new Paragraph({ children: [] }),
+      rows: [new TableRow({ cantSplit: true, children: [infoCell(g.rows.slice(0, halfRows)), infoCell(g.rows.slice(halfRows))] })],
+    }),
     new Paragraph({ pageBreakBefore: true, children: [] }),
   ];
 
@@ -477,17 +462,29 @@ export async function renderDocx(doc: DocModel, identity: DocumentIdentity, opti
       },
     ],
   });
-  const buffer = await Packer.toBuffer(document);
-  return pal.theme === "sombre" ? showBackground(buffer) : buffer;
+  return finish(await Packer.toBuffer(document), pal.theme === "sombre");
 }
 
-/** Word n'affiche la couleur de page que si les réglages le demandent (displayBackgroundShape). */
-async function showBackground(buffer: Buffer): Promise<Buffer> {
+/**
+ * Réglages complétés dans le fichier produit : contrôle des veuves et orphelines pour tous les paragraphes
+ * (propriété par défaut du document), affichage de la couleur de page en thème sombre (displayBackgroundShape).
+ */
+async function finish(buffer: Buffer, dark: boolean): Promise<Buffer> {
   const zip = await JSZip.loadAsync(buffer);
-  const settings = zip.file("word/settings.xml");
-  if (!settings) return buffer;
-  const xml = await settings.async("string");
-  if (xml.includes("displayBackgroundShape")) return buffer;
-  zip.file("word/settings.xml", xml.replace(/<w:settings([^>]*)>/, "<w:settings$1><w:displayBackgroundShape/>"));
+  const styles = zip.file("word/styles.xml");
+  if (styles) {
+    const xml = await styles.async("string");
+    if (!xml.includes("<w:widowControl")) {
+      const withDefault = /<w:pPrDefault>\s*<w:pPr>/.test(xml)
+        ? xml.replace(/<w:pPrDefault>(\s*)<w:pPr>/, "<w:pPrDefault>$1<w:pPr><w:widowControl/>")
+        : xml.replace(/<w:docDefaults>/, "<w:docDefaults><w:pPrDefault><w:pPr><w:widowControl/></w:pPr></w:pPrDefault>");
+      zip.file("word/styles.xml", withDefault);
+    }
+  }
+  if (dark) {
+    const settings = zip.file("word/settings.xml");
+    const xml = settings ? await settings.async("string") : null;
+    if (xml && !xml.includes("displayBackgroundShape")) zip.file("word/settings.xml", xml.replace(/<w:settings([^>]*)>/, "<w:settings$1><w:displayBackgroundShape/>"));
+  }
   return Buffer.from(await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" }));
 }
