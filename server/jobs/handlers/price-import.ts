@@ -25,10 +25,10 @@ const day = (iso: string | Date) => new Date(iso).toLocaleDateString("fr-FR", { 
 export function batchSummary(batch: Pick<BatchRow, "status" | "stats" | "message">): string {
   const s = batch.stats;
   const parts = [
-    s.publiees ? `${s.publiees} valeurs publiées` : null,
-    s.inchangees ? `${s.inchangees} inchangées` : null,
+    s.publiees ? `${s.publiees} ${s.publiees > 1 ? "valeurs publiées" : "valeur publiée"}` : null,
+    s.inchangees ? `${s.inchangees} ${s.inchangees > 1 ? "inchangées" : "inchangée"}` : null,
     s.quarantaine ? `${s.quarantaine} en quarantaine` : null,
-    s.rejetees ? `${s.rejetees} rejetées` : null,
+    s.rejetees ? `${s.rejetees} ${s.rejetees > 1 ? "rejetées" : "rejetée"}` : null,
   ].filter(Boolean);
   const labels: Partial<Record<PriceBatchStatus, string>> = { sans_changement: "aucun changement", echoue: "échec", a_publier: "lot à publier" };
   return parts.length ? parts.join(", ") : (labels[batch.status] ?? batch.status);

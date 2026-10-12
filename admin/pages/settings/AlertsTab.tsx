@@ -101,7 +101,7 @@ export function AlertsTab() {
           </div>
         </div>
         <Field
-          label="Ancienneté d’un prix à revoir (mois)"
+          label="Ancienneté d’un prix historique, en mois"
           type="number"
           min={1}
           max={120}
@@ -109,7 +109,7 @@ export function AlertsTab() {
           className="max-w-xs"
           value={String(values.stalePriceMonths)}
           onChange={(e) => setValues({ ...values, stalePriceMonths: Number(e.target.value) })}
-          hint="Au-delà, un prix de la bibliothèque est signalé comme ancien."
+          hint="Au-delà, un prix de la bibliothèque devient historique : consultable et choisi à la main, jamais appliqué d’office par les agents. Un salaire minimum ou une indemnité en vigueur le reste tant que sa source est revérifiée."
         />
       </div>
       <div className="mt-6 flex justify-end gap-2 border-t border-line pt-4">

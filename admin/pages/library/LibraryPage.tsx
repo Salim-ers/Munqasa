@@ -13,7 +13,8 @@ import {
   RELIABILITY_LABELS,
   VALIDATION_STATUS_LABELS,
 } from "../../../shared/enums";
-import { defaultReliability, isStalePrice } from "../../../shared/prices";
+import { DEFAULT_LOTS } from "../../../shared/lots";
+import { defaultReliability, isHistoricalPrice } from "../../../shared/prices";
 import { priceItemInput, priceTaxIssue } from "../../../shared/schemas";
 import type { AlertSettings } from "../../../shared/settings";
 import { TRADE_FAMILIES, tradeLabel } from "../../../shared/trades";
@@ -46,7 +47,7 @@ const KEY = ["library"] as const;
 const col = createColumnHelper<PriceItem>();
 const statusTone = { a_verifier: "warning", verifie: "success", rejete: "neutral" } as const;
 /** Paramètres d'adresse des filtres, repris tels quels par la liste et les exports. */
-const FILTER_KEYS = ["q", "pays", "nature", "statut", "source", "region", "ville", "fiabilite", "portee", "valeur", "famille", "min", "max", "depuis", "anciens", "archives"] as const;
+const FILTER_KEYS = ["q", "pays", "nature", "lot", "statut", "source", "region", "ville", "fiabilite", "portee", "valeur", "famille", "min", "max", "depuis", "anciens", "archives"] as const;
 const ADVANCED_KEYS = ["portee", "valeur", "famille", "min", "max", "depuis"] as const;
 
 /** Liste déroulante compacte des barres de filtres. */
@@ -226,7 +227,7 @@ export function LibraryPage() {
       cell: (info) => (
         <div className="whitespace-nowrap">
           <p className="text-ink-2">{whenLabel(info.row.original)}</p>
-          {isStalePrice(info.getValue(), staleMonths) ? <p className="text-2xs text-warning">Ancien, à revoir</p> : <p className="text-2xs text-ink-3">{COUNTRY_LABELS[info.row.original.country]}</p>}
+          {isHistoricalPrice(info.row.original, staleMonths) ? <p className="text-2xs text-warning">Historique, jamais appliqué d’office</p> : <p className="text-2xs text-ink-3">{COUNTRY_LABELS[info.row.original.country]}</p>}
         </div>
       ),
     }),
@@ -332,13 +333,14 @@ export function LibraryPage() {
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
             <FilterSelect label="Toutes sources" value={filters.source} onChange={(v) => list.set({ source: v })} options={sourceOptions} />
             <FilterSelect label="Toutes natures" value={filters.nature} onChange={(v) => list.set({ nature: v })} options={optionsOf(PRICE_KIND_LABELS)} />
+            <FilterSelect label="Tous lots" value={filters.lot} onChange={(v) => list.set({ lot: v })} options={DEFAULT_LOTS.map((l) => ({ value: l.number, label: `${l.number} ${l.name}` }))} />
             {(facets.data?.regions.length ?? 0) > 0 ? (
               <FilterSelect label="Toutes régions" value={filters.region} onChange={(v) => list.set({ region: v, ville: null })} options={(facets.data?.regions ?? []).map((r) => ({ value: r, label: r }))} />
             ) : null}
             {cities.length > 0 ? <FilterSelect label="Toutes villes" value={filters.ville} onChange={(v) => list.set({ ville: v })} options={cities.map((c) => ({ value: c.city, label: c.city }))} /> : null}
             <FilterSelect label="Toutes fiabilités" value={filters.fiabilite} onChange={(v) => list.set({ fiabilite: v })} options={optionsOf(RELIABILITY_LABELS)} />
             <FilterSelect label="Tous statuts" value={filters.statut} onChange={(v) => list.set({ statut: v })} options={optionsOf(VALIDATION_STATUS_LABELS)} />
-            <FilterSelect label="Toutes dates" value={filters.anciens} onChange={(v) => list.set({ anciens: v })} options={[{ value: "1", label: staleMonths ? `Plus de ${staleMonths} mois` : "Prix anciens" }]} />
+            <FilterSelect label="Toutes dates" value={filters.anciens} onChange={(v) => list.set({ anciens: v })} options={[{ value: "1", label: staleMonths ? `Historiques, plus de ${staleMonths} mois` : "Prix historiques" }]} />
             <Button size="sm" variant="ghost" icon={<SlidersHorizontal className="size-3.5" />} onClick={() => setAdvanced((v) => !v)} aria-expanded={advanced} className="col-span-2 justify-self-start sm:col-span-1">
               {advanced ? "Moins de filtres" : "Plus de filtres"}
             </Button>
@@ -406,7 +408,7 @@ export function LibraryPage() {
                     {VALIDATION_STATUS_LABELS[p.verificationStatus]}
                   </Badge>
                   {p.reliability ? <Badge tone={reliabilityTone[p.reliability]}>{`Fiabilité ${RELIABILITY_LABELS[p.reliability].toLowerCase()}`}</Badge> : null}
-                  {isStalePrice(p.priceDate, staleMonths) ? <Badge tone="warning">Ancien</Badge> : null}
+                  {isHistoricalPrice(p, staleMonths) ? <Badge tone="warning">Historique</Badge> : null}
                 </div>
               </button>
               {p.verificationStatus !== "verifie" ? <Button size="sm" variant="ghost" icon={<Check className="size-3.5" />} onClick={() => verify.mutate({ id: p.id, status: "verifie" })} aria-label={`Marquer ${p.designation} comme vérifié`} /> : null}

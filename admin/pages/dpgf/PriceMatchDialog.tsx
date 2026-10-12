@@ -27,6 +27,7 @@ interface Candidate {
   zone: string | null;
   sourceName: string | null;
   verified: boolean;
+  historical: boolean;
 }
 
 interface Match {
@@ -73,6 +74,8 @@ export function PriceMatchDialog({ dpgfId, currency, open, onOpenChange, onAppli
   });
   const items = matches.data?.items ?? [];
   const withCandidates = items.filter((m) => m.candidates.length > 0);
+  // Choix groupé : le premier prix proposé qui n'est pas historique ; un prix historique ne se retient qu'un par un.
+  const firstChoices = () => Object.fromEntries(withCandidates.flatMap((m) => (m.candidates.find((c) => !c.historical) ? [[m.lineId, m.candidates.find((c) => !c.historical)!.id]] : [])));
   const chosen = Object.values(choices).filter(Boolean).length;
   const errorOf = (lineId: string) => errors.find((e) => e.lineId === lineId)?.message;
 
@@ -85,7 +88,7 @@ export function PriceMatchDialog({ dpgfId, currency, open, onOpenChange, onAppli
       size="lg"
       footer={
         <>
-          <Button variant="secondary" disabled={withCandidates.length === 0} onClick={() => setChoices(Object.fromEntries(withCandidates.map((m) => [m.lineId, m.candidates[0]!.id])))}>
+          <Button variant="secondary" disabled={withCandidates.length === 0} onClick={() => setChoices(firstChoices())}>
             Retenir le premier prix proposé
           </Button>
           <Button disabled={chosen === 0} loading={apply.isPending} onClick={() => apply.mutate()}>
@@ -144,6 +147,11 @@ export function PriceMatchDialog({ dpgfId, currency, open, onOpenChange, onAppli
                             {cand.reliability ? (
                               <Badge tone={reliabilityTone[cand.reliability]} className="mt-1">
                                 {`Fiabilité ${RELIABILITY_LABELS[cand.reliability].toLowerCase()}`}
+                              </Badge>
+                            ) : null}
+                            {cand.historical ? (
+                              <Badge tone="warning" className="mt-1 ml-1">
+                                Historique, à confirmer
                               </Badge>
                             ) : null}
                           </span>

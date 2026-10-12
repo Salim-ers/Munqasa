@@ -5,6 +5,7 @@
  */
 import { and, eq, inArray } from "drizzle-orm";
 import type { DocumentType, IssueCategory, IssueSeverity } from "../../shared/enums.js";
+import { isHistoricalPrice } from "../../shared/prices.js";
 import type { CctpBlock } from "../ai/schemas.js";
 import { type Database, schema } from "../db/index.js";
 import { lossesAlreadyIncluded } from "./pricing.js";
@@ -180,15 +181,12 @@ export async function checkDpgf(db: Database, dpgfId: string): Promise<IssueDraf
   if (priceIds.length) {
     const prices = await db.select().from(schema.priceItem).where(inArray(schema.priceItem.id, priceIds));
     const { stalePriceMonths } = await readSetting("alertes");
-    const stale = new Date();
-    stale.setMonth(stale.getMonth() - stalePriceMonths);
-    const staleDate = stale.toISOString().slice(0, 10);
     for (const p of postes) {
       const price = prices.find((x) => x.id === p.priceItemId);
       if (!price) continue;
       if (price.archivedAt) issues.push({ severity: "majeure", category: "source_manquante", message: `Prix de bibliothèque archivé : ${price.designation}, poste ${label(p)}`, targets: target(p.id) });
       if (price.verificationStatus === "a_verifier") issues.push({ severity: "mineure", category: "source_manquante", message: `Prix de bibliothèque à vérifier : ${price.designation}, poste ${label(p)}`, targets: target(p.id) });
-      if (price.priceDate < staleDate) issues.push({ severity: "mineure", category: "version", message: `Prix de bibliothèque de plus de ${stalePriceMonths} mois : ${price.designation}, ${price.period ?? price.priceDate.split("-").reverse().join("/")}, poste ${label(p)}`, targets: target(p.id) });
+      if (isHistoricalPrice(price, stalePriceMonths)) issues.push({ severity: "mineure", category: "version", message: `Prix historique de la bibliothèque, plus de ${stalePriceMonths} mois : ${price.designation}, ${price.period ?? price.priceDate.split("-").reverse().join("/")}, poste ${label(p)}`, targets: target(p.id) });
       if (price.reliability === "faible") issues.push({ severity: "mineure", category: "reserve", message: `Prix de bibliothèque de fiabilité faible : ${price.designation}, poste ${label(p)}`, targets: target(p.id) });
     }
   }
@@ -212,9 +210,6 @@ export async function checkBreakdowns(db: Database, dpgfId: string): Promise<Iss
   const itemIds = [...new Set(components.map((c) => c.priceItemId).filter((v): v is string => Boolean(v)))];
   const items = itemIds.length ? await db.select().from(schema.priceItem).where(inArray(schema.priceItem.id, itemIds)) : [];
   const { stalePriceMonths } = await readSetting("alertes");
-  const stale = new Date();
-  stale.setMonth(stale.getMonth() - stalePriceMonths);
-  const staleDate = stale.toISOString().slice(0, 10);
   const issues: IssueDraft[] = [];
   const label = (l: { code: string | null; designation: string }) => [l.code, l.designation].filter(Boolean).join(" ");
 
@@ -246,7 +241,7 @@ export async function checkBreakdowns(db: Database, dpgfId: string): Promise<Iss
       const item = items.find((i) => i.id === c.priceItemId);
       if (!item) continue;
       if (item.verificationStatus === "a_verifier") issues.push({ severity: "mineure", category: "source_manquante", message: `Prix à vérifier utilisé : ${item.designation}, poste ${label(line)}`, targets: target });
-      if (item.priceDate < staleDate) issues.push({ severity: "mineure", category: "version", message: `Prix de plus de ${stalePriceMonths} mois : ${item.designation} du ${item.priceDate.split("-").reverse().join("/")}, poste ${label(line)}`, targets: target });
+      if (isHistoricalPrice(item, stalePriceMonths)) issues.push({ severity: "mineure", category: "version", message: `Prix historique, plus de ${stalePriceMonths} mois : ${item.designation} du ${item.priceDate.split("-").reverse().join("/")}, poste ${label(line)}`, targets: target });
       if (item.archivedAt) issues.push({ severity: "majeure", category: "source_manquante", message: `Prix archivé utilisé : ${item.designation}, poste ${label(line)}`, targets: target });
     }
     if (b.locked && b.computedUnitPrice !== null) {

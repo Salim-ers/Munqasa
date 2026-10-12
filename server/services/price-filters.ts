@@ -2,7 +2,7 @@
  * Filtres de la bibliothèque de prix, communs à la liste, aux exports et aux contrôles : les paramètres
  * d'adresse (en français) sont validés un par un, une valeur inconnue est ignorée.
  */
-import { and, eq, gte, ilike, isNotNull, isNull, lt, lte, or, sql, type SQL } from "drizzle-orm";
+import { and, eq, gte, ilike, inArray, isNotNull, isNull, lte, or, sql, type SQL } from "drizzle-orm";
 import {
   COUNTRIES,
   CURRENCIES,
@@ -19,6 +19,7 @@ import {
   VALIDATION_STATUSES,
   type ValidationStatus,
 } from "../../shared/enums.js";
+import { LOT_PRICE_SCOPES } from "../../shared/lots.js";
 import { TRADE_KEYS } from "../../shared/trades.js";
 import { schema } from "../db/index.js";
 
@@ -37,11 +38,29 @@ export interface PriceFilters {
   scope?: PriceScope | null;
   valueStatus?: PriceValueStatus | null;
   tradeFamily?: string | null;
+  /** Lot de la nomenclature par défaut (« 17 ») : famille et sous-familles de prix qui lui sont rattachées. */
+  lot?: string | null;
   minPrice?: string | null;
   maxPrice?: string | null;
   since?: string | null;
-  /** Prix antérieurs à cette date (seuil d'ancienneté des paramètres d'alerte). */
+  /** Prix historiques à cette date (seuil d'ancienneté des paramètres d'alerte). */
   staleBefore?: string | null;
+}
+
+/**
+ * Prix historique au seuil donné : date de valeur antérieure ; pour une valeur réglementaire, en vigueur
+ * jusqu'à son remplacement, dernière vérification contre sa source antérieure.
+ */
+export function historicalSql(before: string): SQL {
+  const p = schema.priceItem;
+  return sql`(case when ${p.regulated} then coalesce((${p.verifiedAt})::date, ${p.priceDate}) < ${before}::date else ${p.priceDate} < ${before}::date end)`;
+}
+
+/** Date limite d'ancienneté pour un seuil en mois. */
+export function historicalLimit(months: number, today = new Date()): string {
+  const limit = new Date(today);
+  limit.setMonth(limit.getMonth() - months);
+  return limit.toISOString().slice(0, 10);
 }
 
 const pick = <T extends string>(value: string | undefined, allowed: readonly T[]): T | null => (value && (allowed as readonly string[]).includes(value) ? (value as T) : null);
@@ -54,12 +73,7 @@ const isoDate = (value: string | undefined) => (value && /^\d{4}-\d{2}-\d{2}$/.t
 
 /** Filtres lus dans les paramètres d'adresse ; « anciens » demande le seuil d'ancienneté en mois. */
 export function parsePriceFilters(q: Record<string, string | undefined>, staleMonths?: number): PriceFilters {
-  let staleBefore: string | null = null;
-  if (q.anciens === "1" && staleMonths) {
-    const limit = new Date();
-    limit.setMonth(limit.getMonth() - staleMonths);
-    staleBefore = limit.toISOString().slice(0, 10);
-  }
+  const staleBefore = q.anciens === "1" && staleMonths ? historicalLimit(staleMonths) : null;
   return {
     q: text(q.q, 200),
     country: pick(q.pays, COUNTRIES),
@@ -74,6 +88,7 @@ export function parsePriceFilters(q: Record<string, string | undefined>, staleMo
     scope: pick(q.portee, PRICE_SCOPES),
     valueStatus: pick(q.valeur, PRICE_VALUE_STATUSES),
     tradeFamily: pick(q.famille, TRADE_KEYS),
+    lot: q.lot && LOT_PRICE_SCOPES[q.lot] ? q.lot : null,
     minPrice: amount(q.min),
     maxPrice: amount(q.max),
     since: isoDate(q.depuis),
@@ -100,9 +115,14 @@ export function priceWhere(f: PriceFilters): SQL {
   if (f.scope) where.push(eq(p.priceScope, f.scope));
   if (f.valueStatus) where.push(eq(p.valueStatus, f.valueStatus));
   if (f.tradeFamily) where.push(eq(p.tradeFamily, f.tradeFamily));
+  if (f.lot) {
+    const scope = LOT_PRICE_SCOPES[f.lot]!;
+    where.push(eq(p.tradeFamily, scope.tradeFamily));
+    if (scope.subFamilies) where.push(scope.nonClasses ? or(inArray(p.subFamily, scope.subFamilies), isNull(p.subFamily))! : inArray(p.subFamily, scope.subFamilies));
+  }
   if (f.minPrice) where.push(gte(p.unitPrice, f.minPrice));
   if (f.maxPrice) where.push(lte(p.unitPrice, f.maxPrice));
   if (f.since) where.push(gte(p.priceDate, f.since));
-  if (f.staleBefore) where.push(lt(p.priceDate, f.staleBefore));
+  if (f.staleBefore) where.push(historicalSql(f.staleBefore));
   return and(...where)!;
 }

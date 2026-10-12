@@ -15,6 +15,7 @@ import { auditAction } from "../../services/audit.js";
 import { computeTotals, lineAmount, renumber } from "../../services/dpgf.js";
 import { exclTax, findCandidates } from "../../services/pricing.js";
 import { checkDpgf, hasBlockingIssues, replaceIssues } from "../../services/quality.js";
+import { readSetting } from "../../services/settings.js";
 import { sameUnit } from "../../services/units.js";
 import { listVersions, snapshotDpgf } from "../../services/versions.js";
 import { body, conflict, notFound, patchBody, uuidParam, ValidationError } from "../validate.js";
@@ -72,9 +73,11 @@ export const dpgfRoutes = new Hono<AdminEnv>()
     const wanted = new Set(data.lineIds ?? []);
     const targets = postes.filter((line) => (wanted.size ? wanted.has(line.id) : true) && (!data.onlyUnpriced || line.unitPrice === null));
     const items = [];
+    // Les prix historiques restent proposés, signalés : seul un choix explicite les applique.
+    const { stalePriceMonths } = await readSetting("alertes");
     for (const line of targets.slice(0, MATCH_LIMIT)) {
       const candidates = line.unit
-        ? (await findCandidates(db, { text: `${line.designation} ${line.description ?? ""}`, currency: doc.currency, country: project!.country, city: project!.city, limit: 15, purpose: "ligne" })).filter((cand) => sameUnit(cand.unit, line.unit)).slice(0, 5)
+        ? (await findCandidates(db, { text: `${line.designation} ${line.description ?? ""}`, currency: doc.currency, country: project!.country, city: project!.city, limit: 15, purpose: "ligne", staleMonths: stalePriceMonths })).filter((cand) => sameUnit(cand.unit, line.unit)).slice(0, 5)
         : [];
       items.push({ lineId: line.id, code: line.code, designation: line.designation, unit: line.unit, quantity: line.quantity, unitPrice: line.unitPrice, priceSource: line.priceSource, candidates });
     }

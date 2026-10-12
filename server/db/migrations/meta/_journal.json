@@ -64,6 +64,13 @@
       "when": 1791801224249,
       "tag": "0008_catalogue_des_lots",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791804732129,
+      "tag": "0009_valeurs_reglementaires",
+      "breakpoints": true
     }
   ]
 }

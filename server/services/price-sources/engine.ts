@@ -269,6 +269,7 @@ function itemValues(rec: SourceRecord, source: SourceRow, batchId: string, now: 
     sampleSize: rec.sampleSize,
     aggregation: rec.aggregation,
     series: rec.series,
+    regulated: rec.regulated ?? false,
     verifiedAt: now,
     importBatchId: batchId,
   };
@@ -320,6 +321,7 @@ async function writeRecords(db: Database, source: SourceRow, batch: BatchRow, it
           sampleSize: excluded("sample_size"),
           aggregation: excluded("aggregation"),
           series: excluded("series"),
+          regulated: excluded("regulated"),
           verifiedAt: excluded("verified_at"),
           // Une nouvelle valeur doit être revue ; une valeur inchangée garde sa validation.
           verificationStatus: sql`case when ${p.unitPrice} <> excluded."unit_price" or ${p.unit} <> excluded."unit" then 'a_verifier'::validation_status else ${p.verificationStatus} end`,

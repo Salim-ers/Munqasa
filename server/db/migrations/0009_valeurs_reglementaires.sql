@@ -1,0 +1,1 @@
+ALTER TABLE "price_item" ADD COLUMN "regulated" boolean DEFAULT false NOT NULL;

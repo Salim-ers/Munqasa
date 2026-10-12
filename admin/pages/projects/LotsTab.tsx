@@ -4,6 +4,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { LotPickerDialog } from "../../components/LotPicker";
+import { lotPriceScope } from "../../../shared/lots";
 import { projectLotInput } from "../../../shared/schemas";
 import { TRADE_FAMILIES, tradeLabel } from "../../../shared/trades";
 import { Button } from "../../components/ui/Button";
@@ -25,6 +26,12 @@ function nextCode(lots: Lot[]): string {
     if (!used.has(code)) return code;
   }
   return "";
+}
+
+/** Filtre de la bibliothèque pour un lot : son lot de la nomenclature par défaut, sinon sa famille de corps d'état. */
+function libraryFilter(lot: Lot): string {
+  const scope = lotPriceScope(lot);
+  return scope.lot ? `lot=${scope.lot}` : `famille=${encodeURIComponent(scope.tradeFamily)}`;
 }
 
 /** Lots dans l'ordre de lecture : chaque sous-lot sous son lot. */
@@ -81,7 +88,7 @@ export function LotsTab({ projectId, lots }: { projectId: string; lots: Lot[] })
               </div>
               <ActionMenu
                 actions={[
-                  { label: "Prix de ce corps d’état", icon: <Library />, onSelect: () => navigate(`/administration/bibliotheque?famille=${encodeURIComponent(lot.tradeFamily)}`) },
+                  { label: "Prix de ce lot", icon: <Library />, onSelect: () => navigate(`/administration/bibliotheque?${libraryFilter(lot)}`) },
                   { label: "Modifier", icon: <Pencil />, onSelect: () => setEditing(lot) },
                   ...(lots.length > 1 ? [{ label: "Fusionner avec un autre lot", icon: <Combine />, onSelect: () => setMerging(lot) }] : []),
                   { label: "Supprimer", icon: <Trash2 />, tone: "danger" as const, onSelect: () => setDeleting(lot) },

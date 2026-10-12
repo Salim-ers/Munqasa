@@ -19,7 +19,8 @@ export interface SourceRecord {
   designation: string;
   description: string;
   kind: PriceKind;
-  scope: PriceScope;
+  /** Portée d'un prix d'achat ou d'ouvrage ; sans objet (nulle) pour un salaire ou une indemnité. */
+  scope: PriceScope | null;
   unit: string;
   unitPrice: string;
   currency: Currency;
@@ -42,6 +43,8 @@ export interface SourceRecord {
   sourceRef: string;
   sourceUrl: string;
   attributes: Record<string, string>;
+  /** Valeur réglementaire ou conventionnelle (salaire minimum, indemnité) : en vigueur jusqu'à son remplacement. */
+  regulated?: boolean;
 }
 
 /** Ressource suivie d'une source : adresse, empreinte et date de lecture. */
@@ -109,6 +112,19 @@ export function isStalePrice(priceDate: string, months: number | null | undefine
   const limit = new Date(today);
   limit.setMonth(limit.getMonth() - months);
   return priceDate < limit.toISOString().slice(0, 10);
+}
+
+/**
+ * Prix historique : plus ancien que le seuil d'ancienneté. Il reste consultable et peut être choisi
+ * explicitement, mais n'alimente jamais d'office un chiffrage. Une valeur réglementaire (salaire minimum,
+ * indemnité d'accord collectif) reste en vigueur jusqu'à son remplacement : elle n'est historique que si sa
+ * source n'a pas été revérifiée depuis le seuil.
+ */
+export function isHistoricalPrice(price: { priceDate: string; regulated?: boolean | null; verifiedAt?: string | Date | null }, months: number | null | undefined, today = new Date()): boolean {
+  if (!months) return false;
+  if (!price.regulated) return isStalePrice(price.priceDate, months, today);
+  const checked = price.verifiedAt ? new Date(price.verifiedAt).toISOString().slice(0, 10) : price.priceDate;
+  return isStalePrice(checked, months, today);
 }
 
 /** Seuls ces prix peuvent chiffrer directement une ligne de DPGF ; les autres servent aux sous-détails. */

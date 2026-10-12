@@ -6,15 +6,20 @@
 import type { Country } from "../../../shared/enums.js";
 import type { SourceRecord } from "../../../shared/prices.js";
 import { ADEME_TABLES, type AdemeTable, parseAdeme } from "./ademe.js";
+import { parseCarburants } from "./carburants.js";
 import { parseCdc } from "./cdc.js";
 import { decodeText } from "./common.js";
+import { type KaliIdcc, parseKali } from "./kali.js";
 import { parseMatnuhpv } from "./matnuhpv.js";
+import { parseSmig } from "./smig.js";
 
 export interface ResourceSpec {
   url: string;
   title: string;
   /** Table de la source portée par la ressource (ADEME). */
   table?: AdemeTable;
+  /** Rôle de la ressource dans la source : convention collective lue (« 1597 »), série du SMIC (« smic »). */
+  role?: string;
 }
 
 export interface FetchedResource extends ResourceSpec {
@@ -41,9 +46,12 @@ export interface SourceDefinition {
 }
 
 const ODBL = { license: "Open Data Commons Open Database License (ODbL)", licenseUrl: "https://opendatacommons.org/licenses/odbl/1-0/" };
+const OFFICIAL_MA = { license: "Texte officiel, non protégé par le droit d’auteur (loi n° 2-00, article 8)", licenseUrl: "https://www.wipo.int/wipolex/fr/legislation/details/5058" };
 const ETALAB = { license: "Licence Ouverte version 2.0 (Etalab)", licenseUrl: "https://www.etalab.gouv.fr/licence-ouverte-open-licence/" };
 
 const DATA_GOV_MA = "https://data.gov.ma/data/fr/dataset";
+const KALI_DATA = "https://raw.githubusercontent.com/SocialGouv/kali-data/master/data";
+const SGG_BO = "https://www.sgg.gov.ma/BO/AR/3111";
 const matnuhpvResource = (dataset: string, resource: string, file: string, title: string): ResourceSpec => ({
   url: `${DATA_GOV_MA}/${dataset}/resource/${resource}/download/${file}`,
   title,
@@ -113,6 +121,70 @@ export const SOURCES: SourceDefinition[] = [
       },
     ],
     parse: async (files) => (files[0] ? parseCdc({ url: files[0].url, title: files[0].title, text: decodeText(files[0].data) }) : []),
+  },
+  {
+    key: "salaires-btp",
+    name: "Salaires minimaux et indemnités de petits déplacements du BTP",
+    publisher: "Direction de l’information légale et administrative, base KALI de Légifrance, et Insee (France)",
+    country: "FR",
+    homepage: "https://www.data.gouv.fr/datasets/kali-conventions-collectives-nationales",
+    ...ETALAB,
+    description: "Accords régionaux et départementaux en vigueur des conventions collectives du BTP : salaires minimaux des ouvriers du bâtiment, des ouvriers des travaux publics et des ETAM du bâtiment, indemnités de repas, de trajet et de transport des ouvriers par zone ; SMIC horaire comme plancher légal.",
+    method: "Pour chaque convention, zone d’accord et nature, texte le plus récent déjà en vigueur, lu dans la copie JSON de la base KALI publiée par la Fabrique numérique des ministères sociaux ; barème à venir mentionné en note. Salaire ramené à l’heure sur 151,67 heures par mois ou 1 820 heures par an, porté au SMIC horaire quand il lui est inférieur. SMIC : série 000822484 de l’Insee, réutilisation libre, source citée. Tableau dont la structure n’est pas reconnue avec certitude écarté, jamais deviné.",
+    coverage: "Ouvriers du bâtiment des entreprises de plus de 10 salariés, IDCC 1597 ; ouvriers des travaux publics, IDCC 1702 ; ETAM du bâtiment, IDCC 2609 ; dans toutes les régions de France métropolitaine où un accord récent est publié. Minima bruts hors charges sociales, jamais des taux de facturation.",
+    refreshDays: 30,
+    maxVariation: 30,
+    resources: [
+      { url: `${KALI_DATA}/KALICONT000005635220.json`, title: "Ouvriers du bâtiment, entreprises de plus de 10 salariés, IDCC 1597", role: "1597" },
+      { url: `${KALI_DATA}/KALICONT000005635467.json`, title: "Ouvriers des travaux publics, IDCC 1702", role: "1702" },
+      { url: `${KALI_DATA}/KALICONT000018773893.json`, title: "ETAM du bâtiment, IDCC 2609", role: "2609" },
+      { url: "https://bdm.insee.fr/series/sdmx/data/SERIES_BDM/000822484", title: "SMIC horaire brut, série Insee 000822484", role: "smic" },
+    ],
+    parse: async (files) => {
+      const conventions = files
+        .filter((f) => f.role === "1597" || f.role === "1702" || f.role === "2609")
+        .map((f) => ({ url: f.url, title: f.title, idcc: f.role as KaliIdcc, json: JSON.parse(decodeText(f.data)) as unknown }));
+      const smic = files.find((f) => f.role === "smic");
+      return parseKali(conventions, smic ? { url: smic.url, title: smic.title, xml: decodeText(smic.data) } : null);
+    },
+  },
+  {
+    key: "carburants-prix",
+    name: "Prix des carburants à la pompe",
+    publisher: "Direction générale de la concurrence, de la consommation et de la répression des fraudes (France)",
+    country: "FR",
+    homepage: "https://data.economie.gouv.fr/explore/dataset/prix-des-carburants-en-france-flux-instantane-v2/",
+    ...ETALAB,
+    description: "Prix affichés à la pompe par près de 10 000 stations de France métropolitaine, mis à jour en continu : gazole et sans-plomb 95-E10, carburants des engins et véhicules de chantier.",
+    method: "Prix mis à jour dans les sept jours précédant le relevé le plus récent, hors affichages invraisemblables ; médiane et quartiles par région et pour la France métropolitaine, à partir de 20 stations. Prix TTC, TVA de 20 % ou de 13 % en Corse et accise sur les énergies comprises.",
+    coverage: "Gazole et sans-plomb 95-E10, 13 régions métropolitaines et ensemble de la métropole. Intrant des sous-détails de matériel et de transport, jamais un prix d’ouvrage.",
+    refreshDays: 7,
+    maxVariation: 30,
+    resources: [
+      {
+        url: "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/exports/csv?select=id,gazole_prix,gazole_maj,e10_prix,e10_maj,code_region,region&delimiter=%3B",
+        title: "Flux instantané, export CSV",
+      },
+    ],
+    parse: async (files) => (files[0] ? parseCarburants({ url: files[0].url, title: files[0].title, text: decodeText(files[0].data) }) : []),
+  },
+  {
+    key: "smig-maroc",
+    name: "Salaire minimum légal des activités non agricoles",
+    publisher: "Secrétariat général du Gouvernement, Bulletin officiel (Maroc)",
+    country: "MA",
+    homepage: "https://www.sgg.gov.ma/arabe/BulletinOfficiel.aspx",
+    ...OFFICIAL_MA,
+    description: "Montant horaire du salaire minimum légal des activités non agricoles, le SMIG, fixé par décret et publié au Bulletin officiel.",
+    method: "Montant et date d’effet repris de l’article du décret qui fixe le salaire minimum pour l’heure de travail dans les activités non agricoles, lu dans l’édition arabe du Bulletin officiel ; un décret par point de la série. Un nouveau décret s’ajoute en complétant les ressources de la source.",
+    coverage: "SMIG horaire national. Plancher légal, hors charges sociales, congés et frais : jamais un coût de main-d’œuvre de chantier.",
+    refreshDays: 90,
+    maxVariation: 30,
+    resources: [
+      { url: `${SGG_BO}/2025/BO_7469_Ar.pdf`, title: "Décret n° 2.25.983, Bulletin officiel n° 7469 du 29 décembre 2025" },
+      { url: `${SGG_BO}/2025/BO_7367_Ar.pdf`, title: "Décret n° 2.24.1122, Bulletin officiel n° 7367 du 6 janvier 2025" },
+    ],
+    parse: (files) => parseSmig(files.map((f) => ({ url: f.url, title: f.title, data: f.data }))),
   },
 ];
 

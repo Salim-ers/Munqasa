@@ -1,5 +1,27 @@
 /** Outils des lecteurs de sources : statistiques (médiane, quartiles), clés stables, dates, CSV. */
 
+/** Régions françaises par code officiel géographique, noms communs à toutes les sources. */
+export const FR_REGIONS: Record<string, string> = {
+  "1": "Guadeloupe",
+  "2": "Martinique",
+  "3": "Guyane",
+  "4": "La Réunion",
+  "6": "Mayotte",
+  "11": "Île-de-France",
+  "24": "Centre-Val de Loire",
+  "27": "Bourgogne-Franche-Comté",
+  "28": "Normandie",
+  "32": "Hauts-de-France",
+  "44": "Grand Est",
+  "52": "Pays de la Loire",
+  "53": "Bretagne",
+  "75": "Nouvelle-Aquitaine",
+  "76": "Occitanie",
+  "84": "Auvergne-Rhône-Alpes",
+  "93": "Provence-Alpes-Côte d’Azur",
+  "94": "Corse",
+};
+
 /** Quantile d'une série triée (interpolation linéaire entre rangs, méthode usuelle des tableurs). */
 export function quantile(sorted: number[], p: number): number {
   if (sorted.length === 0) throw new Error("Série vide.");

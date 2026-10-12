@@ -375,7 +375,7 @@ describe("Rapprochement d'une DPGF avec la bibliothèque", () => {
     expect(line!.priceSource).toMatch(/^Bibliothèque : Isolation des combles perdus en laine minérale, fourniture et pose, valeur 2009 à 2018, Coûts des travaux de rénovation énergétique$/);
     // Le contrôle qualité signale un prix de bibliothèque à vérifier et ancien.
     const issues = await db.select().from(schema.qualityIssue).where(eq(schema.qualityIssue.documentId, dpgf!.id));
-    expect(issues.map((i) => i.message)).toEqual(expect.arrayContaining([expect.stringMatching(/^Prix de bibliothèque à vérifier : Isolation des combles/), expect.stringMatching(/^Prix de bibliothèque de plus de \d+ mois/)]));
+    expect(issues.map((i) => i.message)).toEqual(expect.arrayContaining([expect.stringMatching(/^Prix de bibliothèque à vérifier : Isolation des combles/), expect.stringMatching(/^Prix historique de la bibliothèque, plus de \d+ mois/)]));
   });
 });
 

@@ -25,6 +25,11 @@ estimée) et son statut de validation professionnelle. Toute nouvelle valeur est
   n'est jamais utilisé pour chiffrer.
 - Un prix de matériau (fourniture seule) ne chiffre jamais directement une ligne de DPGF : il sert aux
   sous-détails. Un ratio d'opération ne chiffre ni une ligne ni un composant : il sert à l'estimation globale.
+- Un prix historique n'alimente jamais d'office un chiffrage (voir plus bas) ; un salaire minimum ou une
+  indemnité conventionnelle n'est jamais repris tel quel comme coût horaire par un agent : c'est une base de
+  calcul du déboursé, que l'économiste établit avec ses charges.
+- Les prix utilisés dans une affaire sont des instantanés : une mise à jour de la bibliothèque ne modifie ni une
+  ligne de DPGF, ni un composant de sous-détail, ni un devis déjà chiffrés.
 
 ## Sources publiques
 
@@ -98,21 +103,105 @@ programmes entiers : ils servent à l'estimation globale, jamais au prix d'une l
 Au premier chargement, les deux ratios de réhabilitation de la Nouvelle-Calédonie, près de quatre fois la
 médiane des autres régions, restent en quarantaine jusqu'à décision.
 
-### Bilan
+### France : salaires minimaux et indemnités de petits déplacements du BTP
 
-| Pays | Prix publiés | Références distinctes | Nature |
-| --- | --- | --- | --- |
-| Maroc | 7 392 | 84 matériaux | fourniture seule, TTC |
-| France | 39 | 24 types de travaux | fourniture et pose, HT |
-| France | 74 | 4 ratios | ratios d'opération |
+- Producteurs : Direction de l'information légale et administrative (base KALI des conventions collectives,
+  Légifrance), lue dans la copie JSON que publie la Fabrique numérique des ministères sociaux ; Insee pour le SMIC.
+- Licence : Licence Ouverte version 2.0 (KALI) ; données de l'Insee réutilisables librement, y compris à des fins
+  commerciales, source citée.
+- Ressources : les conventions des ouvriers du bâtiment des entreprises de plus de 10 salariés (IDCC 1597), des
+  ouvriers des travaux publics (IDCC 1702) et des ETAM du bâtiment (IDCC 2609), avec leurs accords régionaux et
+  départementaux de salaires ; série 000822484 de l'Insee, montant du SMIC brut horaire.
+- Méthode : pour chaque convention, chaque zone d'accord et chaque nature (salaires, indemnités), le texte le plus
+  récent déjà en vigueur ; un barème signé mais à venir est cité en note. Les tableaux sont lus quelle que soit leur
+  forme (zones en lignes ou en colonnes, sous-régions, barème écrit en phrases) ; un tableau dont la structure n'est
+  pas reconnue avec certitude est écarté, jamais deviné, et la zone garde alors son accord précédent. Un salaire est
+  ramené à l'heure : taux horaire de l'accord quand il le publie, sinon salaire mensuel sur 151,67 heures ou annuel
+  sur 1 820 heures. Inférieur au SMIC horaire en vigueur, il est porté au SMIC, qui s'applique de droit, avec la
+  mention. Un accord non étendu est repris avec cette mention. Quand une région a un accord régional et des accords
+  de ses anciennes régions, seul l'ensemble le plus récent est gardé.
+- Nature : valeurs réglementaires ou conventionnelles, en vigueur jusqu'à leur remplacement (voir *Prix
+  historiques*). Salaires bruts hors charges patronales, congés payés et frais : jamais des taux de facturation.
 
-L'objectif de plusieurs centaines de références vérifiées par pays n'est atteint que pour les fournitures
-marocaines. Pour les ouvrages posés, en France comme au Maroc, la couverture publique ouverte reste partielle :
-elle se complète par vos bordereaux, devis et factures, importés et vérifiés.
+**Couverture réelle : 742 références**, dont le SMIC horaire (12,31 € depuis le 1er juin 2026) :
+
+| Convention | Salaires horaires minimaux | Indemnités de repas, de trajet et de transport |
+| --- | --- | --- |
+| Ouvriers du bâtiment, IDCC 1597 | 91, 13 régions | 285, 12 régions et 7 accords départementaux d'Auvergne-Rhône-Alpes |
+| Ouvriers des travaux publics, IDCC 1702 | 84, 12 régions | 177, 12 régions, dont les anciennes régions de Nouvelle-Aquitaine et de Bourgogne-Franche-Comté |
+| ETAM du bâtiment, IDCC 2609 | 104, 13 régions, niveaux A à H | sans objet |
+
+Dates d'effet : 2026 pour 582 références, 2025 pour 97, 2024 pour 62 (dernier accord publié en Provence-Alpes-Côte
+d'Azur et pour les travaux publics d'Auvergne-Rhône-Alpes). La Corse n'a pas d'accord récent pour les travaux publics.
+
+### France : prix des carburants à la pompe
+
+- Producteur : Direction générale de la concurrence, de la consommation et de la répression des fraudes, flux
+  instantané publié sur data.economie.gouv.fr (près de 10 000 stations, mise à jour toutes les 10 minutes).
+- Licence : Licence Ouverte version 2.0 (Etalab).
+- Méthode : prix mis à jour dans les sept jours précédant le relevé le plus récent, affichages invraisemblables
+  écartés ; médiane et quartiles par région et pour la France métropolitaine, à partir de 20 stations.
+- Fiscalité : prix TTC, TVA de 20 % ou de 13 % en Corse (article 297 du code général des impôts) et accise sur
+  les énergies comprises ; ramenés HT avec ce taux. Actualisation chaque semaine.
+
+**Couverture réelle : 27 prix** (gazole et sans-plomb 95-E10, 13 régions et la métropole entière ; le sans-plomb
+de Corse compte moins de 20 stations à jour et n'est pas publié). Intrants des sous-détails de matériel et de
+transport, jamais des prix d'ouvrage.
+
+### Maroc : salaire minimum légal
+
+- Producteur : Secrétariat général du Gouvernement, édition arabe du Bulletin officiel.
+- Conditions de réutilisation : textes officiels, non protégés par le droit d'auteur (loi n° 2-00, article 8).
+- Méthode : montant et date d'effet repris de l'article du décret qui fixe le salaire minimum pour l'heure de travail
+  dans les activités non agricoles ; chaque décret lu ajoute un point à la série. Un nouveau décret s'ajoute en
+  complétant les ressources de la source.
+
+**Couverture réelle : 1 référence**, le SMIG horaire : 17,92 MAD depuis le 1er janvier 2026 (décret
+n° 2.25.983, Bulletin officiel n° 7469), 17,10 MAD en 2025 (décret n° 2.24.1122). Aucune source publique marocaine
+réutilisable ne publie de taux de main-d'œuvre par métier, de location de matériel ni de transport.
+
+### Bilan réel
+
+Références contrôlées et publiées par le premier chargement (mêmes règles qu'un chargement manuel ; les valeurs
+douteuses attendent une décision en quarantaine) :
+
+| Pays | Références | Distinctes | Nature | Historiques au seuil de 12 mois |
+| --- | --- | --- | --- | --- |
+| Maroc | 7 392 | 84 matériaux | fourniture seule, TTC | 7 392 (années 2019 et 2022) |
+| Maroc | 1 | SMIG | salaire minimum légal | 0, en vigueur |
+| France | 742 | 60 | salaires minimaux et indemnités du BTP, SMIC | 0, en vigueur |
+| France | 27 | 2 carburants | fourniture, TTC | 0 |
+| France | 39 | 24 types de travaux | fourniture et pose, HT | 39 (2009 à 2018) |
+| France | 74 | 4 ratios | ratios d'opération | 74 |
+
+Au premier chargement en base de développement : **877 références françaises publiées** (dont 739 valeurs
+réglementaires) et 5 en quarantaine, **7 393 références marocaines publiées**. Le premier chargement de production
+écrit ce même bilan dans le journal du déploiement.
+
+Lots couverts, par les familles de prix rattachées à la nomenclature par défaut :
+
+- Maroc, fournitures : 01 Gros œuvre (1 496), 03 VRD (264), 08 Couverture (88), 09 Étanchéité (264),
+  11 Menuiseries extérieures (352), 12 Menuiseries intérieures (352), 13 Serrurerie (264), 14 Cloisons (176),
+  17 Carrelage (880), 18 Revêtements de sols (88), 19 Peinture (880), 20 Plomberie (1 584), 23 Électricité (704),
+  26 Réseaux hydrauliques (616), 27 Aménagements extérieurs (88).
+- France, ouvrages posés : 10 Façades (4), 11 Menuiseries extérieures (7), 15 Isolation (12), 20 Plomberie (3),
+  21 Chauffage (12), 22 Ventilation (12), 23 Électricité (1).
+- Tous lots : salaires minimaux, indemnités et carburants en France, SMIG au Maroc.
+
+Données vérifiées : toutes les références publiées ont passé les contrôles automatiques ; aucune n'est encore
+validée par un professionnel (statut *à vérifier* jusqu'à votre validation).
+
+Données restant à compléter, faute de source publique réutilisable : prix d'ouvrages posés récents en France
+(seuls ceux de l'ADEME, de 2009 à 2018, sont ouverts) et au Maroc, taux de main-d'œuvre chargés, location de
+matériel, transport, sous-traitance. Ils se complètent par vos bordereaux, devis et factures, importés et vérifiés,
+ou par sous-détail.
 
 Sources examinées puis écartées : données essentielles de la commande publique (montants globaux de marchés,
-non décomposables en prix unitaires), bordereaux de prix des dossiers de consultation marocains (publiés sans
-prix), estimations de façades d'un acteur privé, études et articles commerciaux sans données vérifiables.
+non décomposables en prix unitaires, y compris les publications de collectivités sur data.gouv.fr), bordereaux de
+prix des dossiers de consultation marocains (publiés sans prix), estimations de façades d'un acteur privé, coûts
+actualisés de l'énergie de l'ADEME (coûts de production au mégawattheure, pas des prix de travaux), indices du coût
+de la construction (jamais des prix unitaires), études et articles commerciaux sans données vérifiables, bases
+commerciales ou payantes.
 
 ## Fiabilité
 
@@ -126,13 +215,34 @@ Indépendante de l'ancienneté, signalée à part :
 Vos prix reçoivent une fiabilité proposée selon leur provenance (devis, facture ou base sous licence : haute ;
 DPGF ou bordereau historique, catalogue : moyenne ; tableau personnel, saisie : faible), que vous pouvez modifier.
 
+## Prix historiques
+
+- Un prix est **historique** au-delà du seuil d'ancienneté des réglages d'alerte (12 mois par défaut, de 1 à
+  120 mois) : sa date de valeur est antérieure au seuil.
+- Une valeur réglementaire ou conventionnelle (SMIC, SMIG, salaire minimum ou indemnité d'un accord collectif)
+  reste en vigueur jusqu'à son remplacement : elle n'est historique que si sa source n'a pas été revérifiée
+  depuis le seuil.
+- Un prix historique reste consultable et peut être choisi à la main, toujours signalé (*Historique, jamais
+  appliqué d'office* dans la bibliothèque, *Historique, à confirmer* dans le rapprochement d'une DPGF ; le choix
+  groupé « Retenir le premier prix proposé » l'ignore). Il n'est jamais proposé à l'agent des sous-détails ni à un
+  chiffrage automatique. Le contrôle qualité signale un prix historique utilisé dans une DPGF ou un sous-détail.
+
+## Filtre par lot
+
+La bibliothèque se filtre par lot de la nomenclature par défaut : chaque lot est rattaché à une famille de corps
+d'état et à ses sous-familles de prix (`shared/lots.ts`). Depuis l'onglet *Lots* d'une affaire, *Prix de ce lot*
+ouvre la bibliothèque filtrée sur ce lot, ou sur sa famille si le lot a été renommé.
+
 ## Chargement, actualisation, quarantaine et annulation
 
-- **Premier chargement** : depuis l'instantané livré avec l'application (`server/data/prix`), lu et contrôlé à
-  partir des ressources officielles ; il ne dépend pas de la disponibilité des sites des producteurs. Le
-  chargement reste une décision de l'utilisateur (*Bibliothèque de prix* > *Sources publiques*).
+- **Premier chargement** : automatique au déploiement de production (`npm run prices:init`, après les migrations),
+  pour chaque source active jamais chargée, depuis l'instantané livré avec l'application (`server/data/prix`), lu
+  et contrôlé à partir des ressources officielles ; il ne dépend pas de la disponibilité des sites des producteurs.
+  Une source déjà chargée, ou dont vous avez annulé le chargement, n'est jamais relue à cette étape. Le chargement
+  manuel reste possible (*Bibliothèque de prix* > *Sources publiques*).
 - **Actualisation** : manuelle ou planifiée (tâche quotidienne ; chaque source déjà chargée est vérifiée selon
-  son intervalle, 30 jours pour le Maroc, 90 pour la France). Les ressources sont téléchargées depuis leurs
+  son intervalle : 7 jours pour les carburants, 30 pour les salaires du BTP et les matériaux marocains, 90 pour les
+  autres sources). Les ressources sont téléchargées depuis leurs
   adresses officielles ; si leurs empreintes SHA-256 sont identiques à la dernière lecture, rien n'est relu et
   la date de vérification avance.
 - **Contrôle de chaque valeur** ; une valeur douteuse part en quarantaine, jamais publiée d'office :
@@ -155,7 +265,8 @@ DPGF ou bordereau historique, catalogue : moyenne ; tableau personnel, saisie : 
 ## Utilisation par les agents et dans les documents
 
 - **Sous-détails** : les prix candidats sont cherchés en plein texte dans la bibliothèque, même devise et même
-  pays, puis classés par proximité : ville de l'affaire, sa région, niveau national, autres zones. Une seule
+  pays, hors prix historiques et hors valeurs réglementaires, puis classés par proximité : ville de l'affaire, sa
+  région, niveau national, autres zones. Une seule
   déclinaison par référence est proposée. Le coût retenu est toujours hors taxes, avec la mention de sa source,
   de sa zone, de sa période et de la conversion éventuelle.
 - **DPGF** : *Prix de la bibliothèque* propose, pour chaque poste, les prix d'ouvrage de même unité ;
@@ -171,5 +282,6 @@ DPGF ou bordereau historique, catalogue : moyenne ; tableau personnel, saisie : 
 
 1. Décrire la source dans `server/services/price-sources/catalog.ts` (adresses officielles, licence, méthode,
    lecteur).
-2. Écrire son lecteur à côté des existants (`matnuhpv.ts`, `ademe.ts`, `cdc.ts`), avec ses tests.
+2. Écrire son lecteur à côté des existants (`matnuhpv.ts`, `ademe.ts`, `cdc.ts`, `kali.ts`, `carburants.ts`,
+   `smig.ts`), avec ses tests.
 3. Régénérer l'instantané : `npx tsx scripts/price-snapshot.ts <clé>`.

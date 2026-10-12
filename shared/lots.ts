@@ -93,6 +93,59 @@ export const DEFAULT_LOTS: CatalogLot[] = [
   { number: "30", name: "Piscines / Ouvrages spécifiques", tradeFamily: "ouvrages_specialises" },
 ];
 
+/**
+ * Prix de la bibliothèque rattachés à chaque lot de la nomenclature par défaut : famille de corps d'état et
+ * sous-familles (shared/trades.ts). Sans sous-familles, toute la famille ; « nonClasses » ajoute les prix de
+ * la famille sans sous-famille (ciments et granulats pour le gros œuvre, par exemple).
+ */
+export const LOT_PRICE_SCOPES: Record<string, { tradeFamily: string; subFamilies: string[] | null; nonClasses?: boolean }> = {
+  "01": {
+    tradeFamily: "gros_oeuvre",
+    subFamilies: ["Fondations superficielles", "Fondations profondes", "Béton armé", "Béton précontraint", "Coffrage", "Ferraillage", "Planchers et dalles", "Voiles, poteaux, poutres", "Maçonneries", "Escaliers", "Ouvrages enterrés"],
+    nonClasses: true,
+  },
+  "02": { tradeFamily: "preparation_terrassement", subFamilies: ["Terrassements", "Déblais et remblais", "Soutènements et blindage"] },
+  "03": { tradeFamily: "exterieurs_infrastructures", subFamilies: ["VRD", "Assainissement", "Drainage", "Voiries et chaussées", "Bordures et trottoirs", "Réseaux secs et humides", "Éclairage extérieur", "Signalisation"] },
+  "04": { tradeFamily: "preparation_terrassement", subFamilies: ["Fondations spéciales", "Soutènements et blindage"] },
+  "05": { tradeFamily: "preparation_terrassement", subFamilies: ["Démolition", "Curage"] },
+  "06": { tradeFamily: "gros_oeuvre", subFamilies: ["Charpentes bois"] },
+  "07": { tradeFamily: "gros_oeuvre", subFamilies: ["Structures métalliques", "Structures mixtes"] },
+  "08": { tradeFamily: "enveloppe", subFamilies: ["Couverture", "Zinguerie"] },
+  "09": { tradeFamily: "enveloppe", subFamilies: ["Étanchéité"] },
+  "10": { tradeFamily: "enveloppe", subFamilies: ["Façades", "Façades ventilées", "Bardage", "Isolation thermique par l’extérieur"] },
+  "11": { tradeFamily: "enveloppe", subFamilies: ["Menuiseries extérieures", "Protections solaires", "Murs-rideaux"] },
+  "12": { tradeFamily: "second_oeuvre", subFamilies: ["Menuiserie intérieure", "Agencement"] },
+  "13": { tradeFamily: "second_oeuvre", subFamilies: ["Serrurerie"] },
+  "14": { tradeFamily: "second_oeuvre", subFamilies: ["Cloisons et doublages", "Plâtrerie"] },
+  "15": { tradeFamily: "second_oeuvre", subFamilies: ["Isolation intérieure"] },
+  "16": { tradeFamily: "second_oeuvre", subFamilies: ["Faux plafonds"] },
+  "17": { tradeFamily: "second_oeuvre", subFamilies: ["Carrelage et faïence", "Pierre naturelle", "Chapes"] },
+  "18": { tradeFamily: "second_oeuvre", subFamilies: ["Sols souples", "Résine", "Parquet", "Chapes"] },
+  "19": { tradeFamily: "second_oeuvre", subFamilies: ["Peinture et revêtements muraux", "Vitrerie"] },
+  "20": { tradeFamily: "lots_techniques", subFamilies: ["Plomberie et sanitaires", "Réseaux EF / ECS / EU / EV / EP"] },
+  "21": { tradeFamily: "lots_techniques", subFamilies: ["CVC, ventilation, climatisation, chauffage"] },
+  "22": { tradeFamily: "lots_techniques", subFamilies: ["CVC, ventilation, climatisation, chauffage", "Désenfumage"] },
+  "23": { tradeFamily: "lots_techniques", subFamilies: ["Électricité courants forts", "Éclairage", "Photovoltaïque", "Groupes électrogènes"] },
+  "24": { tradeFamily: "lots_techniques", subFamilies: ["Électricité courants faibles", "SSI et détection incendie", "Réseaux VDI", "Contrôle d’accès et vidéosurveillance", "GTB / GTC"] },
+  "25": { tradeFamily: "lots_techniques", subFamilies: ["Ascenseurs"] },
+  "26": { tradeFamily: "lots_techniques", subFamilies: ["Réseaux EF / ECS / EU / EV / EP"] },
+  "27": { tradeFamily: "exterieurs_infrastructures", subFamilies: ["Voiries et chaussées", "Bordures et trottoirs", "Clôtures", "Éclairage extérieur", "Signalisation"] },
+  "28": { tradeFamily: "exterieurs_infrastructures", subFamilies: ["Espaces verts et irrigation"] },
+  "29": { tradeFamily: "ouvrages_specialises", subFamilies: null },
+  "30": { tradeFamily: "ouvrages_specialises", subFamilies: ["Piscines", "Ouvrages hydrauliques", "Traitement des eaux"] },
+};
+
+/**
+ * Prix d'un lot d'affaire ou de nomenclature : ceux de son lot par défaut quand il en garde le numéro, le nom
+ * et la famille (sous-lot : ceux de son lot), sinon toute sa famille de corps d'état.
+ */
+export function lotPriceScope(lot: { code: string; name: string; tradeFamily: string }): { lot: string | null; tradeFamily: string } {
+  const number = lot.code.split(".")[0]!;
+  const reference = DEFAULT_LOTS.find((l) => l.number === number);
+  const same = reference && reference.tradeFamily === lot.tradeFamily && (lot.code.includes(".") ? reference.subLots?.some((s) => s.number === lot.code) : reference.name === lot.name);
+  return same && LOT_PRICE_SCOPES[number] ? { lot: number, tradeFamily: lot.tradeFamily } : { lot: null, tradeFamily: lot.tradeFamily };
+}
+
 /** Modèles de nomenclature par type d'opération : sous-ensembles de la nomenclature par défaut. */
 export const LOT_TEMPLATES: Array<{ key: string; name: string; projectType: string; numbers: string[] | "tous" }> = [
   { key: "batiment", name: "Bâtiment, nomenclature complète", projectType: "batiment", numbers: "tous" },

@@ -100,3 +100,21 @@ s'exécutent quand leurs chemins sont fournis (`TALAB_SAMPLE_PLAN`, `TALAB_SAMPL
 | CCTP du lot « 01 Gros oeuvre » | titre « CCTP, lot 01 Gros oeuvre », couverture « Lot 01, Gros oeuvre » |
 | Fusion, séparation, sous-lot, favori, copie, suppression de nomenclature | lots fusionnés archivés et sous-lots rattachés ; numéro déjà pris refusé ; dernière nomenclature jamais supprimée |
 | Sélecteur dans le navigateur | recherche « gros » puis « plomberie », deux lots ajoutés, journal « Lots ajoutés » |
+
+### Bibliothèques de prix (`tests/server/bibliotheque-v4.test.ts`, `tests/server/price-sources.test.ts`)
+
+| Cas | Résultat attendu |
+| --- | --- |
+| Accords KALI de Bretagne 2025, 2026 et 2027 non étendu | barème 2026 repris, barème 2027 cité en note, 2025 ignoré |
+| Coefficient 150 à 12,29 € de l'heure, SMIC à 12,31 € | 12,31 € retenu, mention du SMIC, date du 1er juin 2026 |
+| Accord non étendu des Hauts-de-France, salaire mensuel seul | salaire ramené sur 151,67 heures, mention de l'accord non étendu |
+| Barème de trois coefficients seulement | écarté, rien n'est repris pour la région |
+| Indemnités en lignes avec note de bas de tableau, en colonnes, en phrases | 13 références en Bretagne, repas lu dans le texte de la Drôme et de l'Ardèche, barème de Provence-Alpes-Côte d'Azur lu en phrases |
+| Travaux publics en colonnes, ETAM par niveau | salaire annuel ramené sur 1 820 heures ; niveaux A à H |
+| Carburants : affichages de plus d'une semaine, Corse | écartés ; TVA de 13 % en Corse |
+| Décret du SMIG extrait du Bulletin officiel, intitulé illisible | 17,92 MAD depuis le 1er janvier 2026 ; numéro du décret repris du catalogue ; article agricole seul ignoré |
+| Prix de 2019, salaire minimal revérifié, prix récent | agent des sous-détails : prix récent seul ; liste des prix historiques : prix de 2019 seul |
+| Prix d'ouvrage de 2018 dans le rapprochement d'une DPGF | proposé, marqué historique |
+| Filtre par lot 17 et 01 | carrelage seul ; ciment sans sous-famille compris dans le gros œuvre |
+| Mise à jour de la bibliothèque après chiffrage | ligne de DPGF et composant de sous-détail inchangés |
+| Premier chargement rejoué | sources déjà chargées jamais relues ; bilan réel par pays |

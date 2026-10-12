@@ -21,6 +21,7 @@ import { type AmountState, amountState, type LossMode } from "../../shared/amoun
 import type { ComponentCategory, MarginMode, PriceScope, RateBase, Reliability, TaxBasis } from "../../shared/enums.js";
 import type { Database } from "../db/index.js";
 import { Dec } from "./decimal.js";
+import { historicalLimit, historicalSql } from "./price-filters.js";
 
 export interface PricedComponent {
   category: ComponentCategory;
@@ -228,6 +229,8 @@ export interface PriceCandidate {
   zone: string | null;
   sourceName: string | null;
   verified: boolean;
+  /** Prix historique au seuil d'ancienneté des réglages : jamais appliqué d'office, seulement sur choix explicite. */
+  historical: boolean;
 }
 
 /** Mots utiles d'une désignation (sans articles ni chiffres isolés). */
@@ -258,10 +261,14 @@ const lineScope = sql`(price_scope in ('fourniture_pose', 'ouvrage_complet') or 
  * jamais un ratio d'opération. Classement par pertinence (recherche plein texte en français), puis par
  * proximité : ville de l'affaire, sa région, niveau national, autres zones. Une seule déclinaison par
  * référence (la plus proche, puis la plus récente). Un prix TTC sans taux de TVA connu est écarté.
+ * Avec un seuil d'ancienneté, chaque prix est marqué historique ou non ; pour un chiffrage automatique
+ * (sous-détails établis par l'agent), les prix historiques sont écartés, ainsi que les valeurs
+ * réglementaires (salaires minimaux bruts, indemnités) : bases de calcul d'un déboursé que l'économiste
+ * établit avec ses charges, jamais un coût à reprendre tel quel.
  */
 export async function findCandidates(
   db: Database,
-  params: { text: string; currency: string; country: string; city?: string | null; limit?: number; purpose?: "sous_detail" | "ligne" },
+  params: { text: string; currency: string; country: string; city?: string | null; limit?: number; purpose?: "sous_detail" | "ligne"; staleMonths?: number | null },
 ): Promise<PriceCandidate[]> {
   const words = keywords(params.text);
   if (words.length === 0) return [];
@@ -278,6 +285,8 @@ export async function findCandidates(
     `)) as unknown as { rows: Array<{ region: string }> };
     region = found.rows[0]?.region ?? "";
   }
+  const before = params.staleMonths ? historicalLimit(params.staleMonths) : null;
+  const historical = before ? historicalSql(before) : sql`false`;
   const locality = sql`case
       when ${city}::text <> '' and city is not null and (${fold(sql`city`)} = ${fold(sql`${city}::text`)} or ${fold(sql`city`)} like '% ' || ${fold(sql`${city}::text`)}) then 0
       when ${region}::text <> '' and city is null and region = ${region}::text then 1
@@ -285,12 +294,14 @@ export async function findCandidates(
       else 3 end`;
   const result = (await db.execute(sql`
     with candidates as (
-      select *, translate(lower(designation || ' ' || coalesce(sub_family, '') || ' ' || coalesce(trade_family, '')), ${ACCENTS}, ${PLAIN}) as unaccent_text, ${locality} as locality
+      select *, translate(lower(designation || ' ' || coalesce(sub_family, '') || ' ' || coalesce(trade_family, '')), ${ACCENTS}, ${PLAIN}) as unaccent_text, ${locality} as locality, ${historical} as historical
       from price_item
       where archived_at is null and verification_status <> 'rejete' and kind <> 'ratio'
         and currency = ${params.currency} and country = ${params.country}
         and (tax_basis is distinct from 'TTC' or vat_rate is not null)
         ${params.purpose === "ligne" ? sql`and ${lineScope}` : sql``}
+        ${params.purpose === "sous_detail" && before ? sql`and not ${historical}` : sql``}
+        ${params.purpose === "sous_detail" ? sql`and not regulated` : sql``}
     ), ranked as (
       select c.*, ts_rank(to_tsvector('french', unaccent_text), websearch_to_tsquery('french', ${query})) as rank,
         row_number() over (partition by coalesce(c.group_key, c.id::text) order by c.locality, c.price_date desc) as rn
@@ -299,7 +310,7 @@ export async function findCandidates(
     )
     select r.id, r.designation, r.kind, r.unit, r.unit_price as "unitPrice", r.tax_basis as "taxBasis", r.vat_rate as "vatRate", r.currency,
       r.price_date as "priceDate", r.period, r.origin, r.price_scope as scope, r.reliability, coalesce(r.city, r.region) as zone,
-      ps.name as "sourceName", r.verification_status = 'verifie' as verified
+      ps.name as "sourceName", r.verification_status = 'verifie' as verified, r.historical
     from ranked r left join price_source ps on ps.id = r.source_id
     where r.rn = 1
     order by r.rank desc, r.locality, r.price_date desc
@@ -314,6 +325,7 @@ export async function findCandidates(
       // Les prix TTC sans taux sont écartés par la requête : le prix HT est toujours calculable.
       unitPriceHt: exclTax(String(r.unitPrice), r.taxBasis, vatRate)!,
       priceDate: String(r.priceDate).slice(0, 10),
+      historical: Boolean(r.historical),
     };
   });
 }

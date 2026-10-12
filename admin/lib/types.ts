@@ -481,6 +481,8 @@ export interface PriceItem {
   aggregation: string | null;
   series: Record<string, number> | null;
   verifiedAt: string | null;
+  /** Valeur réglementaire ou conventionnelle, en vigueur jusqu'à son remplacement. */
+  regulated: boolean;
   importBatchId: string | null;
   archivedAt: string | null;
   createdAt: string;

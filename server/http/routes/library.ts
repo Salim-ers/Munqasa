@@ -238,7 +238,8 @@ export const libraryRoutes = new Hono<AdminEnv>()
     } = current;
     const [copy] = await db
       .insert(p)
-      .values({ ...fields, verificationStatus: "a_verifier", sourceRef: `Copie de la référence « ${current.designation} »${current.sourceRef ? `, ${current.sourceRef}` : ""}`.slice(0, 300) })
+      // Une copie adaptée n'est plus revérifiée contre la source : elle n'est plus une valeur réglementaire en vigueur.
+      .values({ ...fields, regulated: false, verificationStatus: "a_verifier", sourceRef: `Copie de la référence « ${current.designation} »${current.sourceRef ? `, ${current.sourceRef}` : ""}`.slice(0, 300) })
       .returning();
     await db.insert(schema.priceHistory).values({ priceItemId: copy!.id, unitPrice: copy!.unitPrice, currency: copy!.currency, priceDate: copy!.priceDate, origin: copy!.origin, note: "Copie d’une référence" });
     await auditAction(c, "bibliotheque.prix_duplique", "price_item", copy!.id, { prix: copy!.designation, origine: id });

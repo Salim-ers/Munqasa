@@ -197,6 +197,7 @@ export function PriceDetailDialog({
                   <Row label="Licence">{p.license}</Row>
                 ) : null}
                 {detail.data?.importBatch ? <Row label="Lot d’import">{`${detail.data.importBatch.label}, ${formatDateTime(detail.data.importBatch.createdAt)}`}</Row> : null}
+                {p.regulated ? <Row label="Validité">Valeur réglementaire ou conventionnelle, en vigueur jusqu’à son remplacement</Row> : null}
                 {p.verifiedAt ? <Row label="Dernière vérification">{formatDateTime(p.verifiedAt)}</Row> : null}
                 {p.supplierName ? <Row label="Fournisseur">{p.supplierName}</Row> : null}
                 {p.commercialConditions ? <Row label="Conditions commerciales">{p.commercialConditions}</Row> : null}

@@ -173,6 +173,11 @@ export const priceItem = pgTable(
     series: jsonb("series").$type<Record<string, number>>(),
     /** Dernier contrôle de la valeur, contre la source ou par le professionnel. */
     verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    /**
+     * Valeur réglementaire ou conventionnelle (salaire minimum, indemnité d'accord collectif) : en vigueur
+     * jusqu'à son remplacement, elle n'est historique que si sa source n'a pas été revérifiée à temps.
+     */
+    regulated: boolean("regulated").notNull().default(false),
     importBatchId: uuid("import_batch_id").references(() => priceImportBatch.id, { onDelete: "set null" }),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: createdAt(),

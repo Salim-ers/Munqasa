@@ -14,6 +14,7 @@ import { schema } from "../../db/index.js";
 import { defaultRates, recomputeBreakdown } from "../../services/breakdowns.js";
 import { candidateNote, findCandidates, lossesAlreadyIncluded, type PriceCandidate } from "../../services/pricing.js";
 import { blocksText, checkBreakdowns, replaceIssues } from "../../services/quality.js";
+import { readSetting } from "../../services/settings.js";
 import { normalizeUnit } from "../../services/units.js";
 import type { JobHandler } from "../types.js";
 
@@ -94,9 +95,11 @@ export const sousDetailHandler: JobHandler = {
       const sectionIds = lines.map((l) => l.cctpSectionId).filter((v): v is string => Boolean(v));
       const sections = sectionIds.length ? await db.select().from(schema.cctpSection).where(inArray(schema.cctpSection.id, sectionIds)) : [];
 
+      // Chiffrage automatique : les prix historiques (au-delà du seuil d'ancienneté des réglages) sont écartés.
+      const { stalePriceMonths } = await readSetting("alertes");
       const candidates = new Map<string, PriceCandidate[]>();
       for (const line of lines) {
-        candidates.set(line.id, await findCandidates(db, { text: `${line.designation} ${line.description ?? ""}`, currency: dpgf!.currency, country: project!.country, city: project!.city, limit: 20, purpose: "sous_detail" }));
+        candidates.set(line.id, await findCandidates(db, { text: `${line.designation} ${line.description ?? ""}`, currency: dpgf!.currency, country: project!.country, city: project!.city, limit: 20, purpose: "sous_detail", staleMonths: stalePriceMonths }));
       }
       const request = lines.map((line) => {
         const section = sections.find((s) => s.id === line.cctpSectionId);

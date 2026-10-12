@@ -9,30 +9,8 @@
  * l'absence de donnée et n'est pas reprise.
  */
 import type { SourceRecord } from "../../../shared/prices.js";
-import { csvNumber, decimal, parseDelimited, slug } from "./common.js";
+import { csvNumber, decimal, FR_REGIONS, parseDelimited, slug } from "./common.js";
 import type { TextResource } from "./ademe.js";
-
-/** Régions par code officiel géographique ; la Nouvelle-Calédonie figure dans la source sans code. */
-const REGIONS: Record<string, string> = {
-  "1": "Guadeloupe",
-  "2": "Martinique",
-  "3": "Guyane",
-  "4": "La Réunion",
-  "6": "Mayotte",
-  "11": "Île-de-France",
-  "24": "Centre-Val de Loire",
-  "27": "Bourgogne-Franche-Comté",
-  "28": "Normandie",
-  "32": "Hauts-de-France",
-  "44": "Grand Est",
-  "52": "Pays de la Loire",
-  "53": "Bretagne",
-  "75": "Nouvelle-Aquitaine",
-  "76": "Occitanie",
-  "84": "Auvergne-Rhône-Alpes",
-  "93": "Provence-Alpes-Côte d’Azur",
-  "94": "Corse",
-};
 
 interface Indicator {
   key: string;
@@ -73,8 +51,9 @@ const INDICATORS: Indicator[] = [
   },
 ];
 
+/** Région par code officiel géographique ; la Nouvelle-Calédonie figure dans la source sans code. */
 function regionName(code: string, raw: string): string {
-  if (REGIONS[code.trim()]) return REGIONS[code.trim()]!;
+  if (FR_REGIONS[code.trim()]) return FR_REGIONS[code.trim()]!;
   if (/cal[ée]donie/i.test(raw)) return "Nouvelle-Calédonie";
   return raw
     .toLowerCase()
