@@ -11,6 +11,7 @@ import type { ResponseInput } from "openai/resources/responses/responses";
 import type { z } from "zod";
 import { getDb, schema } from "../db/index.js";
 import { getEnv } from "../env.js";
+import { StepYield, stepClock } from "../jobs/clock.js";
 import { assertBudget, getOpenAI, recordUsage } from "../services/openai.js";
 import { readSetting } from "../services/settings.js";
 
@@ -23,6 +24,14 @@ export class AiConfigError extends Error {}
 export class AiRetriableError extends Error {}
 /** Le modèle a refusé de répondre. */
 export class AiRefusalError extends Error {}
+/** Le modèle n'a pas répondu dans le temps disponible de l'exécution : l'étape est retentée, avec un raisonnement plus court. */
+export class AiTimeoutError extends AiRetriableError {}
+
+/** Durée maximale d'un appel, et temps minimal à réserver avant de lancer un appel dans une étape tardive. */
+const MAX_CALL_MS = 270_000;
+const MIN_CALL_MS = 150_000;
+/** Message des appels coupés par leur délai : il signale à l'essai suivant de raccourcir le raisonnement. */
+export const TIMEOUT_MARK = "Délai dépassé";
 
 export interface AiCall<S extends z.ZodType> {
   agent: AgentName;
@@ -47,7 +56,7 @@ export interface AiUsage {
 
 export interface AiProvider {
   readonly name: string;
-  run<S extends z.ZodType>(call: AiCall<S>, model: string): Promise<{ output: unknown; usage: AiUsage | null; responseId: string | null }>;
+  run<S extends z.ZodType>(call: AiCall<S>, model: string, options?: { timeoutMs: number; maxRetries: number }): Promise<{ output: unknown; usage: AiUsage | null; responseId: string | null }>;
   uploadFile(data: Uint8Array, fileName: string): Promise<string>;
   deleteFile(id: string): Promise<void>;
 }
@@ -57,8 +66,9 @@ export function supportsReasoning(model: string): boolean {
   return /^(o[1-9]|gpt-5|gpt-6)/i.test(model);
 }
 
-function mapOpenAiError(error: unknown, model: string): Error {
+export function mapOpenAiError(error: unknown, model: string): Error {
   if (error instanceof AiConfigError || error instanceof AiRetriableError || error instanceof AiRefusalError) return error;
+  if (error instanceof OpenAI.APIConnectionTimeoutError) return new AiTimeoutError(`${TIMEOUT_MARK} : le modèle n’a pas répondu dans le temps disponible de l’exécution.`);
   if (error instanceof OpenAI.APIConnectionError) return new AiRetriableError("Connexion à l’API OpenAI interrompue.");
   if (error instanceof OpenAI.APIError) {
     const status = error.status ?? 0;
@@ -76,18 +86,22 @@ function mapOpenAiError(error: unknown, model: string): Error {
 
 const openAiProvider: AiProvider = {
   name: "openai",
-  async run(call, model) {
+  async run(call, model, options) {
     const settings = await readSetting("ia");
     try {
-      const response = await getOpenAI().responses.parse({
-        model,
-        instructions: call.instructions,
-        input: call.input,
-        text: { format: zodTextFormat(call.schema, call.schemaName) },
-        max_output_tokens: call.maxOutputTokens ?? 16_000,
-        store: settings.storeResponses,
-        ...(supportsReasoning(model) ? { reasoning: { effort: call.effort ?? "medium" } } : {}),
-      });
+      const response = await getOpenAI().responses.parse(
+        {
+          model,
+          instructions: call.instructions,
+          input: call.input,
+          text: { format: zodTextFormat(call.schema, call.schemaName) },
+          max_output_tokens: call.maxOutputTokens ?? 16_000,
+          store: settings.storeResponses,
+          ...(supportsReasoning(model) ? { reasoning: { effort: call.effort ?? "medium" } } : {}),
+        },
+        // Délai calé sur le temps restant de l'exécution, sans nouvel essai caché qui le dépasserait.
+        options ? { timeout: options.timeoutMs, maxRetries: options.maxRetries } : undefined,
+      );
       if (response.status === "incomplete") {
         throw new AiRetriableError(`Réponse incomplète (${response.incomplete_details?.reason === "max_output_tokens" ? "longueur maximale atteinte" : "interrompue"}).`);
       }
@@ -147,9 +161,23 @@ export async function modelFor(role: ModelRole): Promise<string> {
 }
 
 /** Appel d'un agent : sortie validée par le schéma, exécution et consommation journalisées. */
-export async function callAgent<S extends z.ZodType>(call: AiCall<S>): Promise<z.output<S>> {
+export async function callAgent<S extends z.ZodType>(original: AiCall<S>): Promise<z.output<S>> {
   const provider = await currentProvider();
-  const model = await modelFor(call.role);
+  const model = await modelFor(original.role);
+  // Dans un traitement long, l'appel doit finir avant l'arrêt de la fonction : délai sur le temps restant,
+  // étape tardive reportée à une nouvelle exécution, raisonnement raccourci après un dépassement.
+  const clock = stepClock.getStore();
+  let options = { timeoutMs: 120_000, maxRetries: 1 };
+  let call = original;
+  if (clock) {
+    if (Number.isFinite(clock.deadline)) {
+      const remaining = clock.deadline - Date.now();
+      if (remaining < MIN_CALL_MS && !clock.firstInSlice) throw new StepYield();
+      options = { timeoutMs: Math.max(30_000, Math.min(remaining - 5_000, MAX_CALL_MS)), maxRetries: 0 };
+    }
+    const afterTimeout = clock.attempt > 1 && (clock.previousError === null || clock.previousError.startsWith(TIMEOUT_MARK));
+    if (afterTimeout && (call.effort === undefined || call.effort === "medium" || call.effort === "high")) call = { ...call, effort: "low" };
+  }
   await assertBudget();
   const db = await getDb();
   const [run] = await db
@@ -157,7 +185,7 @@ export async function callAgent<S extends z.ZodType>(call: AiCall<S>): Promise<z
     .values({ agent: call.agent, model, projectId: call.projectId, jobId: call.jobId, inputSummary: call.summary.slice(0, 500), status: "en_cours" })
     .returning({ id: schema.agentRun.id });
   try {
-    const result = await provider.run(call, model);
+    const result = await provider.run(call, model, options);
     // Validation de défense : la sortie doit respecter le schéma, quel que soit le fournisseur.
     const parsed = call.schema.safeParse(result.output);
     if (!parsed.success) throw new AiRetriableError("Réponse du modèle non conforme au format attendu.");

@@ -14,6 +14,7 @@ import { getDb, schema } from "../db/index.js";
 import { getEnv } from "../env.js";
 import { AiBudgetError } from "../services/openai.js";
 import { notify } from "../services/notifications.js";
+import { StepYield, stepClock } from "./clock.js";
 import { handlerFor } from "./registry.js";
 import { type JobRow, RetriableStepError, type StepContext } from "./types.js";
 
@@ -27,6 +28,20 @@ const MAX_ATTEMPTS = 3;
 /** Sur Vercel, l'exécutant cède la main avant la limite de durée ; en local, il va jusqu'au bout. */
 function defaultBudgetMs(): number {
   return process.env.VERCEL ? 200_000 : Number.POSITIVE_INFINITY;
+}
+
+/** Durée maximale d'une exécution sur Vercel (vercel.json, maxDuration). */
+let functionLimitMs: number | null = null;
+
+/** Tests : durée d'exécution simulée (null : celle de l'environnement). */
+export function setFunctionLimitForTests(ms: number | null): void {
+  functionLimitMs = ms;
+}
+
+/** Échéance d'une exécution, marge de sécurité déduite ; aucune hors de Vercel. */
+function functionDeadline(started: number): number {
+  const limit = functionLimitMs ?? (process.env.VERCEL ? 300_000 : null);
+  return limit === null ? Number.POSITIVE_INFINITY : started + limit - 15_000;
 }
 
 /* ---------- Jeton des relances (appel interne, sans session) ---------- */
@@ -166,6 +181,7 @@ export async function runJob(jobId: string, options: { budgetMs?: number } = {})
   const db = await getDb();
   const budget = options.budgetMs ?? defaultBudgetMs();
   const started = Date.now();
+  const deadline = functionDeadline(started);
   const runner = randomUUID();
   const now = new Date();
   const [row] = await db
@@ -203,7 +219,7 @@ export async function runJob(jobId: string, options: { budgetMs?: number } = {})
       return "suspendu";
     }
     if (next.attempts >= MAX_ATTEMPTS) {
-      const message = next.error ?? "Étape interrompue à plusieurs reprises.";
+      const message = next.error ?? "Étape interrompue à plusieurs reprises : elle a dépassé la durée maximale d’une exécution.";
       await db.update(step).set({ status: "echoue", finishedAt: new Date() }).where(eq(step.id, next.id));
       await finish(row, "echoue", message);
       return "echoue";
@@ -220,7 +236,8 @@ export async function runJob(jobId: string, options: { budgetMs?: number } = {})
       log: (message) => appendLog(next.id, message),
     };
     try {
-      const outcome = (await handler.run(next.name, ctx)) ?? {};
+      const clock = { deadline, firstInSlice: executed === 1, attempt: next.attempts + 1, previousError: next.attempts > 0 ? next.error : null };
+      const outcome = (await stepClock.run(clock, () => handler.run(next.name, ctx))) ?? {};
       await db.transaction(async (tx) => {
         await tx
           .update(step)
@@ -240,6 +257,12 @@ export async function runJob(jobId: string, options: { budgetMs?: number } = {})
           .where(eq(job.id, jobId));
       });
     } catch (error) {
+      if (error instanceof StepYield) {
+        // Pas assez de temps pour l'appel : l'étape repart dans une nouvelle exécution, sans compter d'essai.
+        await db.update(step).set({ status: "en_attente", attempts: next.attempts, error: next.error }).where(eq(step.id, next.id));
+        await db.update(job).set({ lockedUntil: null, lockedBy: null }).where(and(eq(job.id, jobId), eq(job.lockedBy, runner)));
+        return "suspendu";
+      }
       const message = errorText(error);
       const retry = isRetriable(error) && next.attempts + 1 < MAX_ATTEMPTS;
       await db

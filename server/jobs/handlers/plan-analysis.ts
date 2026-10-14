@@ -11,7 +11,7 @@
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { PDFDocument } from "pdf-lib";
 import type { DimensionCheck } from "../../../shared/metre.js";
-import { aiFiles, callAgent } from "../../ai/client.js";
+import { AiTimeoutError, aiFiles, callAgent } from "../../ai/client.js";
 import { lotRuleText, lotsRuleText } from "../../ai/lot-rules.js";
 import { metreProposal, type PlanExtraction, planExtraction } from "../../ai/schemas.js";
 import { schema } from "../../db/index.js";
@@ -262,19 +262,30 @@ export const planAnalysisHandler: JobHandler = {
             { type: "input_text", text: prompt },
           ];
         }
-        const extraction = await callAgent({
-          agent: "lecteur_plans",
-          role: "extraction",
-          projectId,
-          jobId: ctx.job.id,
-          instructions: READER_INSTRUCTIONS,
-          input: [{ role: "user", content }] as never,
-          schema: planExtraction,
-          schemaName: "releve_plan",
-          summary: label,
-          maxOutputTokens: 12_000,
-          effort: "medium",
-        });
+        let extraction: PlanExtraction;
+        try {
+          extraction = await callAgent({
+            agent: "lecteur_plans",
+            role: "extraction",
+            projectId,
+            jobId: ctx.job.id,
+            instructions: READER_INSTRUCTIONS,
+            input: [{ role: "user", content }] as never,
+            schema: planExtraction,
+            schemaName: "releve_plan",
+            summary: label,
+            maxOutputTokens: 12_000,
+            effort: "medium",
+          });
+        } catch (error) {
+          // Page trop dense pour être lue dans le temps d'une exécution, même avec un raisonnement raccourci :
+          // elle est écartée et dite, la lecture continue avec les autres pages.
+          if (error instanceof AiTimeoutError && ctx.step.attempts >= 1) {
+            await ctx.log(`${file.originalName} p.${drawing.pageNumber} : page non lue, le modèle n’a pas répondu dans le temps disponible malgré un second essai. Relancez la lecture de cette page seule, ou exportez-la à part.`);
+            return { result: { drawingId, skipped: true, timeout: true } };
+          }
+          throw error;
+        }
         // Contrôle de chaque cote relevée dans le texte vectoriel de la page.
         const elements: CheckedElement[] = extraction.elements.map((e) => ({
           ...e,
