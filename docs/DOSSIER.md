@@ -45,6 +45,12 @@ l'API OpenAI n'est demandé, et confirmé explicitement, que si un agent doit ê
 DPGF existante ne transmet rien. Une génération se termine toujours par le contrôle des fichiers produits et le
 contrôle indépendant.
 
+Chaque exécution sur Vercel dure au plus 300 secondes. Chaque appel à un modèle reçoit un délai calé sur le temps
+qui reste, sans nouvel essai caché. Une étape qui démarre trop tard repart dans une nouvelle exécution, et l'essai
+qui suit un dépassement raisonne plus brièvement. Une page de plan encore trop dense au second essai est écartée,
+avec un message dans son étape, et la lecture continue avec les autres pages. Une étape coupée à plusieurs
+reprises fait échouer le traitement avec son motif ; *Reprendre* le relance là où il s'était arrêté.
+
 Sur plusieurs lots, les plans sont lus une seule fois avec les règles de relevé de chaque lot, puis chaque lot a
 son métré, son CCTP et sa DPGF ; le devis a une section par lot. Chaque étape porte le nom de son lot.
 
