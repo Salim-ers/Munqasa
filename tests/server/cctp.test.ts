@@ -31,12 +31,12 @@ beforeAll(async () => {
 });
 
 describe("référentiel", () => {
-  it("importe le catalogue de départ « à vérifier », sans doublon", async () => {
+  it("importe le catalogue de départ vérifié à la source, sans doublon", async () => {
     const first = await admin.request("/api/admin/references/catalogue", { body: {} });
     expect(first.json.imported).toBeGreaterThan(15);
     expect((await admin.request("/api/admin/references/catalogue", { body: {} })).json).toMatchObject({ imported: 0 });
     const list = (await admin.request("/api/admin/references?portee=FR")).json.items;
-    expect(list.every((r: { scope: string; verificationStatus: string }) => r.scope === "FR" && r.verificationStatus === "a_verifier")).toBe(true);
+    expect(list.every((r: { scope: string; verificationStatus: string; sourceUrl: string | null }) => r.scope === "FR" && r.verificationStatus === "verifie" && r.sourceUrl?.startsWith("https://"))).toBe(true);
     for (const r of list) refs[r.code] = r.id;
     expect(refs["NF DTU 21"]).toBeTruthy();
   });
@@ -47,6 +47,9 @@ describe("référentiel", () => {
     expect((await admin.request("/api/admin/references", { body: { scope: "FR", kind: "dtu", code: "NF DTU 21", title: "Doublon" } })).status).toBe(409);
     const verified = await admin.request(`/api/admin/references/${refs["NF DTU 21"]}/verify`, { body: { status: "verifie" } });
     expect(verified.json.reference.verificationStatus).toBe("verifie");
+    // Remise à vérifier : citée dans un document, elle sera signalée avant diffusion.
+    const pending = await admin.request(`/api/admin/references/${refs["NF EN 206+A2/CN"]}/verify`, { body: { status: "a_verifier" } });
+    expect(pending.json.reference).toMatchObject({ verificationStatus: "a_verifier", verifiedAt: null });
   });
 });
 
@@ -59,7 +62,7 @@ describe("rédaction du CCTP", () => {
 
   it("établit le plan puis rédige chaque chapitre, contrôle et fige une version", async () => {
     const res = await admin.request(`/api/admin/projects/${projectId}/cctp`, {
-      body: { lotId, detailLevel: "standard", useMetre: true, referenceIds: [refs["NF EN 206/CN"]], instructions: "Bâtiment R+1.", consent: true },
+      body: { lotId, detailLevel: "standard", useMetre: true, referenceIds: [refs["NF EN 206+A2/CN"]], instructions: "Bâtiment R+1.", consent: true },
     });
     expect(res.status).toBe(201);
     const job = (await admin.request(`/api/admin/agents/jobs/${res.json.job.id}`)).json.job;
@@ -82,7 +85,7 @@ describe("rédaction du CCTP", () => {
     expect(articles.find((a: { number: string }) => a.number === "3.1").workItemId).toBeTruthy();
     expect(articles[0].intent).toBe("Définir l’objet et la consistance des travaux du lot.");
     const messages = detail.issues.map((i: { message: string }) => i.message);
-    expect(messages.some((m: string) => m.startsWith("Référence à vérifier avant diffusion : NF EN 206/CN"))).toBe(true);
+    expect(messages.some((m: string) => m.startsWith("Référence à vérifier avant diffusion : NF EN 206+A2/CN"))).toBe(true);
     expect(messages.some((m: string) => m.startsWith("Ouvrage du métré sans article"))).toBe(false);
     expect(detail.versions).toHaveLength(1);
   });
@@ -92,21 +95,21 @@ describe("rédaction du CCTP", () => {
     const article = detail.sections.find((s: { number: string }) => s.number === "2.1");
     const saved = await admin.request(`/api/admin/cctp/sections/${article.id}`, {
       method: "PATCH",
-      body: { title: "Bétons", blocks: [{ type: "paragraphe", text: "Les bétons sont conformes à la NF EN 9999 et à la NF EN 206/CN.", items: [], referenceIds: [refs["NF EN 206/CN"], refs["NF DTU 23.1"]] }] },
+      body: { title: "Bétons", blocks: [{ type: "paragraphe", text: "Les bétons sont conformes à la NF EN 9999 et à la NF EN 206+A2/CN.", items: [], referenceIds: [refs["NF EN 206+A2/CN"], refs["NF DTU 23.1"]] }] },
     });
     expect(saved.json.section.status).toBe("a_valider");
     // Référence non retenue pour le document : retirée.
-    expect(saved.json.section.referenceIds).toEqual([refs["NF EN 206/CN"]]);
+    expect(saved.json.section.referenceIds).toEqual([refs["NF EN 206+A2/CN"]]);
     const issues = (await admin.request(`/api/admin/cctp/${documentId}`)).json.issues.map((i: { message: string }) => i.message);
     expect(issues.some((m: string) => m.startsWith("Norme citée hors référentiel : « NF EN 9999 »"))).toBe(true);
-    expect(issues.some((m: string) => m.includes("NF EN 206/CN") && m.includes("hors référentiel"))).toBe(false);
+    expect(issues.some((m: string) => m.includes("NF EN 206") && m.includes("hors référentiel"))).toBe(false);
   });
 
   it("refuse la validation tant qu'une référence rejetée est citée", async () => {
-    await admin.request(`/api/admin/references/${refs["NF EN 206/CN"]}/verify`, { body: { status: "rejete" } });
+    await admin.request(`/api/admin/references/${refs["NF EN 206+A2/CN"]}/verify`, { body: { status: "rejete" } });
     const refused = await admin.request(`/api/admin/cctp/${documentId}/validate`, { body: {} });
     expect(refused.status).toBe(409);
-    await admin.request(`/api/admin/references/${refs["NF EN 206/CN"]}/verify`, { body: { status: "verifie" } });
+    await admin.request(`/api/admin/references/${refs["NF EN 206+A2/CN"]}/verify`, { body: { status: "verifie" } });
     const ok = await admin.request(`/api/admin/cctp/${documentId}/validate`, { body: {} });
     expect(ok.json).toMatchObject({ ok: true, version: 2 });
     expect((await admin.request(`/api/admin/cctp/${documentId}`)).json.document.status).toBe("valide");
@@ -143,7 +146,7 @@ describe("rédaction du CCTP", () => {
   });
 
   it("refuse de supprimer une référence citée", async () => {
-    expect((await admin.request(`/api/admin/references/${refs["NF EN 206/CN"]}`, { method: "DELETE" })).status).toBe(409);
+    expect((await admin.request(`/api/admin/references/${refs["NF EN 206+A2/CN"]}`, { method: "DELETE" })).status).toBe(409);
     expect((await admin.request(`/api/admin/references/${refs["NF DTU 13.3"]}`, { method: "DELETE" })).status).toBe(200);
   });
 });

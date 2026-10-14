@@ -1,6 +1,6 @@
 /**
  * Référentiel technique et réglementaire : les seules références qu'un document peut citer.
- * Chaque référence porte son statut de vérification ; le catalogue de départ s'importe à la demande.
+ * Chaque référence porte son statut de vérification ; le catalogue de départ, vérifié à la source, s'importe à la demande.
  */
 import { and, asc, eq, ilike, or, type SQL, sql } from "drizzle-orm";
 import { Hono } from "hono";
@@ -9,7 +9,7 @@ import { referenceInput } from "../../../shared/schemas.js";
 import type { AdminEnv } from "../../auth/guard.js";
 import { getDb, schema } from "../../db/index.js";
 import { auditAction } from "../../services/audit.js";
-import { STARTER_CATALOG } from "../../services/references-catalog.js";
+import { importReferenceCatalog } from "../../services/references-catalog.js";
 import { body, conflict, notFound, patchBody, uuidParam, ValidationError } from "../validate.js";
 
 const r = schema.technicalReference;
@@ -87,14 +87,9 @@ export const referenceRoutes = new Hono<AdminEnv>()
     return c.json({ ok: true });
   })
   .post("/catalogue", async (c) => {
-    // Import du catalogue de départ, « à vérifier », sans doublon.
+    // Import du catalogue vérifié, sans doublon ni écrasement d'une saisie.
     const db = await getDb();
-    const existing = await db.select({ scope: r.scope, code: r.code }).from(r);
-    const keys = new Set(existing.map((e) => `${e.scope}:${e.code.toUpperCase()}`));
-    const fresh = STARTER_CATALOG.filter((item) => !keys.has(`${item.scope}:${item.code.toUpperCase()}`));
-    if (fresh.length) {
-      await db.insert(r).values(fresh.map((item) => ({ ...item, verificationStatus: "a_verifier" as const, notes: "Catalogue de départ : édition en vigueur et intitulé exact à confirmer avant citation." })));
-    }
-    await auditAction(c, "referentiel.catalogue_importe", "technical_reference", null, { ajoutees: fresh.length });
-    return c.json({ imported: fresh.length, skipped: STARTER_CATALOG.length - fresh.length });
+    const result = await importReferenceCatalog(db);
+    await auditAction(c, "referentiel.catalogue_importe", "technical_reference", null, { ajoutees: result.imported, mises_a_jour: result.updated, retirees: result.withdrawn });
+    return c.json(result);
   });

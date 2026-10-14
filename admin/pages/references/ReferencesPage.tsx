@@ -37,10 +37,12 @@ export function ReferencesPage() {
     onError: (e) => toast.error(errorMessage(e)),
   });
   const importCatalog = useMutation({
-    mutationFn: () => api<{ imported: number; skipped: number }>("/references/catalogue", { body: {} }),
+    mutationFn: () => api<{ imported: number; updated: number; withdrawn: number; skipped: number }>("/references/catalogue", { body: {} }),
     onSuccess: (r) => {
       refresh();
-      toast.success(r.imported ? `${r.imported} référence(s) ajoutée(s), à vérifier.` : "Le catalogue de départ est déjà importé.");
+      const done = [r.imported ? `${r.imported} référence(s) ajoutée(s)` : null, r.updated ? `${r.updated} complétée(s)` : null].filter(Boolean).join(", ");
+      const withdrawn = r.withdrawn ? ` ${r.withdrawn} référence(s) de l’ancien catalogue rejetée(s) : elles ne sont plus en vigueur.` : "";
+      toast.success(done ? `${done}, vérifiées à la source.${withdrawn}` : withdrawn.trim() || "Le catalogue de départ est déjà importé.");
     },
     onError: (e) => toast.error(errorMessage(e)),
   });
@@ -85,7 +87,7 @@ export function ReferencesPage() {
           <EmptyState
             icon={<BookMarked className="size-5" />}
             title={q || scope ? "Aucune référence ne correspond" : "Référentiel vide"}
-            text={q || scope ? undefined : "Importez le catalogue de départ (références courantes du gros œuvre, à vérifier) ou ajoutez vos références."}
+            text={q || scope ? undefined : "Importez le catalogue de départ, normes et textes courants en France et au Maroc vérifiés chacun sur sa source officielle, ou ajoutez vos références."}
           />
         ) : (
           <ul className="divide-y divide-line border-t border-line">
@@ -99,6 +101,19 @@ export function ReferencesPage() {
                     {r.cited ? <Badge tone="accent">Citée {r.cited} fois</Badge> : null}
                   </div>
                   <p className="mt-0.5 text-2xs leading-relaxed text-ink-2">{[r.title, r.version].filter(Boolean).join(", ")}</p>
+                  {r.notes || r.sourceUrl ? (
+                    <p className="mt-0.5 text-2xs leading-relaxed text-ink-3">
+                      {r.notes}
+                      {r.sourceUrl ? (
+                        <>
+                          {r.notes ? " " : null}
+                          <a href={r.sourceUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-accent hover:underline">
+                            Voir la source
+                          </a>
+                        </>
+                      ) : null}
+                    </p>
+                  ) : null}
                 </div>
                 <Badge tone={statusTone[r.verificationStatus]} dot>
                   {VALIDATION_STATUS_LABELS[r.verificationStatus]}

@@ -315,6 +315,9 @@ export const referenceInput = z.object({
 });
 export type ReferenceInput = z.input<typeof referenceInput>;
 
+/** Préparation de la démonstration : l'admission des prix publics de 2022 se décide explicitement. */
+export const demoPreparationInput = z.object({ prices: z.boolean() });
+
 export const CCTP_LEVELS = ["synthetique", "standard", "detaille"] as const;
 export const CCTP_LEVEL_LABELS: Record<(typeof CCTP_LEVELS)[number], string> = { synthetique: "Synthétique", standard: "Standard", detaille: "Détaillé" };
 

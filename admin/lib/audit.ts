@@ -122,6 +122,7 @@ export const ACTION_LABELS: Record<string, string> = {
   "referentiel.a_verifier": "Référence remise à vérifier",
   "referentiel.suppression": "Référence supprimée",
   "referentiel.catalogue_importe": "Catalogue de départ importé",
+  "demonstration.preparation": "Démonstration préparée",
   "agent.annulation": "Traitement arrêté",
   "agent.reprise": "Traitement repris",
   "metre.ouvrage_ajoute": "Ouvrage ajouté",

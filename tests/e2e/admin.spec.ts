@@ -180,10 +180,10 @@ test.describe.serial("administration", () => {
   test("rédige un CCTP avec l'agent, le relit et l'exporte en Word", async () => {
     await page.goto("/administration/referentiel");
     await page.getByRole("button", { name: "Catalogue de départ" }).click();
-    await expect(page.getByText(/référence\(s\) ajoutée\(s\), à vérifier/)).toBeVisible();
+    await expect(page.getByText(/référence\(s\) ajoutée\(s\), vérifiées à la source/)).toBeVisible();
     const rps = page.getByRole("listitem").filter({ hasText: "RPS 2000" });
-    await rps.getByRole("button", { name: "Vérifiée" }).click();
     await expect(rps.getByText("Vérifié", { exact: true })).toBeVisible();
+    await expect(rps.getByRole("link", { name: "Voir la source" })).toHaveAttribute("href", /^https:\/\/www\.matnuhpv\.gov\.ma\//);
 
     await page.goto(`${projectUrl}?onglet=cctp`);
     await page.getByRole("button", { name: "Rédiger un CCTP" }).click();
@@ -610,6 +610,24 @@ test.describe.serial("administration", () => {
     await expect(page.getByRole("link", { name: "Construction d’un centre de santé" })).toHaveCount(0);
   });
 
+  test("prépare la démonstration : référentiel vérifié, prix publics de 2022 sur accord, une affaire par pays", async () => {
+    await page.goto("/administration/parametres?onglet=demonstration");
+    const card = page.getByRole("tabpanel");
+    await expect(card.getByText("Prix publics de 2022", { exact: true })).toBeVisible();
+    await expect(card.getByText("Hors chiffrages automatiques")).toBeVisible();
+    const consent = card.getByRole("checkbox", { name: /Admettre les prix publics de 2022/ });
+    await expect(consent).toBeChecked();
+    await card.getByRole("button", { name: "Préparer la démonstration" }).click();
+    await expect(page.getByText(/Prix publics de 2022 admis, ancienneté portée à 60 mois, affaire\(s\) TAL-\d{4}-\d{4} et TAL-\d{4}-\d{4} créée\(s\)/)).toBeVisible();
+    await expect(card.getByText("Admis dans les chiffrages")).toBeVisible();
+    await expect(card.getByText("La démonstration est prête.")).toBeVisible();
+    await expect(card.getByRole("button", { name: "Préparer la démonstration" })).toBeDisabled();
+    await card.getByRole("listitem").filter({ hasText: "Casablanca" }).getByRole("link", { name: "Ouvrir l’affaire" }).click();
+    await expect(page.getByRole("heading", { name: "Démonstration : immeuble d’habitation R+3 à Casablanca" })).toBeVisible();
+    await page.goto("/administration/parametres?onglet=alertes");
+    await expect(page.getByLabel(/ancienneté/i)).toHaveValue("60");
+  });
+
   test("s'affiche sans débordement sur téléphone", async () => {
     await page.setViewportSize({ width: 390, height: 844 });
     const project = new URL(projectUrl).pathname;
@@ -631,6 +649,7 @@ test.describe.serial("administration", () => {
       "/administration/parametres",
       "/administration/parametres?onglet=chiffrage",
       "/administration/parametres?onglet=lots",
+      "/administration/parametres?onglet=demonstration",
       "/administration/systeme",
       "/administration/devis",
       new URL(quoteUrl).pathname,

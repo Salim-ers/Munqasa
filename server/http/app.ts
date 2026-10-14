@@ -19,6 +19,7 @@ import { cctpRoutes, qualityRoutes } from "./routes/cctp.js";
 import { dpgfRoutes } from "./routes/dpgf.js";
 import { clientRoutes, prospectRoutes } from "./routes/crm.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
+import { demoRoutes } from "./routes/demo.js";
 import { fileRoutes } from "./routes/files.js";
 import { jobRoutes } from "./routes/jobs.js";
 import { libraryRoutes } from "./routes/library.js";
@@ -65,6 +66,7 @@ function adminApi() {
   admin.route("/agents", agentRoutes);
   admin.route("/", metreRoutes);
   admin.route("/references", referenceRoutes);
+  admin.route("/demonstration", demoRoutes);
   admin.route("/quality-issues", qualityRoutes);
   admin.route("/", cctpRoutes);
   admin.route("/", dpgfRoutes);

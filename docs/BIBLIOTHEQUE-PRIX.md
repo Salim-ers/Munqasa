@@ -226,6 +226,9 @@ DPGF ou bordereau historique, catalogue : moyenne ; tableau personnel, saisie : 
   appliqué d'office* dans la bibliothèque, *Historique, à confirmer* dans le rapprochement d'une DPGF ; le choix
   groupé « Retenir le premier prix proposé » l'ignore). Il n'est jamais proposé à l'agent des sous-détails ni à un
   chiffrage automatique. Le contrôle qualité signale un prix historique utilisé dans une DPGF ou un sous-détail.
+- La démonstration propose, sur accord explicite, de porter le seuil à 60 mois pour que les prix publics de
+  2022 servent aux chiffrages automatiques, toujours avec la mention « valeur 2022 » (voir
+  [DEMONSTRATION.md](DEMONSTRATION.md)).
 
 ## Filtre par lot
 

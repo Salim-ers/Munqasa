@@ -69,10 +69,19 @@ export const pricingSettings = z.object({
 });
 export type PricingSettings = z.output<typeof pricingSettings>;
 
+/** Affaires de démonstration déjà créées, une par pays : la démonstration ne les recrée jamais en double. */
+export const demoSettings = z.object({
+  projects: z
+    .object({ MA: z.string().uuid().nullable().default(null), FR: z.string().uuid().nullable().default(null) })
+    .default({ MA: null, FR: null }),
+});
+export type DemoSettings = z.output<typeof demoSettings>;
+
 export const SETTINGS = {
   ia: aiSettings,
   identite_documentaire: documentIdentity,
   alertes: alertSettings,
   chiffrage: pricingSettings,
+  demonstration: demoSettings,
 } as const;
 export type SettingKey = keyof typeof SETTINGS;
