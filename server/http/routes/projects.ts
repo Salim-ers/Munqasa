@@ -1,15 +1,16 @@
-/** Affaires : création (référence automatique), liste, fiche, lots, historique. */
-import { and, asc, count, desc, eq, gte, ilike, inArray, isNull, lte, ne, notInArray, or, type SQL, sql } from "drizzle-orm";
+/** Affaires : création (référence automatique), liste, fiche, suppression, lots, historique. */
+import { and, asc, count, desc, eq, gt, gte, ilike, inArray, isNull, lte, ne, notInArray, or, type SQL, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { PROJECT_STATUSES, type ProjectStatus } from "../../../shared/enums.js";
-import { deadlineInput, listQuery, projectInput, projectLotInput, projectPatch, projectPrefillRequest } from "../../../shared/schemas.js";
+import { deadlineInput, listQuery, projectDeleteInput, projectInput, projectLotInput, projectPatch, projectPrefillRequest } from "../../../shared/schemas.js";
 import { modelFor } from "../../ai/client.js";
 import type { AdminEnv } from "../../auth/guard.js";
 import { getDb, schema } from "../../db/index.js";
 import { auditAction } from "../../services/audit.js";
 import { prefillProject } from "../../services/project-prefill.js";
 import { nextReference } from "../../services/references.js";
-import { body, conflict, notFound, parse, patchBody, uuidParam } from "../validate.js";
+import { getStorage } from "../../services/storage.js";
+import { body, conflict, notFound, parse, patchBody, uuidParam, ValidationError } from "../validate.js";
 
 const p = schema.project;
 
@@ -136,6 +137,48 @@ export const projectRoutes = new Hono<AdminEnv>()
     if (!row) notFound("Affaire introuvable.");
     await auditAction(c, data.status ? "affaire.changement_statut" : "affaire.modification", "project", id, { champs: Object.keys(data), statut: data.status });
     return c.json({ project: row });
+  })
+  /**
+   * Suppression définitive, confirmée par la référence de l'affaire : documents, métré, lots, échéances,
+   * traitements et fichiers sont effacés, les fichiers retirés du stockage privé. Les devis restent dans le menu
+   * Devis, détachés de l'affaire, avec leurs lignes, prix et versions. Refusée pendant un traitement en cours.
+   * La référence n'est jamais réattribuée.
+   */
+  .delete("/:id", async (c) => {
+    const db = await getDb();
+    const id = uuidParam(c);
+    const data = await body(c, projectDeleteInput);
+    const [row] = await db.select().from(p).where(eq(p.id, id));
+    if (!row) notFound("Affaire introuvable.");
+    if (data.confirmation.trim().toUpperCase() !== row.reference.toUpperCase()) {
+      throw new ValidationError({ confirmation: `Saisissez exactement la référence ${row.reference} pour confirmer.` });
+    }
+    // Un traitement dont l'exécutant est actif écrirait dans une affaire disparue ; un traitement arrêté ne gêne pas.
+    const [running] = await db
+      .select({ id: schema.generationJob.id })
+      .from(schema.generationJob)
+      .where(and(eq(schema.generationJob.projectId, id), inArray(schema.generationJob.status, ["en_attente", "en_cours"]), gt(schema.generationJob.lockedUntil, new Date())))
+      .limit(1);
+    if (running) conflict("Un traitement est en cours sur cette affaire : arrêtez-le ou attendez sa fin, puis supprimez l’affaire.");
+    const [files, artifacts, quotes] = await Promise.all([
+      db.select({ key: schema.sourceFile.storageKey }).from(schema.sourceFile).where(eq(schema.sourceFile.projectId, id)),
+      db.select({ key: schema.generationArtifact.storageKey }).from(schema.generationArtifact).where(eq(schema.generationArtifact.projectId, id)),
+      db.select({ id: schema.quote.id }).from(schema.quote).where(eq(schema.quote.projectId, id)),
+    ]);
+    await db.delete(p).where(eq(p.id, id));
+    // Objets du stockage retirés après la base : un échec laisse un objet privé orphelin, signalé, jamais une affaire à demi effacée.
+    let unremoved = 0;
+    if (files.length || artifacts.length) {
+      const storage = await getStorage();
+      for (const { key } of [...files, ...artifacts]) {
+        await storage.remove(key).catch((error: unknown) => {
+          unremoved++;
+          console.error("[affaires] fichier non effacé du stockage", key, error);
+        });
+      }
+    }
+    await auditAction(c, "affaire.suppression", "project", id, { reference: row.reference, nom: row.name, fichiers: files.length + artifacts.length, fichiersNonEffaces: unremoved, devisConserves: quotes.length });
+    return c.json({ deleted: true, reference: row.reference, files: files.length + artifacts.length, quotesKept: quotes.length });
   })
   .post("/:id/open", async (c) => {
     // « Reprendre mon travail » : dernière ouverture.

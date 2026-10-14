@@ -36,6 +36,7 @@ export const ACTION_LABELS: Record<string, string> = {
   "affaire.creation": "Affaire créée",
   "affaire.modification": "Affaire modifiée",
   "affaire.changement_statut": "Statut modifié",
+  "affaire.suppression": "Affaire supprimée",
   "affaire.lot_ajoute": "Lot ajouté",
   "affaire.lot_modifie": "Lot modifié",
   "affaire.lot_supprime": "Lot supprimé",

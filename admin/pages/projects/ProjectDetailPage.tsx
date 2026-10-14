@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, ChevronDown, Coins, FilePlus2, FileStack, Layers, Pencil, TriangleAlert } from "lucide-react";
+import { CalendarClock, ChevronDown, Coins, FilePlus2, FileStack, Layers, Pencil, Trash2, TriangleAlert } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
@@ -7,6 +7,7 @@ import { PROJECT_STATUS_LABELS, PROJECT_STATUSES, type ProjectStatus } from "../
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { EmptyState, Skeleton } from "../../components/ui/Feedback";
+import { ActionMenu } from "../../components/ui/Menu";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { documentGroup, dossierGroup, DownloadMenu } from "../../components/DownloadMenu";
 import { TabPanel, Tabs } from "../../components/ui/Tabs";
@@ -15,6 +16,7 @@ import { cn } from "../../lib/cn";
 import { formatFullDateTime, formatMoney, formatRelative } from "../../lib/format";
 import type { ProjectDetail } from "../../lib/types";
 import { DeadlinesTab } from "./DeadlinesTab";
+import { DeleteProjectDialog } from "./DeleteProjectDialog";
 import { DossierTab } from "./DossierTab";
 import { FilesTab } from "./FilesTab";
 import { HistoryTab } from "./HistoryTab";
@@ -37,6 +39,7 @@ export function ProjectDetailPage() {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [quoting, setQuoting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const navigate = useNavigate();
   const detail = useQuery({ queryKey: ["project", id], queryFn: ({ signal }) => api<ProjectDetail>(`/projects/${id}`, { signal }) });
 
@@ -117,6 +120,7 @@ export function ProjectDetailPage() {
               <Button variant="secondary" icon={<Pencil className="size-4" />} onClick={() => setEditing(true)}>
                 Modifier
               </Button>
+              <ActionMenu label="Autres actions sur l’affaire" actions={[{ label: "Supprimer l’affaire", icon: <Trash2 />, tone: "danger", onSelect: () => setDeleting(true) }]} />
             </>
           ) : null
         }
@@ -209,6 +213,7 @@ export function ProjectDetailPage() {
 
       {project ? <ProjectFormDialog open={editing} onOpenChange={setEditing} project={project} client={data?.client} /> : null}
       {project ? <NewQuoteDialog open={quoting} onOpenChange={setQuoting} projectId={id} onCreated={(quoteId) => navigate(`/administration/devis/${quoteId}`)} /> : null}
+      {project ? <DeleteProjectDialog open={deleting} onOpenChange={setDeleting} project={project} fileCount={fileCount} /> : null}
     </div>
   );
 }

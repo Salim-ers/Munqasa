@@ -592,6 +592,24 @@ test.describe.serial("administration", () => {
     await expect(page.getByText(/TAL-\d{4}-\d{4}, Commune urbaine de Salé/).first()).toBeVisible();
   });
 
+  test("supprime une affaire depuis sa fiche, après confirmation par sa référence", async () => {
+    await page.goto("/administration/affaires");
+    await page.getByRole("link", { name: "Construction d’un centre de santé" }).first().click();
+    await expect(page).toHaveURL(/\/administration\/affaires\/[0-9a-f-]{36}$/);
+    const reference = (await page.getByText(/^TAL-\d{4}-\d{4}/).first().textContent())!.slice(0, 13);
+    await page.getByRole("button", { name: "Autres actions sur l’affaire" }).click();
+    await page.getByRole("menuitem", { name: "Supprimer l’affaire" }).click();
+    const dialog = page.getByRole("dialog", { name: "Supprimer l’affaire" });
+    await expect(dialog.getByText("La suppression est définitive : rien ne pourra être restauré.")).toBeVisible();
+    const confirm = dialog.getByRole("button", { name: "Supprimer définitivement" });
+    await expect(confirm).toBeDisabled();
+    await dialog.getByLabel(`Pour confirmer, saisissez la référence ${reference}`).fill(reference);
+    await confirm.click();
+    await expect(page).toHaveURL(/\/administration\/affaires$/);
+    await expect(page.getByText(new RegExp(`Affaire ${reference} supprimée`))).toBeVisible();
+    await expect(page.getByRole("link", { name: "Construction d’un centre de santé" })).toHaveCount(0);
+  });
+
   test("s'affiche sans débordement sur téléphone", async () => {
     await page.setViewportSize({ width: 390, height: 844 });
     const project = new URL(projectUrl).pathname;

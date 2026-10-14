@@ -186,6 +186,9 @@ export const projectInput = z.object({
 });
 export type ProjectInput = z.input<typeof projectInput>;
 
+/** Suppression définitive d'une affaire : confirmée en saisissant sa référence. */
+export const projectDeleteInput = z.object({ confirmation: requiredText(40) });
+
 /** Modification d'une affaire (le serveur ne retient que les champs envoyés). */
 export const projectPatch = projectInput.extend({ status: z.enum(PROJECT_STATUSES) });
 

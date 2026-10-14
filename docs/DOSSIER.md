@@ -22,6 +22,14 @@ nommés *Affaire*, *Lots*, *Documents* et *Production* ; l'affaire existe dès l
 - **Production** : les mêmes choix que *Générer le dossier* (documents à produire, plans, lots, TVA, niveau du
   CCTP, accord d'envoi) ; la génération lancée, l'affaire s'ouvre sur son onglet *Dossier* et sa progression.
 
+## Supprimer une affaire
+
+Fiche de l'affaire, menu des autres actions, *Supprimer l'affaire*. La suppression est définitive et se confirme
+en saisissant la référence de l'affaire. Sont effacés les CCTP, DPGF, sous-détails, métré, lots, échéances,
+traitements et l'historique de l'affaire, ainsi que ses fichiers déposés, retirés du stockage. Les devis restent
+dans le menu *Devis*, détachés de l'affaire, avec leurs lignes, leurs prix et leurs versions. La suppression est
+refusée pendant un traitement en cours. Elle est inscrite au journal, et la référence n'est jamais réattribuée.
+
 ## Générer le dossier
 
 Onglet *Dossier* de la fiche affaire, bouton *Générer le dossier*. Un seul traitement enchaîne les agents, chacun
