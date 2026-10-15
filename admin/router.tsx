@@ -86,6 +86,8 @@ export const router = createBrowserRouter([
           { path: "devis/:id", lazy: page(() => import("./pages/quotes/QuoteDetailPage"), "QuoteDetailPage") },
           { path: "notifications", lazy: page(() => import("./pages/NotificationsPage"), "NotificationsPage") },
           { path: "parametres", lazy: page(() => import("./pages/settings/SettingsPage"), "SettingsPage") },
+          // Raccourci /demo : une adresse sans paramètre, conservée telle quelle à travers la connexion.
+          { path: "demonstration", element: <Navigate to="/administration/parametres?onglet=demonstration" replace /> },
           { path: "systeme", lazy: page(() => import("./pages/SystemPage"), "SystemPage") },
           { path: "securite", lazy: page(() => import("./pages/SecurityPage"), "SecurityPage") },
           { path: "*", element: <AdminNotFound /> },

@@ -1,8 +1,9 @@
 /**
  * Plugin Vite (développement et prévisualisation locale uniquement) :
  * - /api/* (hors /api/contact) → l'API Hono de server/http/app.ts, comme la fonction Vercel ;
- * - /administration/* → administration/index.html (application monopage de l'administration).
- * En production, Vercel fait la même chose avec api/index.ts et la réécriture de vercel.json.
+ * - /administration/* → administration/index.html (application monopage de l'administration) ;
+ * - redirections de vercel.json (raccourci /demo).
+ * En production, Vercel fait la même chose avec api/index.ts, les redirections et la réécriture de vercel.json.
  */
 import { readFileSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -61,6 +62,19 @@ const adminFallback: Connect.NextHandleFunction = (req, _res, next) => {
   next();
 };
 
+/** Redirections de vercel.json (adresses exactes), temporaires comme sur Vercel. */
+function vercelRedirects(root: string): Connect.NextHandleFunction {
+  const config = JSON.parse(readFileSync(`${root}/vercel.json`, "utf8")) as { redirects?: Array<{ source: string; destination: string; permanent?: boolean }> };
+  const rules = new Map((config.redirects ?? []).map((rule) => [rule.source, rule]));
+  return (req, res, next) => {
+    const rule = rules.get((req.url ?? "/").split("?")[0] ?? "/");
+    if (!rule) return next();
+    res.statusCode = rule.permanent ? 308 : 307;
+    res.setHeader("location", rule.destination);
+    res.end();
+  };
+}
+
 /**
  * Prévisualisation : mêmes en-têtes que Vercel (vercel.json), dont la politique de sécurité du contenu,
  * pour vérifier localement que tout fonctionne sous ces règles.
@@ -92,6 +106,7 @@ export function adminDevPlugin(): Plugin {
         const address = server.httpServer?.address();
         if (!process.env.APP_URL && address && typeof address === "object") process.env.APP_URL = `http://localhost:${address.port}`;
       });
+      server.middlewares.use(vercelRedirects(server.config.root));
       server.middlewares.use(apiMiddleware(async () => ((await server.ssrLoadModule("/server/http/app.ts")) as { getApp(): ApiApp }).getApp()));
       server.middlewares.use(adminFallback);
     },
@@ -101,6 +116,7 @@ export function adminDevPlugin(): Plugin {
         if (!process.env.APP_URL && address && typeof address === "object") process.env.APP_URL = `http://localhost:${address.port}`;
       });
       server.middlewares.use(vercelHeaders(server.config.root));
+      server.middlewares.use(vercelRedirects(server.config.root));
       // Prévisualisation du build : le code serveur (TypeScript) est chargé par un serveur Vite interne.
       server.middlewares.use(
         apiMiddleware(async () => {

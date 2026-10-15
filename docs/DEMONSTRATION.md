@@ -3,6 +3,10 @@
 *Paramètres*, onglet *Démonstration*, bouton *Préparer la démonstration*. L'action peut être relancée sans rien
 dupliquer. Elle ne saisit aucune quantité et aucun prix à la place de l'utilisateur.
 
+Raccourci : https://munqasa.vercel.app/demo ouvre directement cet onglet. Sans session, il passe par la connexion
+du compte administrateur puis revient sur l'onglet ; il ne donne accès à rien d'autre qu'à l'administration
+habituelle.
+
 ## Ce que fait la préparation
 
 | Élément | Effet |

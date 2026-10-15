@@ -628,6 +628,23 @@ test.describe.serial("administration", () => {
     await expect(page.getByLabel(/ancienneté/i)).toHaveValue("60");
   });
 
+  test("ouvre la démonstration par le raccourci /demo, en passant par la connexion sans session", async ({ browser }) => {
+    await page.goto("/demo");
+    await expect(page).toHaveURL(/\/administration\/parametres\?onglet=demonstration$/);
+    await expect(page.getByRole("tab", { name: "Démonstration", selected: true })).toBeVisible();
+
+    const visitor = await browser.newContext();
+    const fresh = await visitor.newPage();
+    await fresh.goto("/demo");
+    await expect(fresh).toHaveURL(/\/administration\/connexion\?retour=%2Fadministration%2Fdemonstration$/);
+    await fresh.getByLabel("Adresse e-mail").fill(E2E.email);
+    await fresh.getByLabel("Mot de passe", { exact: true }).fill(E2E.password);
+    await fresh.getByRole("button", { name: "Se connecter", exact: true }).click();
+    await expect(fresh).toHaveURL(/\/administration\/parametres\?onglet=demonstration$/);
+    await expect(fresh.getByRole("button", { name: "Préparer la démonstration" })).toBeVisible();
+    await visitor.close();
+  });
+
   test("s'affiche sans débordement sur téléphone", async () => {
     await page.setViewportSize({ width: 390, height: 844 });
     const project = new URL(projectUrl).pathname;

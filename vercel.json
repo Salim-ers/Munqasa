@@ -5,6 +5,7 @@
   "outputDirectory": "dist",
   "cleanUrls": true,
   "trailingSlash": false,
+  "redirects": [{ "source": "/demo", "destination": "/administration/demonstration", "permanent": false }],
   "rewrites": [
     { "source": "/administration/:path+", "destination": "/administration" },
     { "source": "/api/:path+", "destination": "/api" }
